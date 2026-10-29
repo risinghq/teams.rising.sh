@@ -48,3 +48,16 @@ becomes an admin.
 
 `POST /hooks/github` and `POST /hooks/whatsapp` are not under `/api` and use
 their own signature checks.
+
+### GitHub
+
+`POST /hooks/github` verifies `X-Hub-Signature-256` against
+`GITHUB_WEBHOOK_SECRET`. It returns 503 when the secret is unset and 401 on a
+bad signature. Send the events `pull_request`, `issues` and `push`.
+
+A task key such as `ENG-12` in a pull request title, branch name or body, an
+issue title or body, or a commit message links that object to the task. An
+object that names several keys links to the first task that exists. A pull
+request or issue that changes state writes a `link` update to the task's
+activity. A push links its branch when the branch name holds a key, and each
+commit whose message holds one.

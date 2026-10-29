@@ -12,6 +12,7 @@ export type Env = {
     ASSETS: Fetcher;
     GOOGLE_CLIENT_ID?: string;
     GOOGLE_CLIENT_SECRET?: string;
+    GITHUB_WEBHOOK_SECRET?: string;
     ALLOWED_DOMAINS?: string;
     ALLOWED_EMAILS?: string;
     // Lets a test or a local run sign in without Google. Never set in production.
