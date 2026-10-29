@@ -245,7 +245,8 @@ export function Header({
   return (
     <header className="flex min-h-12 flex-wrap items-center gap-3 border-b px-4 py-2">
       <h1 className="text-sm font-semibold">{title}</h1>
-      <div className="ml-auto flex flex-wrap items-center gap-2">
+      {/* One scrolling row on phones so filters don't push the list down. */}
+      <div className="ml-auto flex max-w-full items-center gap-2 overflow-x-auto p-0.5 sm:flex-wrap [&>*]:shrink-0">
         {children}
       </div>
     </header>

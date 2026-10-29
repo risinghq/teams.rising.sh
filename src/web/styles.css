@@ -78,6 +78,29 @@ body {
   outline-offset: 1px;
 }
 
+/* On touch screens every control is at least 44px, and fields use 16px text so
+   iOS does not zoom in on focus. Icon-only buttons carry an aria-label, so they
+   also get the width. Inline links are unaffected: min-height skips inline
+   boxes. The desktop keeps its dense layout. */
+@media (pointer: coarse) {
+  a,
+  button,
+  select,
+  input,
+  textarea {
+    min-height: 44px;
+  }
+  button[aria-label] {
+    min-width: 44px;
+    justify-content: center;
+  }
+  input,
+  select,
+  textarea {
+    font-size: 16px;
+  }
+}
+
 @keyframes pulse-row {
   50% {
     opacity: 0.5;

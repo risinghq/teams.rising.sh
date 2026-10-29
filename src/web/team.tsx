@@ -18,6 +18,7 @@ import {
   usePatchTask,
   useProjects,
   useTasks,
+  useTeams,
   useUsers,
   useWrite,
 } from "./data";
@@ -49,9 +50,7 @@ import {
 const shortDay = (s: string) =>
   parseDay(s).toLocaleDateString(undefined, { month: "short", day: "numeric" });
 
-// 16px on phones so iOS does not zoom into the field on focus.
-const formInput =
-  "h-9 rounded-md border bg-background px-2 text-base sm:text-sm";
+const formInput = "h-9 rounded-md border bg-background px-2 text-sm";
 
 // A list page with an optional side panel. The panel opens from `?task=KEY`.
 export function WithPanel({ children }: { children: ReactNode }) {
@@ -129,6 +128,7 @@ export function TeamPage({ team }: { team: string }) {
   const users = useUsers();
   const labels = useLabels();
   const projects = useProjects(team);
+  const name = useTeams().data?.find((x) => x.key === team)?.name ?? team;
   const me = useMe().data;
   const role = me?.is_admin
     ? "leader"
@@ -144,7 +144,7 @@ export function TeamPage({ team }: { team: string }) {
 
   return (
     <WithPanel>
-      <Header title={team}>
+      <Header title={name}>
         <select
           aria-label="Owner filter"
           className={field}
@@ -508,7 +508,7 @@ function ProjectForm({
         onChange={(e) => setDescription(e.target.value)}
         placeholder="What it is, plus links to its repo or spreadsheet"
         rows={3}
-        className="rounded-md border bg-background px-2 py-1.5 text-base sm:text-sm"
+        className="rounded-md border bg-background px-2 py-1.5 text-sm"
       />
       <div className="flex justify-end gap-2">
         <button type="button" className={button} onClick={onCancel}>
