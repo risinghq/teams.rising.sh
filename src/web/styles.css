@@ -1,5 +1,91 @@
 @import "tailwindcss";
+@import "@fontsource-variable/inter";
+
+:root {
+  --radius: 0.625rem;
+  --background: hsl(220 23.08% 94.9%);
+  --foreground: hsl(234 16.02% 35.49%);
+  --card: hsl(220 23.08% 94.9%);
+  --primary: hsl(266 85.05% 58.04%);
+  --primary-foreground: hsl(220 23.08% 94.9%);
+  --muted: hsl(223 15.91% 82.75%);
+  --muted-foreground: hsl(233 12.8% 41.37%);
+  --destructive: hsl(347 86.67% 44.12%);
+  --border: hsl(225 13.56% 76.86%);
+  --ring: hsl(234 16.02% 35.49%);
+  --sidebar: hsl(218 25.1% 93.73%);
+  --warn: hsl(35 61.18% 40%);
+  --ok: hsl(113 32.94% 33%);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --background: hsl(232 23.4% 18.43%);
+    --foreground: hsl(227 68.25% 87.65%);
+    --card: hsl(232 23.4% 18.43%);
+    --primary: hsl(267 82.69% 79.61%);
+    --primary-foreground: hsl(232 23.4% 18.43%);
+    --muted: hsl(230 18.8% 26.08%);
+    --muted-foreground: hsl(228 39.22% 80%);
+    --destructive: hsl(351 73.91% 72.94%);
+    --border: hsl(231 15.61% 33.92%);
+    --ring: hsl(227 68.25% 87.65%);
+    --sidebar: hsl(234 22.75% 17.25%);
+    --warn: hsl(35 61.18% 76.86%);
+    --ok: hsl(113 32.94% 73.33%);
+  }
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-destructive: var(--destructive);
+  --color-border: var(--border);
+  --color-ring: var(--ring);
+  --color-sidebar: var(--sidebar);
+  --color-warn: var(--warn);
+  --color-ok: var(--ok);
+  --radius-lg: var(--radius);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-sm: calc(var(--radius) - 4px);
+  --font-sans: "Inter Variable", Inter, "Avenir Next", "Segoe UI", sans-serif;
+}
+
+html,
+body,
+#root {
+  height: 100%;
+}
 
 body {
-  font-family: ui-sans-serif, system-ui, sans-serif;
+  background: var(--background);
+  color: var(--foreground);
+  font-family: var(--font-sans);
+  font-size: 0.875rem;
+}
+
+* {
+  border-color: var(--border);
+}
+
+:focus-visible {
+  outline: 2px solid var(--ring);
+  outline-offset: 1px;
+}
+
+@keyframes pulse-row {
+  50% {
+    opacity: 0.5;
+  }
+}
+
+.skeleton {
+  background: var(--muted);
+  border-radius: var(--radius-sm);
+  animation: pulse-row 1.4s ease-in-out infinite;
 }
