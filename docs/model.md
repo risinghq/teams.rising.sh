@@ -17,6 +17,16 @@ Org (one per deployment)
 - A leader edits anything in their team. A member edits tasks they own or
   collaborate on, and comments on any task they can see.
 
+## Projects
+
+- A project with a target date ends and shows progress: the share of its done
+  tasks, ignoring canceled ones.
+- A project without a target date is an area that stays open, such as funding
+  calls or graduate programs. It shows its open tasks and their nearest due
+  date.
+- Any team member can create a project. A leader edits it and closes it as
+  `done` or `archived`. Only `active` projects show on the team page.
+
 ## Tasks
 
 - A task has a per-team `number`. Its key is the team key plus the number, for

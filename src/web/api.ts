@@ -96,7 +96,8 @@ export type Project = {
   id: string;
   team_id: string;
   name: string;
-  status: string;
+  description: string;
+  status: "active" | "done" | "archived";
   target_date: string | null;
 };
 
@@ -166,6 +167,10 @@ export const api = {
   teams: () => request<Team[]>("GET", "/api/teams"),
   projects: (team: string) =>
     request<Project[]>("GET", `/api/teams/${team}/projects`),
+  createProject: (team: string, body: Record<string, unknown>) =>
+    request<Project>("POST", `/api/teams/${team}/projects`, body),
+  patchProject: (id: string, body: Record<string, unknown>) =>
+    request<Project>("PATCH", `/api/projects/${id}`, body),
   labels: () =>
     request<(Label & { team_id: string | null })[]>("GET", "/api/labels"),
   tasks: (query: Record<string, string>) =>

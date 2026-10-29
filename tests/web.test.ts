@@ -5,12 +5,15 @@ import {
   dropOnDay,
   filterTasks,
   groupByDue,
+  linkify,
   monthGrid,
   NO_FILTERS,
   searchPalette,
+  summarizeProjects,
   weekGrid,
   type PaletteItem,
 } from "../src/web/lib";
+import type { Project } from "../src/web/api";
 
 const task = (over: Partial<Task>): Task => ({
   id: "x",
@@ -78,6 +81,11 @@ describe("filterTasks", () => {
       filterTasks(tasks, { ...NO_FILTERS, owner: "none" }).map((t) => t.key),
     ).toEqual(["A-2"]);
   });
+  test("project none matches tasks outside any project", () => {
+    expect(
+      filterTasks(tasks, { ...NO_FILTERS, project: "none" }).map((t) => t.key),
+    ).toEqual(["A-2"]);
+  });
   test("filters combine", () => {
     expect(
       filterTasks(tasks, {
@@ -90,6 +98,69 @@ describe("filterTasks", () => {
     expect(
       filterTasks(tasks, { ...NO_FILTERS, owner: "u1", label: "l1" }),
     ).toHaveLength(0);
+  });
+});
+
+describe("summarizeProjects", () => {
+  const project = (over: Partial<Project>): Project => ({
+    id: "p",
+    team_id: "t",
+    name: "p",
+    description: "",
+    status: "active",
+    target_date: null,
+    ...over,
+  });
+  const summary = summarizeProjects(
+    [
+      project({ id: "web", target_date: "2026-12-15" }),
+      project({ id: "funding" }),
+      project({ id: "old", target_date: "2026-01-01", status: "done" }),
+    ],
+    [
+      task({ key: "A-1", project_id: "web", status: "done" }),
+      task({ key: "A-2", project_id: "web" }),
+      task({ key: "A-3", project_id: "web", status: "canceled" }),
+      task({ key: "A-4", project_id: "funding", due_date: "2026-12-01" }),
+      task({ key: "A-5", project_id: "funding", due_date: "2026-11-30" }),
+      task({ key: "A-6", project_id: "funding", status: "done" }),
+      task({ key: "A-7" }),
+      task({ key: "A-8", status: "done" }),
+    ],
+  );
+  test("a target date makes a project, none makes an area", () => {
+    expect(summary.projects.map((s) => s.project.id)).toEqual(["web"]);
+    expect(summary.areas.map((s) => s.project.id)).toEqual(["funding"]);
+  });
+  test("progress ignores canceled tasks", () => {
+    expect(summary.projects[0]?.progress).toBe(0.5);
+  });
+  test("an area counts open tasks and its nearest due date", () => {
+    expect(summary.areas[0]).toMatchObject({ open: 2, nextDue: "2026-11-30" });
+  });
+  test("loose counts open tasks outside any project", () => {
+    expect(summary.loose).toBe(1);
+  });
+});
+
+describe("linkify", () => {
+  test("splits URLs from text and keeps trailing punctuation out", () => {
+    expect(
+      linkify(
+        "Sheet: https://docs.google.com/x?a=1. Repo https://github.com/r",
+      ),
+    ).toEqual([
+      { text: "Sheet: " },
+      {
+        text: "https://docs.google.com/x?a=1",
+        url: "https://docs.google.com/x?a=1",
+      },
+      { text: ". Repo " },
+      { text: "https://github.com/r", url: "https://github.com/r" },
+    ]);
+  });
+  test("text without URLs is one segment", () => {
+    expect(linkify("no links here")).toEqual([{ text: "no links here" }]);
   });
 });
 

@@ -1,4 +1,5 @@
 import { Link } from "@tanstack/react-router";
+import clsx from "clsx";
 import { ExternalLink, Lock, X } from "lucide-react";
 import { useState } from "react";
 import {
@@ -12,9 +13,12 @@ import {
 } from "./api";
 import {
   today,
+  useLabels,
   useMe,
   usePatchTask,
+  useProjects,
   useTask,
+  useTeams,
   useUsers,
   useWrite,
 } from "./data";
@@ -25,6 +29,7 @@ import {
   DueChip,
   Empty,
   field,
+  LinkedText,
   primaryButton,
   ProgressBar,
   Skeleton,
@@ -48,6 +53,11 @@ export function TaskView({
 function Detail({ task, onClose }: { task: TaskDetail; onClose?: () => void }) {
   const me = useMe();
   const users = useUsers();
+  const projects = useProjects(task.team);
+  const teamId = useTeams().data?.find((t) => t.key === task.team)?.id;
+  const labels = useLabels().data?.filter(
+    (l) => l.team_id === null || l.team_id === teamId,
+  );
   const patch = usePatchTask();
   const join = useWrite(() => api.join(task.key));
   const leave = useWrite(() => api.leave(task.key));
@@ -139,6 +149,53 @@ function Detail({ task, onClose }: { task: TaskDetail; onClose?: () => void }) {
             ))}
           </select>
         </dd>
+        <dt className="text-muted-foreground">Project</dt>
+        <dd>
+          <select
+            aria-label="Project"
+            className={field}
+            value={task.project_id ?? ""}
+            onChange={(e) => set({ project_id: e.target.value || null })}
+          >
+            <option value="">No project</option>
+            {projects.data
+              ?.filter((p) => p.status === "active" || p.id === task.project_id)
+              .map((p) => (
+                <option key={p.id} value={p.id}>
+                  {p.name}
+                </option>
+              ))}
+          </select>
+        </dd>
+        <dt className="text-muted-foreground">Labels</dt>
+        <dd className="flex flex-wrap gap-1">
+          {labels?.map((l) => {
+            const on = task.labels.some((x) => x.id === l.id);
+            return (
+              <button
+                key={l.id}
+                type="button"
+                aria-pressed={on}
+                onClick={() =>
+                  set({
+                    labels: on
+                      ? task.labels
+                          .filter((x) => x.id !== l.id)
+                          .map((x) => x.id)
+                      : [...task.labels.map((x) => x.id), l.id],
+                  })
+                }
+                className={clsx(
+                  "rounded-full border px-2 py-0.5",
+                  on ? "font-medium" : "text-muted-foreground opacity-60",
+                )}
+                style={on ? { borderColor: l.color } : undefined}
+              >
+                {l.name}
+              </button>
+            );
+          })}
+        </dd>
         <dt className="text-muted-foreground">Helping</dt>
         <dd className="flex flex-wrap items-center gap-2">
           {task.collaborators.map((c) => (
@@ -160,7 +217,7 @@ function Detail({ task, onClose }: { task: TaskDetail; onClose?: () => void }) {
 
       {task.description && (
         <p className="whitespace-pre-wrap border-b px-4 py-3 text-sm">
-          {task.description}
+          <LinkedText text={task.description} />
         </p>
       )}
 

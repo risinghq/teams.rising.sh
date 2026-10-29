@@ -2,7 +2,7 @@ import clsx from "clsx";
 import { Lock } from "lucide-react";
 import type { ReactNode } from "react";
 import { STATUS_LABEL, type Person, type Task, type TaskStatus } from "./api";
-import { parseDay } from "./lib";
+import { linkify, parseDay } from "./lib";
 
 const STATUS_COLOR: Record<TaskStatus, string> = {
   backlog: "var(--muted-foreground)",
@@ -182,6 +182,25 @@ export function TaskRow({
       <DueChip task={task} today={today} />
       <Avatar person={task.owner} />
     </button>
+  );
+}
+
+// Free text with its URLs as links, such as a paper or a spreadsheet.
+export function LinkedText({ text }: { text: string }) {
+  return linkify(text).map((s, i) =>
+    s.url ? (
+      <a
+        key={i}
+        href={s.url}
+        target="_blank"
+        rel="noreferrer"
+        className="break-all text-primary underline-offset-2 hover:underline"
+      >
+        {s.text}
+      </a>
+    ) : (
+      s.text
+    ),
   );
 }
 

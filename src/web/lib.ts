@@ -1,4 +1,5 @@
-import type { Task, TaskStatus } from "./api";
+import { progress } from "../shared/progress";
+import type { Project, Task, TaskStatus } from "./api";
 
 export const iso = (d: Date) =>
   `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
@@ -72,15 +73,64 @@ export const NO_FILTERS: Filters = {
   project: "",
 };
 
-// "" matches everything. owner "none" matches unowned tasks.
+// "" matches everything. owner "none" matches unowned tasks, project "none"
+// tasks outside any project.
 export function filterTasks(tasks: Task[], f: Filters): Task[] {
   return tasks.filter(
     (t) =>
       (!f.owner || (f.owner === "none" ? !t.owner : t.owner?.id === f.owner)) &&
       (!f.status || t.status === f.status) &&
       (!f.label || t.labels.some((l) => l.id === f.label)) &&
-      (!f.project || t.project_id === f.project),
+      (!f.project ||
+        (f.project === "none" ? !t.project_id : t.project_id === f.project)),
   );
+}
+
+export type ProjectSummary = {
+  project: Project;
+  open: number;
+  progress: number;
+  nextDue: string | null;
+};
+
+// A project with a target date ends. One without is an area that stays open,
+// such as funding calls. Progress counts the project's tasks the way a task
+// counts its subtasks.
+export function summarizeProjects(projects: Project[], tasks: Task[]) {
+  const summaries = projects
+    .filter((p) => p.status === "active")
+    .map((project): ProjectSummary => {
+      const own = tasks.filter((t) => t.project_id === project.id);
+      const open = own.filter((t) => isOpen(t.status));
+      const dues = open.flatMap((t) => (t.due_date ? [t.due_date] : [])).sort();
+      return {
+        project,
+        open: open.length,
+        progress: progress({ status: "todo" }, own),
+        nextDue: dues[0] ?? null,
+      };
+    });
+  return {
+    projects: summaries.filter((s) => s.project.target_date),
+    areas: summaries.filter((s) => !s.project.target_date),
+    loose: tasks.filter((t) => !t.project_id && isOpen(t.status)).length,
+  };
+}
+
+export type Segment = { text: string; url?: string };
+
+// Splits text so http(s) URLs can render as links. Trailing punctuation stays
+// outside the URL.
+export function linkify(text: string): Segment[] {
+  const segments: Segment[] = [];
+  let last = 0;
+  for (const m of text.matchAll(/https?:\/\/[^\s<>"]+[^\s<>".,;:!?)\]]/g)) {
+    if (m.index > last) segments.push({ text: text.slice(last, m.index) });
+    segments.push({ text: m[0], url: m[0] });
+    last = m.index + m[0].length;
+  }
+  if (last < text.length) segments.push({ text: text.slice(last) });
+  return segments;
 }
 
 export type Drop = { key: string; patch: { due_date: string } } | null;

@@ -1,11 +1,19 @@
 import { useNavigate, useSearch } from "@tanstack/react-router";
 import clsx from "clsx";
-import { LayoutList, Columns3 } from "lucide-react";
+import { ArrowLeft, LayoutList, Columns3, Plus } from "lucide-react";
 import { useState, type ReactNode } from "react";
-import { api, STATUS_LABEL, STATUSES, type Task, type TaskStatus } from "./api";
+import {
+  api,
+  STATUS_LABEL,
+  STATUSES,
+  type Project,
+  type Task,
+  type TaskStatus,
+} from "./api";
 import {
   today,
   useLabels,
+  useMe,
   useOpenTask,
   usePatchTask,
   useProjects,
@@ -13,19 +21,33 @@ import {
   useUsers,
   useWrite,
 } from "./data";
-import { filterTasks, groupByDue, NO_FILTERS, type Filters } from "./lib";
+import {
+  filterTasks,
+  groupByDue,
+  NO_FILTERS,
+  parseDay,
+  summarizeProjects,
+  type Filters,
+  type ProjectSummary,
+} from "./lib";
 import { TaskView } from "./task";
 import {
   Avatar,
+  button,
   DueChip,
   Empty,
   field,
   Header,
+  LinkedText,
   primaryButton,
+  ProgressBar,
   Skeleton,
   StatusDot,
   TaskRow,
 } from "./ui";
+
+const shortDay = (s: string) =>
+  parseDay(s).toLocaleDateString(undefined, { month: "short", day: "numeric" });
 
 // A list page with an optional side panel. The panel opens from `?task=KEY`.
 export function WithPanel({ children }: { children: ReactNode }) {
@@ -103,12 +125,18 @@ export function TeamPage({ team }: { team: string }) {
   const users = useUsers();
   const labels = useLabels();
   const projects = useProjects(team);
+  const me = useMe().data;
+  const role = me?.is_admin
+    ? "leader"
+    : me?.teams.find((x) => x.key === team)?.role;
   const open = useOpenTask();
   const t = today();
   const search = useSearch({ strict: false }) as { task?: string };
   const shown = filterTasks(tasks.data ?? [], filters);
   const set = (k: keyof Filters) => (e: { target: { value: string } }) =>
     setFilters((f) => ({ ...f, [k]: e.target.value }));
+  const pick = (project: string) => setFilters((f) => ({ ...f, project }));
+  const current = projects.data?.find((p) => p.id === filters.project);
 
   return (
     <WithPanel>
@@ -160,6 +188,7 @@ export function TeamPage({ team }: { team: string }) {
           onChange={set("project")}
         >
           <option value="">Any project</option>
+          <option value="none">No project</option>
           {projects.data?.map((p) => (
             <option key={p.id} value={p.id}>
               {p.name}
@@ -186,7 +215,23 @@ export function TeamPage({ team }: { team: string }) {
           ))}
         </div>
       </Header>
-      <NewTask team={team} />
+      {current ? (
+        <ProjectHeader
+          project={current}
+          canEdit={role === "leader"}
+          onBack={() => pick("")}
+        />
+      ) : (
+        !filters.project && (
+          <ProjectList
+            team={team}
+            summary={summarizeProjects(projects.data ?? [], tasks.data ?? [])}
+            canCreate={role !== undefined}
+            onPick={pick}
+          />
+        )
+      )}
+      <NewTask team={team} project={current?.id} />
       {tasks.isPending ? (
         <Skeleton />
       ) : shown.length === 0 ? (
@@ -218,7 +263,258 @@ export function TeamPage({ team }: { team: string }) {
   );
 }
 
-function NewTask({ team }: { team: string }) {
+// The team's live projects and areas, and the tasks outside them. Picking one
+// filters the list below.
+function ProjectList({
+  team,
+  summary,
+  canCreate,
+  onPick,
+}: {
+  team: string;
+  summary: ReturnType<typeof summarizeProjects>;
+  canCreate: boolean;
+  onPick: (project: string) => void;
+}) {
+  const [adding, setAdding] = useState(false);
+  const create = useWrite((body: Record<string, unknown>) =>
+    api.createProject(team, body),
+  );
+  const empty = summary.projects.length === 0 && summary.areas.length === 0;
+  if (empty && !canCreate) return null;
+  return (
+    <section className="border-b">
+      {(
+        [
+          ["Projects", summary.projects],
+          ["Areas", summary.areas],
+        ] as const
+      ).map(
+        ([title, rows]) =>
+          rows.length > 0 && (
+            <div key={title}>
+              <h2 className="border-b bg-sidebar px-4 py-1.5 text-xs font-medium">
+                {title}
+              </h2>
+              {rows.map((s) => (
+                <ProjectRow key={s.project.id} summary={s} onPick={onPick} />
+              ))}
+            </div>
+          ),
+      )}
+      {!empty && summary.loose > 0 && (
+        <button
+          type="button"
+          onClick={() => onPick("none")}
+          className="flex w-full items-center gap-3 border-b px-4 py-2 text-left text-muted-foreground hover:bg-muted/60"
+        >
+          <span className="flex-1">No project</span>
+          <span className="text-xs">{summary.loose} open</span>
+        </button>
+      )}
+      {canCreate &&
+        (adding ? (
+          <ProjectForm
+            pending={create.isPending}
+            onCancel={() => setAdding(false)}
+            onSave={(body) =>
+              create.mutate(body, { onSuccess: () => setAdding(false) })
+            }
+          />
+        ) : (
+          <button
+            type="button"
+            onClick={() => setAdding(true)}
+            className="flex w-full items-center gap-2 px-4 py-2 text-xs text-muted-foreground hover:bg-muted/60"
+          >
+            <Plus size={14} /> New project or area
+          </button>
+        ))}
+    </section>
+  );
+}
+
+function ProjectRow({
+  summary: { project, open, progress, nextDue },
+  onPick,
+}: {
+  summary: ProjectSummary;
+  onPick: (project: string) => void;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={() => onPick(project.id)}
+      className="flex w-full items-center gap-3 border-b px-4 py-2 text-left hover:bg-muted/60"
+    >
+      <span className="min-w-0 flex-1 truncate font-medium">
+        {project.name}
+      </span>
+      {project.target_date ? (
+        <>
+          <ProgressBar value={progress} />
+          <span className="w-16 text-right text-xs tabular-nums text-muted-foreground">
+            {shortDay(project.target_date)}
+          </span>
+        </>
+      ) : (
+        <span className="text-xs text-muted-foreground">
+          {open} open{nextDue && ` · next ${shortDay(nextDue)}`}
+        </span>
+      )}
+    </button>
+  );
+}
+
+function ProjectHeader({
+  project,
+  canEdit,
+  onBack,
+}: {
+  project: Project;
+  canEdit: boolean;
+  onBack: () => void;
+}) {
+  const [editing, setEditing] = useState(false);
+  const save = useWrite((body: Record<string, unknown>) =>
+    api.patchProject(project.id, body),
+  );
+  if (editing)
+    return (
+      <section className="border-b">
+        <ProjectForm
+          project={project}
+          pending={save.isPending}
+          onCancel={() => setEditing(false)}
+          onSave={(body) =>
+            save.mutate(body, { onSuccess: () => setEditing(false) })
+          }
+        />
+      </section>
+    );
+  return (
+    <section className="flex flex-col gap-2 border-b px-4 py-3">
+      <div className="flex items-center gap-2">
+        <button
+          type="button"
+          aria-label="All projects"
+          onClick={onBack}
+          className="rounded-md p-1 hover:bg-muted"
+        >
+          <ArrowLeft size={14} />
+        </button>
+        <h2 className="font-semibold">{project.name}</h2>
+        <span className="text-xs text-muted-foreground">
+          {project.target_date
+            ? `Target ${shortDay(project.target_date)}`
+            : "Ongoing area"}
+          {project.status !== "active" && ` · ${project.status}`}
+        </span>
+        {canEdit && (
+          <button
+            type="button"
+            className={clsx(button, "ml-auto")}
+            onClick={() => setEditing(true)}
+          >
+            Edit
+          </button>
+        )}
+      </div>
+      {project.description && (
+        <p className="whitespace-pre-wrap text-sm">
+          <LinkedText text={project.description} />
+        </p>
+      )}
+    </section>
+  );
+}
+
+// Creates a project, or edits one when `project` is given. An empty target date
+// makes an area.
+function ProjectForm({
+  project,
+  pending,
+  onSave,
+  onCancel,
+}: {
+  project?: Project;
+  pending: boolean;
+  onSave: (body: Record<string, unknown>) => void;
+  onCancel: () => void;
+}) {
+  const [name, setName] = useState(project?.name ?? "");
+  const [target, setTarget] = useState(project?.target_date ?? "");
+  const [description, setDescription] = useState(project?.description ?? "");
+  const [status, setStatus] = useState(project?.status ?? "active");
+  return (
+    <form
+      className="flex flex-col gap-2 px-4 py-3"
+      onSubmit={(e) => {
+        e.preventDefault();
+        if (!name.trim()) return;
+        onSave({
+          name: name.trim(),
+          target_date: target || null,
+          description,
+          ...(project && { status }),
+        });
+      }}
+    >
+      <input
+        aria-label="Project name"
+        autoFocus
+        value={name}
+        onChange={(e) => setName(e.target.value)}
+        placeholder="Name"
+        className={clsx(field, "text-sm")}
+      />
+      <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
+        <input
+          type="date"
+          aria-label="Target date"
+          value={target}
+          onChange={(e) => setTarget(e.target.value)}
+          className={field}
+        />
+        Leave the date empty for an ongoing area.
+        {project && (
+          <select
+            aria-label="Project status"
+            className={clsx(field, "ml-auto")}
+            value={status}
+            onChange={(e) => setStatus(e.target.value as Project["status"])}
+          >
+            <option value="active">Active</option>
+            <option value="done">Done</option>
+            <option value="archived">Archived</option>
+          </select>
+        )}
+      </div>
+      <textarea
+        aria-label="Project description"
+        value={description}
+        onChange={(e) => setDescription(e.target.value)}
+        placeholder="What it is, plus links to its repo or spreadsheet"
+        rows={3}
+        className="rounded-md border bg-background px-2 py-1.5 text-sm"
+      />
+      <div className="flex justify-end gap-2">
+        <button type="button" className={button} onClick={onCancel}>
+          Cancel
+        </button>
+        <button
+          type="submit"
+          className={primaryButton}
+          disabled={pending || !name.trim()}
+        >
+          {project ? "Save" : "Create"}
+        </button>
+      </div>
+    </form>
+  );
+}
+
+function NewTask({ team, project }: { team: string; project?: string }) {
   const [title, setTitle] = useState("");
   const create = useWrite((body: Record<string, unknown>) =>
     api.createTask(body),
@@ -231,7 +527,7 @@ function NewTask({ team }: { team: string }) {
         const value = title.trim();
         if (!value) return;
         create.mutate(
-          { team, title: value },
+          { team, title: value, project_id: project },
           { onSuccess: () => setTitle("") },
         );
       }}
