@@ -15,6 +15,7 @@ request without one gets 401.
 | `GET /api/auth/google/callback` | Creates the user and session, sets the `session` cookie (HttpOnly, Secure, SameSite=Lax), redirects to `/`. |
 | `POST /api/auth/logout`         | Deletes the session.                                                                                        |
 | `GET /api/me`                   | The user, their teams with roles, and `is_admin`.                                                           |
+| `POST /api/auth/dev`            | Signs in by email without Google. Exists only when `DEV_LOGIN=1`, for tests and local runs. Otherwise 404.  |
 
 Sign-in is limited to the Google Workspace domain or email list in the
 `ALLOWED_EMAILS` and `ALLOWED_DOMAINS` settings. The first user to sign in
@@ -37,7 +38,8 @@ becomes an admin.
 | `POST /api/tasks/:key/updates`                         | Add a comment. Body: `{"body": "..."}`.                                                                                                                                                                   |
 | `PUT/DELETE /api/tasks/:key/collaborators/:userId`     | Any user can add themselves to an open task. A leader or the owner adds others.                                                                                                                           |
 | `GET/POST /api/labels`                                 | List and create labels.                                                                                                                                                                                   |
-| `GET /api/inbox`                                       | Updates on tasks the caller owns, collaborates on, or is mentioned in, newest first.                                                                                                                      |
+| `GET /api/inbox`                                       | Updates on tasks the caller owns, collaborates on, or is mentioned in, newest first. Returns `unread` and `items`.                                                                                        |
+| `POST /api/inbox/read`                                 | Marks the inbox read up to now.                                                                                                                                                                           |
 | `GET/POST /api/events`, `PATCH/DELETE /api/events/:id` | Calendar events. Query `from`, `to`.                                                                                                                                                                      |
 | `GET /api/calendar`                                    | Tasks with dates and events in `from`..`to`, merged.                                                                                                                                                      |
 | `GET /api/overview`                                    | Open, blocked and overdue counts by team and by owner.                                                                                                                                                    |
