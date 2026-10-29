@@ -15,6 +15,7 @@ request without one gets 401.
 | `GET /api/auth/google/callback` | Creates the user and session, sets the `session` cookie (HttpOnly, Secure, SameSite=Lax), redirects to `/`. |
 | `POST /api/auth/logout`         | Deletes the session.                                                                                        |
 | `GET /api/me`                   | The user, their teams with roles, and `is_admin`.                                                           |
+| `PUT /api/me/whatsapp`          | Body `{number}`: set the user's WhatsApp number, or `null` to clear it. 409 when another user has it.       |
 | `POST /api/auth/dev`            | Signs in by email without Google. Exists only when `DEV_LOGIN=1`, for tests and local runs. Otherwise 404.  |
 
 Sign-in is limited to the Google Workspace domain or email list in the
@@ -48,6 +49,19 @@ becomes an admin.
 
 `POST /hooks/github` and `POST /hooks/whatsapp` are not under `/api` and use
 their own signature checks.
+
+### WhatsApp
+
+`GET /hooks/whatsapp` answers Meta's subscription handshake when
+`hub.verify_token` equals `WHATSAPP_VERIFY_TOKEN`. `POST /hooks/whatsapp`
+verifies `X-Hub-Signature-256` against `WHATSAPP_APP_SECRET`. Both return 503
+when their setting is unset, and 401 or 403 on a bad signature or token.
+
+A text message from a number set through `PUT /api/me/whatsapp` that names a
+task key becomes a `whatsapp` update by that user on the first named task they
+may see. A message from an unknown number, without a key, or about a task the
+sender cannot see is dropped. Meta redelivers, so a message id is recorded once.
+Outbound notifications are not built yet.
 
 ### GitHub
 

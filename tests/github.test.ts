@@ -2,7 +2,8 @@ import { afterAll, beforeAll, expect, test } from "bun:test";
 import { readdirSync, readFileSync } from "node:fs";
 import { Miniflare } from "miniflare";
 import app from "../src/worker/index";
-import { taskKeys, validSignature } from "../src/worker/github";
+import { taskKeys } from "../src/worker/github";
+import { validSignature } from "../src/worker/signature";
 
 const SECRET = "hook-secret";
 let mf: Miniflare;

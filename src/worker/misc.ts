@@ -3,6 +3,7 @@ import { visible } from "./access";
 import type { Env, User } from "./env";
 import { body, date, HttpError, id, text, type C } from "./http";
 import { hydrate } from "./tasks";
+import { normalizeNumber } from "./whatsapp";
 
 type EventRow = {
   id: string;
@@ -102,6 +103,24 @@ miscRoutes.get("/me", async (c) => {
     is_admin: user.is_admin === 1,
     teams: teams.results,
   });
+});
+
+miscRoutes.put("/me/whatsapp", async (c) => {
+  const input = await body(c);
+  const number =
+    input.number === null
+      ? null
+      : normalizeNumber(text(input.number, "number", 30));
+  if (input.number !== null && number === null)
+    throw new HttpError(400, "number must be 8 to 15 digits with country code");
+  try {
+    await c.env.DB.prepare("UPDATE users SET whatsapp_number = ? WHERE id = ?")
+      .bind(number, c.get("user").id)
+      .run();
+  } catch {
+    throw new HttpError(409, "that number belongs to another user");
+  }
+  return c.json({ whatsapp_number: number });
 });
 
 miscRoutes.get("/inbox", async (c) => {
