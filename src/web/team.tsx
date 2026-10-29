@@ -1,6 +1,6 @@
-import { useNavigate, useSearch } from "@tanstack/react-router";
+import { Link, useNavigate, useSearch } from "@tanstack/react-router";
 import clsx from "clsx";
-import { ArrowLeft, LayoutList, Columns3, Plus } from "lucide-react";
+import { ArrowLeft, Columns3, LayoutList, Plus, Settings } from "lucide-react";
 import { useState, type ReactNode } from "react";
 import {
   api,
@@ -218,6 +218,16 @@ export function TeamPage({ team }: { team: string }) {
             </button>
           ))}
         </div>
+        {role === "leader" && (
+          <Link
+            to="/t/$team/settings"
+            params={{ team }}
+            aria-label="Team settings"
+            className="inline-flex size-8 items-center justify-center rounded-md border hover:bg-muted"
+          >
+            <Settings size={14} />
+          </Link>
+        )}
       </Header>
       {current || filters.project === "none" ? (
         <ProjectHeader

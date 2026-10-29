@@ -7,6 +7,7 @@ import {
   CheckSquare,
   LayoutDashboard,
   Menu,
+  Plus,
   Search,
 } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
@@ -92,9 +93,18 @@ export function Shell() {
           </Link>
         </nav>
         <div className="min-h-0 flex-1 overflow-y-auto" onClick={close}>
-          <p className="px-2 pb-1 text-xs font-medium text-muted-foreground">
-            Teams
-          </p>
+          <div className="flex items-center justify-between px-2 pb-1">
+            <p className="text-xs font-medium text-muted-foreground">Teams</p>
+            {me.data?.is_admin && (
+              <Link
+                to="/teams/new"
+                aria-label="New team"
+                className="inline-flex size-6 items-center justify-center rounded-md text-muted-foreground hover:bg-muted"
+              >
+                <Plus size={14} />
+              </Link>
+            )}
+          </div>
           {teams.data?.map((t) => (
             <Link
               key={t.key}

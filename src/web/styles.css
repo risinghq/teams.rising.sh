@@ -90,7 +90,8 @@ body {
   textarea {
     min-height: 44px;
   }
-  button[aria-label] {
+  button[aria-label],
+  a[aria-label] {
     min-width: 44px;
     justify-content: center;
   }

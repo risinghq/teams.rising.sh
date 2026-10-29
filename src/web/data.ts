@@ -7,6 +7,8 @@ export const useMe = () =>
   useQuery({ queryKey: ["me"], queryFn: api.me, staleTime: 60_000 });
 export const useTeams = () =>
   useQuery({ queryKey: ["teams"], queryFn: api.teams });
+export const useTeam = (key: string) =>
+  useQuery({ queryKey: ["team", key], queryFn: () => api.team(key) });
 export const useUsers = () =>
   useQuery({ queryKey: ["users"], queryFn: api.users, staleTime: 60_000 });
 export const useLabels = () =>

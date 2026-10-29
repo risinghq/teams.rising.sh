@@ -15,6 +15,7 @@ import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
 import { ApiError } from "./api";
 import { Calendar, Inbox, Login, Overview } from "./pages";
+import { NewTeam, TeamSettings } from "./settings";
 import { Shell } from "./shell";
 import { TaskView } from "./task";
 import { MyWork, TeamPage } from "./team";
@@ -75,6 +76,18 @@ const team = createRoute({
     return <TeamPage team={team.useParams().team} />;
   },
 });
+const newTeam = createRoute({
+  getParentRoute: () => shell,
+  path: "/teams/new",
+  component: NewTeam,
+});
+const settings = createRoute({
+  getParentRoute: () => shell,
+  path: "/t/$team/settings",
+  component: function Settings() {
+    return <TeamSettings team={settings.useParams().team} />;
+  },
+});
 const task = createRoute({
   getParentRoute: () => shell,
   path: "/t/$team/$number",
@@ -95,7 +108,16 @@ const task = createRoute({
 const router = createRouter({
   routeTree: root.addChildren([
     login,
-    shell.addChildren([home, inbox, calendar, overview, team, task]),
+    shell.addChildren([
+      home,
+      inbox,
+      calendar,
+      overview,
+      newTeam,
+      team,
+      settings,
+      task,
+    ]),
   ]),
 });
 

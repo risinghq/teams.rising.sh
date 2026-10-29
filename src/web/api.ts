@@ -92,6 +92,9 @@ export type Team = {
   members: number;
 };
 
+export type Member = Person & { email: string; role: "leader" | "member" };
+export type TeamDetail = Omit<Team, "members"> & { members: Member[] };
+
 export type Project = {
   id: string;
   team_id: string;
@@ -165,6 +168,17 @@ export const api = {
   me: () => request<Me>("GET", "/api/me"),
   users: () => request<User[]>("GET", "/api/users"),
   teams: () => request<Team[]>("GET", "/api/teams"),
+  team: (key: string) => request<TeamDetail>("GET", `/api/teams/${key}`),
+  createTeam: (body: Record<string, unknown>) =>
+    request<Team>("POST", "/api/teams", body),
+  patchTeam: (key: string, body: Record<string, unknown>) =>
+    request<Team>("PATCH", `/api/teams/${key}`, body),
+  setMember: (key: string, userId: string, role: Member["role"]) =>
+    request("PUT", `/api/teams/${key}/members/${userId}`, { role }),
+  removeMember: (key: string, userId: string) =>
+    request("DELETE", `/api/teams/${key}/members/${userId}`),
+  createLabel: (body: Record<string, unknown>) =>
+    request<{ id: string }>("POST", "/api/labels", body),
   projects: (team: string) =>
     request<Project[]>("GET", `/api/teams/${team}/projects`),
   createProject: (team: string, body: Record<string, unknown>) =>
