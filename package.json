@@ -1,0 +1,39 @@
+{
+  "name": "teams.rising.sh",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc --noEmit && vite build",
+    "lint": "oxfmt --check .",
+    "fix": "oxfmt .",
+    "typecheck": "tsc --noEmit && tsc --noEmit -p tests",
+    "test": "bun test",
+    "check": "bun run lint && bun run typecheck && bun run test",
+    "db:migrate:local": "wrangler d1 migrations apply teams --local",
+    "db:migrate:remote": "wrangler d1 migrations apply teams --remote",
+    "deploy": "bun run build && wrangler deploy"
+  },
+  "dependencies": {
+    "@tanstack/react-query": "^5.105.0",
+    "@tanstack/react-router": "^1.170.46",
+    "clsx": "^2.1.1",
+    "hono": "^4.13.14",
+    "lucide-react": "^1.63.0",
+    "react": "^19.3.1",
+    "react-dom": "^19.3.1"
+  },
+  "devDependencies": {
+    "@cloudflare/workers-types": "^5.20261029.1",
+    "@tailwindcss/vite": "^4.3.3",
+    "@types/bun": "^1.4.4",
+    "@types/react": "^19.3.0",
+    "@types/react-dom": "^19.3.0",
+    "@vitejs/plugin-react": "^6.1.2",
+    "oxfmt": "^0.75.0",
+    "tailwindcss": "^4.3.3",
+    "typescript": "^7.0.2",
+    "vite": "^8.3.5",
+    "wrangler": "^4.155.0"
+  }
+}
