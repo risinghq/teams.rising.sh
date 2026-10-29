@@ -51,8 +51,11 @@ it is newer than `users.inbox_read_at`.
 
 - GitHub: a webhook at `/hooks/github` links pull requests, issues, branches and
   commits to a task by key, and keeps `task_links.state` current.
-- Google: sign-in uses Google OIDC. Calendar sync reads and writes `events` and
-  task due dates through `google_event_id`.
+- Google: sign-in uses Google OIDC. Calendar sync is one way: an event created,
+  changed or deleted in Teams is mirrored to its creator's primary calendar and
+  keeps that calendar's id in `events.google_event_id`. Nothing is read back, so
+  private Google events never reach the org. A Google failure leaves the Teams
+  event saved.
 - WhatsApp: a webhook at `/hooks/whatsapp` turns a message from a known
   `users.whatsapp_number` into an update on a task. Notifications go out through
   the Cloud API.

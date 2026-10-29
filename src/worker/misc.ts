@@ -1,6 +1,7 @@
 import { Hono } from "hono";
 import { visible } from "./access";
 import type { Env, User } from "./env";
+import { removeEvent, syncEvent } from "./gcal";
 import { body, date, HttpError, id, text, type C } from "./http";
 import { hydrate } from "./tasks";
 import { normalizeNumber } from "./whatsapp";
@@ -13,6 +14,7 @@ type EventRow = {
   starts_at: string;
   ends_at: string | null;
   all_day: number;
+  google_event_id: string | null;
   created_by: string;
 };
 
@@ -175,6 +177,7 @@ miscRoutes.post("/events", async (c) => {
       c.get("user").id,
     )
     .run();
+  await syncEvent(c.env, c.get("user").id, await eventById(c, eventId));
   return c.json(await eventById(c, eventId), 201);
 });
 
@@ -202,6 +205,7 @@ miscRoutes.patch("/events/:id", async (c) => {
       event.id,
     )
     .run();
+  await syncEvent(c.env, event.created_by, await eventById(c, event.id));
   return c.json(await eventById(c, event.id));
 });
 
@@ -211,6 +215,7 @@ miscRoutes.delete("/events/:id", async (c) => {
   await c.env.DB.prepare("DELETE FROM events WHERE id = ?")
     .bind(event.id)
     .run();
+  await removeEvent(c.env, event.created_by, event);
   return c.json({ ok: true });
 });
 
