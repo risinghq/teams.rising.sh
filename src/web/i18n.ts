@@ -107,8 +107,11 @@ export const ES: Record<string, string> = {
   Add: "Agregar",
 
   // Projects
-  Projects: "Proyectos",
-  Areas: "Áreas",
+  "Projects and areas": "Proyectos y áreas",
+  "Projects end on a date. Areas, like funding, stay open.":
+    "Los proyectos terminan en una fecha. Las áreas, como financiamiento, siguen abiertas.",
+  Area: "Área",
+  Loose: "Sueltas",
   "{n} open": "{n} abiertas",
   "{n} open · next {date}": "{n} abiertas · próxima {date}",
   "New project or area": "Nuevo proyecto o área",

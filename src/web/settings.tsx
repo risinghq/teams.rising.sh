@@ -10,6 +10,7 @@ import {
   Empty,
   field,
   Header,
+  LabelChip,
   primaryButton,
   Skeleton,
 } from "./ui";
@@ -320,11 +321,9 @@ function Labels({ teamId }: { teamId: string }) {
         {labels?.map((l) => (
           <span
             key={l.id}
-            className="rounded-full border px-2.5 py-0.5 text-xs"
-            style={{ borderColor: l.color }}
             title={l.team_id ? undefined : t("Shared by every team")}
           >
-            {l.name}
+            <LabelChip label={l} />
           </span>
         ))}
       </div>

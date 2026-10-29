@@ -15,7 +15,7 @@ import { api } from "./api";
 import { useInbox, useMe, useTeams } from "./data";
 import { searchPalette, type PaletteItem } from "./lib";
 import { t } from "./i18n";
-import { Avatar, LanguageSwitch } from "./ui";
+import { Avatar, LanguageSwitch, TeamMark } from "./ui";
 
 const nav =
   "flex items-center gap-2 rounded-md px-2 py-1.5 text-sm hover:bg-muted";
@@ -116,8 +116,8 @@ export function Shell() {
               className={nav}
               activeProps={navOn}
             >
-              <span className="w-9 text-xs text-muted-foreground">{t.key}</span>
-              {t.name}
+              <TeamMark teamKey={t.key} size={18} />
+              <span className="min-w-0 flex-1 truncate">{t.name}</span>
             </Link>
           ))}
         </div>

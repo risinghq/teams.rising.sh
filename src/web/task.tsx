@@ -191,11 +191,24 @@ function Detail({ task, onClose }: { task: TaskDetail; onClose?: () => void }) {
                   })
                 }
                 className={clsx(
-                  "h-8 rounded-full border px-3",
-                  on ? "bg-muted" : "border-dashed text-muted-foreground",
+                  "press inline-flex h-8 items-center gap-1.5 rounded-full border px-3",
+                  on
+                    ? "border-transparent"
+                    : "border-dashed text-muted-foreground hover:text-foreground",
                 )}
-                style={on ? { borderColor: l.color } : undefined}
+                style={
+                  on
+                    ? {
+                        background: `color-mix(in oklch, ${l.color} 16%, transparent)`,
+                      }
+                    : undefined
+                }
               >
+                <span
+                  aria-hidden
+                  className="size-1.5 rounded-full"
+                  style={{ background: l.color }}
+                />
                 {l.name}
               </button>
             );

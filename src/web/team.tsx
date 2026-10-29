@@ -1,6 +1,15 @@
 import { Link, useNavigate, useSearch } from "@tanstack/react-router";
 import clsx from "clsx";
-import { ArrowLeft, Columns3, LayoutList, Plus, Settings } from "lucide-react";
+import {
+  ArrowLeft,
+  Columns3,
+  Flag,
+  Inbox,
+  LayoutList,
+  Plus,
+  Repeat,
+  Settings,
+} from "lucide-react";
 import { useState, type ReactNode } from "react";
 import {
   api,
@@ -42,10 +51,10 @@ import {
   Header,
   LinkedText,
   primaryButton,
-  ProgressBar,
   Skeleton,
   StatusDot,
   TaskRow,
+  TeamMark,
 } from "./ui";
 
 const shortDay = (s: string) =>
@@ -149,7 +158,11 @@ export function TeamPage({ team }: { team: string }) {
 
   return (
     <WithPanel>
-      <Header title={name}>
+      <Header
+        title={name}
+        icon={<TeamMark teamKey={team} size={28} />}
+        subtitle={teamRow?.description}
+      >
         <select
           aria-label={t("Owner filter")}
           className={field}
@@ -286,8 +299,8 @@ export function TeamPage({ team }: { team: string }) {
   );
 }
 
-// The team's live projects and areas, and the tasks outside them. Picking one
-// filters the list below.
+// The team's live projects and areas as cards, plus the tasks outside them.
+// Picking a card filters the list below.
 function ProjectList({
   team,
   summary,
@@ -306,40 +319,53 @@ function ProjectList({
   const empty = summary.projects.length === 0 && summary.areas.length === 0;
   if (empty && !canCreate) return null;
   return (
-    <section className="border-b">
-      {(
-        [
-          [t("Projects"), summary.projects],
-          [t("Areas"), summary.areas],
-        ] as const
-      ).map(
-        ([title, rows]) =>
-          rows.length > 0 && (
-            <div key={title}>
-              <h2 className="border-b bg-sidebar px-4 py-1.5 text-xs font-medium">
-                {title}{" "}
-                <span className="text-muted-foreground">{rows.length}</span>
-              </h2>
-              {rows.map((s) => (
-                <ProjectRow key={s.project.id} summary={s} onPick={onPick} />
-              ))}
-            </div>
-          ),
-      )}
-      {!empty && summary.loose > 0 && (
-        <button
-          type="button"
-          onClick={() => onPick("none")}
-          className="flex w-full items-center gap-3 border-b px-4 py-2 text-left text-muted-foreground hover:bg-muted/60"
-        >
-          <span className="flex-1">{t("No project")}</span>
-          <span className="text-xs tabular-nums">
-            {t("{n} open", { n: summary.loose })}
-          </span>
-        </button>
-      )}
-      {canCreate &&
-        (adding ? (
+    <section className="border-b px-4 py-4">
+      <div className="mb-3 flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
+        <h2 className="text-xs font-medium">{t("Projects and areas")}</h2>
+        <p className="text-xs text-muted-foreground">
+          {t("Projects end on a date. Areas, like funding, stay open.")}
+        </p>
+      </div>
+      {/* A swipeable row on phones so the tasks stay in view; a grid above. */}
+      <div className="-mx-4 grid snap-x scroll-px-4 auto-cols-[78%] grid-flow-col gap-3 overflow-x-auto px-4 pb-1 sm:mx-0 sm:auto-cols-auto sm:grid-flow-row sm:grid-cols-[repeat(auto-fill,minmax(220px,1fr))] sm:overflow-visible sm:px-0 sm:pb-0 [&>*]:snap-start">
+        {[...summary.projects, ...summary.areas].map((s) => (
+          <ProjectCard key={s.project.id} summary={s} onPick={onPick} />
+        ))}
+        {!empty && summary.loose > 0 && (
+          <button
+            type="button"
+            onClick={() => onPick("none")}
+            className={clsx(dashedCard, "gap-1")}
+          >
+            <span className="flex items-center gap-1 text-xs">
+              <Inbox size={12} aria-hidden /> {t("Loose")}
+            </span>
+            <span className="font-medium text-foreground">
+              {t("No project")}
+            </span>
+            <span className="line-clamp-1 text-xs">
+              {t("Ideas, papers and other loose tasks")}
+            </span>
+            <span className="mt-auto pt-2 text-xs tabular-nums">
+              {t("{n} open", { n: summary.loose })}
+            </span>
+          </button>
+        )}
+        {canCreate && !adding && (
+          <button
+            type="button"
+            onClick={() => setAdding(true)}
+            className={clsx(dashedCard, "items-center justify-center gap-1")}
+          >
+            <Plus size={16} />
+            <span className="text-xs font-medium">
+              {t("New project or area")}
+            </span>
+          </button>
+        )}
+      </div>
+      {adding && (
+        <div className="mt-3 rounded-lg bg-surface shadow-card">
           <ProjectForm
             pending={create.isPending}
             onCancel={() => setAdding(false)}
@@ -347,56 +373,70 @@ function ProjectList({
               create.mutate(body, { onSuccess: () => setAdding(false) })
             }
           />
-        ) : (
-          <button
-            type="button"
-            onClick={() => setAdding(true)}
-            className="flex w-full items-center gap-2 px-4 py-2 text-xs text-muted-foreground hover:bg-muted/60"
-          >
-            <Plus size={14} /> {t("New project or area")}
-          </button>
-        ))}
+        </div>
+      )}
     </section>
   );
 }
 
-function ProjectRow({
+const dashedCard =
+  "press flex min-h-28 flex-col rounded-lg border border-dashed p-3 text-left text-muted-foreground hover:border-foreground/40 hover:bg-surface";
+
+// The first line of a description without its links, as a one-line summary.
+const summaryOf = (description: string) =>
+  description
+    .split("\n")
+    .map((line) => line.replace(/https?:\/\/\S+/g, "").replace(/[:\s]+$/, ""))
+    .find((line) => line.trim() !== "") ?? "";
+
+function ProjectCard({
   summary: { project, open, progress, nextDue },
   onPick,
 }: {
   summary: ProjectSummary;
   onPick: (project: string) => void;
 }) {
+  const area = !project.target_date;
+  const Kind = area ? Repeat : Flag;
+  const about = summaryOf(project.description);
   return (
     <button
       type="button"
       onClick={() => onPick(project.id)}
-      className="flex w-full items-center gap-3 border-b px-4 py-2 text-left hover:bg-muted/60"
+      className="press group flex min-h-28 flex-col gap-1 rounded-lg bg-surface p-3 text-left shadow-card hover:ring-2 hover:ring-primary/30"
     >
-      <span className="min-w-0 flex-1 truncate font-medium">
-        {project.name}
+      <span className="flex items-center gap-1 text-xs text-muted-foreground">
+        <Kind size={12} aria-hidden /> {area ? t("Area") : t("Project")}
       </span>
-      {project.target_date ? (
-        <>
-          <ProgressBar value={progress} />
-          <span className="w-8 text-right text-xs tabular-nums text-muted-foreground">
-            {Math.round(progress * 100)}%
-          </span>
-          <span className="w-16 text-right text-xs tabular-nums text-muted-foreground">
-            {shortDay(project.target_date)}
-          </span>
-        </>
-      ) : (
-        <span className="text-xs tabular-nums text-muted-foreground">
-          {nextDue
-            ? t("{n} open · next {date}", { n: open, date: shortDay(nextDue) })
-            : t("{n} open", { n: open })}
+      <span className="truncate font-medium">{project.name}</span>
+      {about && (
+        <span className="line-clamp-1 text-xs text-muted-foreground">
+          {about}
         </span>
       )}
+      <span className="mt-auto flex items-center gap-2 pt-2 text-xs tabular-nums text-muted-foreground">
+        {area ? (
+          nextDue ? (
+            t("{n} open · next {date}", { n: open, date: shortDay(nextDue) })
+          ) : (
+            t("{n} open", { n: open })
+          )
+        ) : (
+          <>
+            <span className="h-1.5 flex-1 overflow-hidden rounded-full bg-muted">
+              <span
+                className="block h-full rounded-full bg-primary"
+                style={{ width: `${Math.round(progress * 100)}%` }}
+              />
+            </span>
+            {Math.round(progress * 100)}% ·{" "}
+            {shortDay(project.target_date as string)}
+          </>
+        )}
+      </span>
     </button>
   );
 }
-
 // The picked project, or the tasks outside any project when `project` is null.
 function ProjectHeader({
   project,
@@ -556,7 +596,7 @@ function NewTask({ team, project }: { team: string; project?: string }) {
   );
   return (
     <form
-      className="flex gap-2 border-b px-4 py-2"
+      className="flex items-center gap-2 border-b px-4 py-2"
       onSubmit={(e) => {
         e.preventDefault();
         const value = title.trim();
@@ -567,6 +607,7 @@ function NewTask({ team, project }: { team: string; project?: string }) {
         );
       }}
     >
+      <Plus size={16} aria-hidden className="shrink-0 text-muted-foreground" />
       <input
         aria-label={t("New task title")}
         value={title}
