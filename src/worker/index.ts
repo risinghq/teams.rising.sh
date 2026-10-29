@@ -1,6 +1,7 @@
 import { Hono } from "hono";
 import { authRoutes, requireUser } from "./auth";
 import type { Env } from "./env";
+import { githubRoutes } from "./github";
 import { HttpError } from "./http";
 import { miscRoutes } from "./misc";
 import { taskRoutes } from "./tasks";
@@ -27,6 +28,7 @@ app.get("/api/health", async (c) => {
 });
 
 app.route("/api/auth", authRoutes);
+app.route("/hooks", githubRoutes);
 
 const api = new Hono<Env>();
 api.use("*", requireUser);

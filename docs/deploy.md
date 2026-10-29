@@ -10,12 +10,13 @@ Set the Google values as Worker secrets. Never write a secret into the
 repository. The allow-lists are not secret. `ALLOWED_DOMAINS` lives in
 `wrangler.jsonc` under `vars`, and a deploy applies it.
 
-| Name                   | Meaning                                                                           |
-| ---------------------- | --------------------------------------------------------------------------------- |
-| `GOOGLE_CLIENT_ID`     | OAuth client id from Google Cloud Console.                                        |
-| `GOOGLE_CLIENT_SECRET` | OAuth client secret.                                                              |
-| `ALLOWED_DOMAINS`      | Comma-separated email domains allowed to sign in.                                 |
-| `ALLOWED_EMAILS`       | Comma-separated emails allowed to sign in. Use it for addresses outside a domain. |
+| Name                    | Meaning                                                                           |
+| ----------------------- | --------------------------------------------------------------------------------- |
+| `GOOGLE_CLIENT_ID`      | OAuth client id from Google Cloud Console.                                        |
+| `GOOGLE_CLIENT_SECRET`  | OAuth client secret.                                                              |
+| `GITHUB_WEBHOOK_SECRET` | Shared secret of the GitHub webhook at `/hooks/github`.                           |
+| `ALLOWED_DOMAINS`       | Comma-separated email domains allowed to sign in.                                 |
+| `ALLOWED_EMAILS`        | Comma-separated emails allowed to sign in. Use it for addresses outside a domain. |
 
 When neither allow-list is set, nobody can sign in. `DEV_LOGIN=1` enables
 `POST /api/auth/dev` and must never be set in production.
@@ -23,6 +24,7 @@ When neither allow-list is set, nobody can sign in. `DEV_LOGIN=1` enables
 ```
 wrangler secret put GOOGLE_CLIENT_ID
 wrangler secret put GOOGLE_CLIENT_SECRET
+wrangler secret put GITHUB_WEBHOOK_SECRET
 ```
 
 ## Google OAuth client
