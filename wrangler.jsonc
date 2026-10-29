@@ -1,0 +1,23 @@
+{
+  "$schema": "./node_modules/wrangler/config-schema.json",
+  "name": "teams",
+  "main": "src/worker/index.ts",
+  "compatibility_date": "2026-10-01",
+  "compatibility_flags": ["nodejs_compat"],
+  "assets": {
+    "directory": "./dist",
+    "binding": "ASSETS",
+    "not_found_handling": "single-page-application",
+    "run_worker_first": ["/api/*", "/hooks/*"],
+  },
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "teams",
+      "database_id": "c9cefb07-bb3d-4c10-8085-5d2a738bffe7",
+      "migrations_dir": "migrations",
+    },
+  ],
+  "routes": [{ "pattern": "teams.rising.sh", "custom_domain": true }],
+  "observability": { "enabled": true },
+}
