@@ -1,4 +1,5 @@
 import type { TaskStatus } from "../shared/progress";
+import { t } from "./i18n";
 
 export type { TaskStatus };
 
@@ -12,15 +13,20 @@ export const STATUSES: TaskStatus[] = [
 ];
 
 export const STATUS_LABEL: Record<TaskStatus, string> = {
-  backlog: "Backlog",
-  todo: "To do",
-  in_progress: "In progress",
-  blocked: "Blocked",
-  done: "Done",
-  canceled: "Canceled",
+  backlog: t("Backlog"),
+  todo: t("To do"),
+  in_progress: t("In progress"),
+  blocked: t("Blocked"),
+  done: t("Done"),
+  canceled: t("Canceled"),
 };
 
-export const PRIORITY_LABEL = ["No priority", "Low", "Medium", "Urgent"];
+export const PRIORITY_LABEL = [
+  t("No priority"),
+  t("Low"),
+  t("Medium"),
+  t("Urgent"),
+];
 
 export type Person = { id: string; name: string; avatar_url: string | null };
 export type Label = { id: string; name: string; color: string };
@@ -160,7 +166,7 @@ export async function request<T>(
   const data = (await res.json().catch(() => null)) as {
     error?: string;
   } | null;
-  if (!res.ok) throw new ApiError(res.status, data?.error ?? res.statusText);
+  if (!res.ok) throw new ApiError(res.status, t(data?.error ?? res.statusText));
   return data as T;
 }
 

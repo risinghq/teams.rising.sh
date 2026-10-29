@@ -14,8 +14,17 @@ import {
   relativeTime,
   weekGrid,
 } from "./lib";
+import { day, t as tr } from "./i18n";
 import { WithPanel } from "./team";
-import { Avatar, button, Empty, Header, Skeleton, StatusDot } from "./ui";
+import {
+  Avatar,
+  button,
+  Empty,
+  Header,
+  LanguageSwitch,
+  Skeleton,
+  StatusDot,
+} from "./ui";
 
 export function Calendar() {
   const [mode, setMode] = useState<"month" | "week">("month");
@@ -38,7 +47,7 @@ export function Calendar() {
     d.setMonth(d.getMonth() + dir, 1);
     setAnchor(iso(d));
   };
-  const title = parseDay(anchor).toLocaleDateString(undefined, {
+  const title = day(parseDay(anchor), {
     month: "long",
     year: "numeric",
   });
@@ -53,24 +62,28 @@ export function Calendar() {
       <Header title={title}>
         <button
           type="button"
-          aria-label="Previous"
+          aria-label={tr("Previous")}
           className={button}
           onClick={() => step(-1)}
         >
           <ChevronLeft size={14} />
         </button>
         <button type="button" className={button} onClick={() => setAnchor(t)}>
-          Today
+          {tr("Today")}
         </button>
         <button
           type="button"
-          aria-label="Next"
+          aria-label={tr("Next")}
           className={button}
           onClick={() => step(1)}
         >
           <ChevronRight size={14} />
         </button>
-        <div className="flex rounded-md border" role="group" aria-label="Range">
+        <div
+          className="flex rounded-md border"
+          role="group"
+          aria-label={tr("Range")}
+        >
           {(["month", "week"] as const).map((m) => (
             <button
               key={m}
@@ -82,7 +95,7 @@ export function Calendar() {
                 mode === m && "bg-muted",
               )}
             >
-              {m}
+              {tr(m)}
             </button>
           ))}
         </div>
@@ -90,7 +103,7 @@ export function Calendar() {
       <div className="grid grid-cols-7 border-b text-center text-xs text-muted-foreground">
         {["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"].map((d) => (
           <div key={d} className="py-1">
-            {d}
+            {tr(d)}
           </div>
         ))}
       </div>
@@ -180,12 +193,12 @@ export function Inbox() {
   }, [q.data]);
   return (
     <div>
-      <Header title="Inbox" />
+      <Header title={tr("Inbox")} />
       {q.isPending ? (
         <Skeleton />
       ) : q.data?.items.length === 0 ? (
-        <Empty title="All caught up">
-          Mentions and changes to tasks you follow land here.
+        <Empty title={tr("All caught up")}>
+          {tr("Mentions and changes to tasks you follow land here.")}
         </Empty>
       ) : (
         <ul>
@@ -210,7 +223,7 @@ export function Inbox() {
                 />
                 <span className="min-w-0 flex-1">
                   <span className="block text-xs text-muted-foreground">
-                    {i.task_key} · {i.author_name ?? "System"} ·{" "}
+                    {i.task_key} · {i.author_name ?? tr("System")} ·{" "}
                     {relativeTime(i.created_at)}
                   </span>
                   <span className="block truncate">{i.task_title}</span>
@@ -272,10 +285,18 @@ function Rows({ rows, link }: { rows: OverviewRow[]; link?: boolean }) {
             <span className="min-w-0 flex-1 truncate font-medium">
               {r.name}
             </span>
-            <Stat label="Open" value={r.open} />
-            <Stat label="Blocked" value={r.blocked} tone="text-destructive" />
-            <Stat label="Overdue" value={r.overdue} tone="text-destructive" />
-            <Stat label="Done" value={r.done} />
+            <Stat label={tr("Open")} value={r.open} />
+            <Stat
+              label={tr("Blocked")}
+              value={r.blocked}
+              tone="text-destructive"
+            />
+            <Stat
+              label={tr("Overdue")}
+              value={r.overdue}
+              tone="text-destructive"
+            />
+            <Stat label={tr("Done")} value={r.done} />
           </>
         );
         const cls = "flex items-center gap-4 border-b px-4 py-3";
@@ -303,17 +324,17 @@ export function Overview() {
   const q = useQuery({ queryKey: ["overview"], queryFn: api.overview });
   return (
     <div>
-      <Header title="Overview" />
+      <Header title={tr("Overview")} />
       {q.isPending ? (
         <Skeleton />
       ) : (
         <>
           <h2 className="border-b bg-sidebar px-4 py-1.5 text-xs font-medium">
-            Teams
+            {tr("Teams")}
           </h2>
           <Rows rows={q.data?.teams ?? []} link />
           <h2 className="border-b bg-sidebar px-4 py-1.5 text-xs font-medium">
-            People
+            {tr("People")}
           </h2>
           <Rows rows={q.data?.owners ?? []} />
         </>
@@ -328,14 +349,15 @@ export function Login() {
       <div className="flex w-full max-w-sm flex-col items-center gap-4 rounded-lg border p-8 text-center">
         <h1 className="text-lg font-semibold">Teams</h1>
         <p className="text-xs text-muted-foreground">
-          See what is pending, who owns it and how far along it is.
+          {tr("See what is pending, who owns it and how far along it is.")}
         </p>
         <a
           href="/api/auth/google"
           className="inline-flex h-9 w-full items-center justify-center rounded-md bg-primary text-sm font-medium text-primary-foreground hover:opacity-90"
         >
-          Continue with Google
+          {tr("Continue with Google")}
         </a>
+        <LanguageSwitch />
       </div>
     </div>
   );

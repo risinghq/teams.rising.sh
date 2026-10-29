@@ -31,6 +31,7 @@ import {
   type Filters,
   type ProjectSummary,
 } from "./lib";
+import { day, t } from "./i18n";
 import { TaskView } from "./task";
 import {
   Avatar,
@@ -48,7 +49,7 @@ import {
 } from "./ui";
 
 const shortDay = (s: string) =>
-  parseDay(s).toLocaleDateString(undefined, { month: "short", day: "numeric" });
+  day(parseDay(s), { month: "short", day: "numeric" });
 
 const formInput = "h-9 rounded-md border bg-background px-2 text-sm";
 
@@ -82,19 +83,19 @@ export function WithPanel({ children }: { children: ReactNode }) {
 export function MyWork() {
   const q = useTasks({ owner: "me", open: "1" });
   const open = useOpenTask();
-  const t = today();
+  const now = today();
   const search = useSearch({ strict: false }) as { task?: string };
   return (
     <WithPanel>
-      <Header title="My work" />
+      <Header title={t("My work")} />
       {q.isPending ? (
         <Skeleton />
       ) : q.data?.length === 0 ? (
-        <Empty title="Nothing on your plate">
-          Tasks you own show here, grouped by when they are due.
+        <Empty title={t("Nothing on your plate")}>
+          {t("Tasks you own show here, grouped by when they are due.")}
         </Empty>
       ) : (
-        groupByDue(q.data ?? [], t).map((g) => (
+        groupByDue(q.data ?? [], now).map((g) => (
           <section key={g.id}>
             <h2
               className={clsx(
@@ -109,7 +110,7 @@ export function MyWork() {
               <TaskRow
                 key={task.key}
                 task={task}
-                today={t}
+                today={now}
                 onOpen={open}
                 selected={search.task === task.key}
               />
@@ -126,15 +127,19 @@ export function TeamPage({ team }: { team: string }) {
   const [filters, setFilters] = useState<Filters>(NO_FILTERS);
   const tasks = useTasks({ team, top: "1" });
   const users = useUsers();
-  const labels = useLabels();
   const projects = useProjects(team);
-  const name = useTeams().data?.find((x) => x.key === team)?.name ?? team;
+  const teamRow = useTeams().data?.find((x) => x.key === team);
+  const name = teamRow?.name ?? team;
+  // Labels of this team plus the shared ones, not other teams' labels.
+  const labels = useLabels().data?.filter(
+    (l) => l.team_id === null || l.team_id === teamRow?.id,
+  );
   const me = useMe().data;
   const role = me?.is_admin
     ? "leader"
     : me?.teams.find((x) => x.key === team)?.role;
   const open = useOpenTask();
-  const t = today();
+  const now = today();
   const search = useSearch({ strict: false }) as { task?: string };
   const shown = filterTasks(tasks.data ?? [], filters);
   const set = (k: keyof Filters) => (e: { target: { value: string } }) =>
@@ -146,13 +151,13 @@ export function TeamPage({ team }: { team: string }) {
     <WithPanel>
       <Header title={name}>
         <select
-          aria-label="Owner filter"
+          aria-label={t("Owner filter")}
           className={field}
           value={filters.owner}
           onChange={set("owner")}
         >
-          <option value="">Any owner</option>
-          <option value="none">Unassigned</option>
+          <option value="">{t("Any owner")}</option>
+          <option value="none">{t("Unassigned")}</option>
           {users.data?.map((u) => (
             <option key={u.id} value={u.id}>
               {u.name}
@@ -160,12 +165,12 @@ export function TeamPage({ team }: { team: string }) {
           ))}
         </select>
         <select
-          aria-label="Status filter"
+          aria-label={t("Status filter")}
           className={field}
           value={filters.status}
           onChange={set("status")}
         >
-          <option value="">Any status</option>
+          <option value="">{t("Any status")}</option>
           {STATUSES.map((s) => (
             <option key={s} value={s}>
               {STATUS_LABEL[s]}
@@ -173,33 +178,37 @@ export function TeamPage({ team }: { team: string }) {
           ))}
         </select>
         <select
-          aria-label="Label filter"
+          aria-label={t("Label filter")}
           className={field}
           value={filters.label}
           onChange={set("label")}
         >
-          <option value="">Any label</option>
-          {labels.data?.map((l) => (
+          <option value="">{t("Any label")}</option>
+          {labels?.map((l) => (
             <option key={l.id} value={l.id}>
               {l.name}
             </option>
           ))}
         </select>
         <select
-          aria-label="Project filter"
+          aria-label={t("Project filter")}
           className={field}
           value={filters.project}
           onChange={set("project")}
         >
-          <option value="">Any project</option>
-          <option value="none">No project</option>
+          <option value="">{t("Any project")}</option>
+          <option value="none">{t("No project")}</option>
           {projects.data?.map((p) => (
             <option key={p.id} value={p.id}>
               {p.name}
             </option>
           ))}
         </select>
-        <div className="flex rounded-md border" role="group" aria-label="View">
+        <div
+          className="flex rounded-md border"
+          role="group"
+          aria-label={t("View")}
+        >
           {(
             [
               ["list", LayoutList],
@@ -209,7 +218,7 @@ export function TeamPage({ team }: { team: string }) {
             <button
               key={id}
               type="button"
-              aria-label={`${id} view`}
+              aria-label={id === "list" ? t("List view") : t("Board view")}
               aria-pressed={view === id}
               onClick={() => setView(id)}
               className={clsx("p-1.5", view === id && "bg-muted")}
@@ -222,7 +231,7 @@ export function TeamPage({ team }: { team: string }) {
           <Link
             to="/t/$team/settings"
             params={{ team }}
-            aria-label="Team settings"
+            aria-label={t("Team settings")}
             className="inline-flex size-8 items-center justify-center rounded-md border hover:bg-muted"
           >
             <Settings size={14} />
@@ -249,11 +258,11 @@ export function TeamPage({ team }: { team: string }) {
       {tasks.isPending ? (
         <Skeleton />
       ) : shown.length === 0 ? (
-        <Empty title="No tasks here">
-          Add one above, or clear the filters.
+        <Empty title={t("No tasks here")}>
+          {t("Add one above, or clear the filters.")}
         </Empty>
       ) : view === "list" ? (
-        groupByDue(shown, t).map((g) => (
+        groupByDue(shown, now).map((g) => (
           <section key={g.id}>
             <h2 className="border-b bg-sidebar px-4 py-1.5 text-xs font-medium">
               {g.label}{" "}
@@ -263,7 +272,7 @@ export function TeamPage({ team }: { team: string }) {
               <TaskRow
                 key={task.key}
                 task={task}
-                today={t}
+                today={now}
                 onOpen={open}
                 selected={search.task === task.key}
               />
@@ -271,7 +280,7 @@ export function TeamPage({ team }: { team: string }) {
           </section>
         ))
       ) : (
-        <Board tasks={shown} today={t} onOpen={open} />
+        <Board tasks={shown} today={now} onOpen={open} />
       )}
     </WithPanel>
   );
@@ -300,8 +309,8 @@ function ProjectList({
     <section className="border-b">
       {(
         [
-          ["Projects", summary.projects],
-          ["Areas", summary.areas],
+          [t("Projects"), summary.projects],
+          [t("Areas"), summary.areas],
         ] as const
       ).map(
         ([title, rows]) =>
@@ -323,8 +332,10 @@ function ProjectList({
           onClick={() => onPick("none")}
           className="flex w-full items-center gap-3 border-b px-4 py-2 text-left text-muted-foreground hover:bg-muted/60"
         >
-          <span className="flex-1">No project</span>
-          <span className="text-xs tabular-nums">{summary.loose} open</span>
+          <span className="flex-1">{t("No project")}</span>
+          <span className="text-xs tabular-nums">
+            {t("{n} open", { n: summary.loose })}
+          </span>
         </button>
       )}
       {canCreate &&
@@ -342,7 +353,7 @@ function ProjectList({
             onClick={() => setAdding(true)}
             className="flex w-full items-center gap-2 px-4 py-2 text-xs text-muted-foreground hover:bg-muted/60"
           >
-            <Plus size={14} /> New project or area
+            <Plus size={14} /> {t("New project or area")}
           </button>
         ))}
     </section>
@@ -377,7 +388,9 @@ function ProjectRow({
         </>
       ) : (
         <span className="text-xs tabular-nums text-muted-foreground">
-          {open} open{nextDue && ` · next ${shortDay(nextDue)}`}
+          {nextDue
+            ? t("{n} open · next {date}", { n: open, date: shortDay(nextDue) })
+            : t("{n} open", { n: open })}
         </span>
       )}
     </button>
@@ -416,20 +429,20 @@ function ProjectHeader({
       <div className="flex items-center gap-2">
         <button
           type="button"
-          aria-label="All projects"
+          aria-label={t("All projects")}
           onClick={onBack}
           className="-ml-2 inline-flex size-8 items-center justify-center rounded-md hover:bg-muted"
         >
           <ArrowLeft size={16} />
         </button>
-        <h2 className="font-semibold">{project?.name ?? "No project"}</h2>
+        <h2 className="font-semibold">{project?.name ?? t("No project")}</h2>
         <span className="text-xs text-muted-foreground">
           {!project
-            ? "Ideas, papers and other loose tasks"
+            ? t("Ideas, papers and other loose tasks")
             : project.target_date
-              ? `Target ${shortDay(project.target_date)}`
-              : "Ongoing area"}
-          {project && project.status !== "active" && ` · ${project.status}`}
+              ? t("Target {date}", { date: shortDay(project.target_date) })
+              : t("Ongoing area")}
+          {project && project.status !== "active" && ` · ${t(project.status)}`}
         </span>
         {project && canEdit && (
           <button
@@ -437,7 +450,7 @@ function ProjectHeader({
             className={clsx(button, "ml-auto")}
             onClick={() => setEditing(true)}
           >
-            Edit
+            {t("Edit")}
           </button>
         )}
       </div>
@@ -483,53 +496,53 @@ function ProjectForm({
       }}
     >
       <input
-        aria-label="Project name"
+        aria-label={t("Project name")}
         autoFocus
         value={name}
         onChange={(e) => setName(e.target.value)}
-        placeholder="Name"
+        placeholder={t("Name")}
         className={formInput}
       />
       <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
         <input
           type="date"
-          aria-label="Target date"
+          aria-label={t("Target date")}
           value={target}
           onChange={(e) => setTarget(e.target.value)}
           className={formInput}
         />
-        Leave the date empty for an ongoing area.
+        {t("Leave the date empty for an ongoing area.")}
         {project && (
           <select
-            aria-label="Project status"
+            aria-label={t("Project status")}
             className={clsx(field, "ml-auto")}
             value={status}
             onChange={(e) => setStatus(e.target.value as Project["status"])}
           >
-            <option value="active">Active</option>
-            <option value="done">Done</option>
-            <option value="archived">Archived</option>
+            <option value="active">{t("Active")}</option>
+            <option value="done">{t("Done")}</option>
+            <option value="archived">{t("Archived")}</option>
           </select>
         )}
       </div>
       <textarea
-        aria-label="Project description"
+        aria-label={t("Project description")}
         value={description}
         onChange={(e) => setDescription(e.target.value)}
-        placeholder="What it is, plus links to its repo or spreadsheet"
+        placeholder={t("What it is, plus links to its repo or spreadsheet")}
         rows={3}
         className="rounded-md border bg-background px-2 py-1.5 text-sm"
       />
       <div className="flex justify-end gap-2">
         <button type="button" className={button} onClick={onCancel}>
-          Cancel
+          {t("Cancel")}
         </button>
         <button
           type="submit"
           className={primaryButton}
           disabled={pending || !name.trim()}
         >
-          {project ? "Save" : "Create"}
+          {project ? t("Save") : t("Create")}
         </button>
       </div>
     </form>
@@ -555,10 +568,10 @@ function NewTask({ team, project }: { team: string; project?: string }) {
       }}
     >
       <input
-        aria-label="New task title"
+        aria-label={t("New task title")}
         value={title}
         onChange={(e) => setTitle(e.target.value)}
-        placeholder="Add a task and press Enter"
+        placeholder={t("Add a task and press Enter")}
         className="h-8 min-w-0 flex-1 bg-transparent text-sm outline-none"
       />
       {title.trim() && (
@@ -567,7 +580,7 @@ function NewTask({ team, project }: { team: string; project?: string }) {
           className={primaryButton}
           disabled={create.isPending}
         >
-          Add
+          {t("Add")}
         </button>
       )}
     </form>
@@ -576,7 +589,7 @@ function NewTask({ team, project }: { team: string; project?: string }) {
 
 function Board({
   tasks,
-  today: t,
+  today: now,
   onOpen,
 }: {
   tasks: Task[];
@@ -631,7 +644,7 @@ function Board({
                 </span>
                 <span>{task.title}</span>
                 <span className="flex items-center justify-between">
-                  <DueChip task={task} today={t} />
+                  <DueChip task={task} today={now} />
                   <Avatar person={task.owner} size={18} />
                 </span>
               </button>

@@ -3,6 +3,7 @@ import { ArrowLeft } from "lucide-react";
 import { useState, type ReactNode } from "react";
 import { api, type Member } from "./api";
 import { useLabels, useMe, useTeam, useUsers, useWrite } from "./data";
+import { t } from "./i18n";
 import {
   Avatar,
   button,
@@ -46,11 +47,11 @@ export function NewTeam() {
     api.createTeam(body),
   );
   if (me && !me.is_admin)
-    return <Empty title="Only an admin can create teams" />;
+    return <Empty title={t("Only an admin can create teams")} />;
   const valid = /^[A-Z][A-Z0-9]{1,5}$/.test(key) && name.trim() !== "";
   return (
     <div className="mx-auto max-w-xl">
-      <Header title="New team" />
+      <Header title={t("New team")} />
       <form
         className="flex flex-col gap-3 px-4 py-4"
         onSubmit={(e) => {
@@ -69,7 +70,7 @@ export function NewTeam() {
         }}
       >
         <label className="flex flex-col gap-1 text-xs font-medium">
-          Name
+          {t("Name")}
           <input
             autoFocus
             value={name}
@@ -80,7 +81,7 @@ export function NewTeam() {
         </label>
         <div className="flex flex-col gap-1 text-xs">
           <label htmlFor="team-key" className="font-medium">
-            Key
+            {t("Key")}
           </label>
           <input
             id="team-key"
@@ -94,12 +95,14 @@ export function NewTeam() {
             className={`${input} w-28 uppercase`}
           />
           <p id="team-key-hint" className="text-muted-foreground">
-            2 to 6 letters or digits. Tasks are numbered with it, as in{" "}
-            {key || "AIS"}-12, and branch names use it to link to tasks.
+            {t(
+              "2 to 6 letters or digits. Tasks are numbered with it, as in {key}-12, and branch names use it to link to tasks.",
+              { key: key || "AIS" },
+            )}
           </p>
         </div>
         <label className="flex flex-col gap-1 text-xs font-medium">
-          Description
+          {t("Description")}
           <textarea
             value={description}
             onChange={(e) => setDescription(e.target.value)}
@@ -113,7 +116,7 @@ export function NewTeam() {
             className={primaryButton}
             disabled={!valid || create.isPending}
           >
-            Create team
+            {t("Create team")}
           </button>
         </div>
       </form>
@@ -127,24 +130,30 @@ export function NewTeam() {
 export function TeamSettings({ team }: { team: string }) {
   const q = useTeam(team);
   if (q.isPending) return <Skeleton rows={4} />;
-  if (q.isError) return <Empty title="Team not found" />;
-  const t = q.data;
+  if (q.isError) return <Empty title={t("Team not found")} />;
+  const detail = q.data;
   return (
     <div className="mx-auto max-w-2xl">
       <header className="flex min-h-12 items-center gap-2 border-b px-4 py-2">
         <Link
           to="/t/$team"
           params={{ team }}
-          aria-label={`Back to ${t.name}`}
+          aria-label={t("Back to {team}", { team: detail.name })}
           className="-ml-2 inline-flex size-8 items-center justify-center rounded-md hover:bg-muted"
         >
           <ArrowLeft size={16} />
         </Link>
-        <h1 className="text-sm font-semibold">{t.name} settings</h1>
+        <h1 className="text-sm font-semibold">
+          {t("{team} settings", { team: detail.name })}
+        </h1>
       </header>
-      <Details team={team} name={t.name} description={t.description} />
-      <Members team={team} members={t.members} />
-      <Labels teamId={t.id} />
+      <Details
+        team={team}
+        name={detail.name}
+        description={detail.description}
+      />
+      <Members team={team} members={detail.members} />
+      <Labels teamId={detail.id} />
     </div>
   );
 }
@@ -165,7 +174,7 @@ function Details({
   );
   const changed = name !== initialName || description !== initialDescription;
   return (
-    <Section title="Details">
+    <Section title={t("Details")}>
       <form
         className="flex flex-col gap-2 px-4 py-3"
         onSubmit={(e) => {
@@ -174,16 +183,16 @@ function Details({
         }}
       >
         <input
-          aria-label="Team name"
+          aria-label={t("Team name")}
           value={name}
           onChange={(e) => setName(e.target.value)}
           className={input}
         />
         <textarea
-          aria-label="Team description"
+          aria-label={t("Team description")}
           value={description}
           onChange={(e) => setDescription(e.target.value)}
-          placeholder="What the team works on"
+          placeholder={t("What the team works on")}
           rows={2}
           className="rounded-md border bg-background px-2 py-1.5 text-sm"
         />
@@ -194,7 +203,7 @@ function Details({
               className={primaryButton}
               disabled={save.isPending || !name.trim()}
             >
-              Save
+              {t("Save")}
             </button>
           </div>
         )}
@@ -216,7 +225,7 @@ function Members({ team, members }: { team: string; members: Member[] }) {
     (u) => u.kind === "human" && !members.some((m) => m.id === u.id),
   );
   return (
-    <Section title={`Members ${members.length}`}>
+    <Section title={t("Members {n}", { n: members.length })}>
       <ul>
         {members.map((m) => (
           <li key={m.id} className="flex items-center gap-3 border-b px-4 py-2">
@@ -228,7 +237,7 @@ function Members({ team, members }: { team: string; members: Member[] }) {
               </span>
             </span>
             <select
-              aria-label={`Role of ${m.name}`}
+              aria-label={t("Role of {name}", { name: m.name })}
               className={field}
               value={m.role}
               onChange={(e) =>
@@ -238,15 +247,15 @@ function Members({ team, members }: { team: string; members: Member[] }) {
                 })
               }
             >
-              <option value="leader">Leader</option>
-              <option value="member">Member</option>
+              <option value="leader">{t("Leader")}</option>
+              <option value="member">{t("Member")}</option>
             </select>
             <button
               type="button"
               className={button}
               onClick={() => remove.mutate(m.id)}
             >
-              Remove
+              {t("Remove")}
             </button>
           </li>
         ))}
@@ -263,12 +272,12 @@ function Members({ team, members }: { team: string; members: Member[] }) {
         }}
       >
         <select
-          aria-label="Person to add"
+          aria-label={t("Person to add")}
           className={`${field} min-w-0 flex-1`}
           value={adding}
           onChange={(e) => setAdding(e.target.value)}
         >
-          <option value="">Add a person…</option>
+          <option value="">{t("Add a person…")}</option>
           {outside?.map((u) => (
             <option key={u.id} value={u.id}>
               {u.name} · {u.email}
@@ -280,11 +289,11 @@ function Members({ team, members }: { team: string; members: Member[] }) {
           className={primaryButton}
           disabled={!adding || set.isPending}
         >
-          Add
+          {t("Add")}
         </button>
       </form>
       <p className="px-4 pb-3 text-xs text-muted-foreground">
-        People show up here after they sign in for the first time.
+        {t("People show up here after they sign in for the first time.")}
       </p>
       <Failure error={set.error ?? remove.error} />
     </Section>
@@ -301,17 +310,19 @@ function Labels({ teamId }: { teamId: string }) {
     api.createLabel(body),
   );
   return (
-    <Section title="Labels">
+    <Section title={t("Labels")}>
       <div className="flex flex-wrap gap-1.5 px-4 py-3">
         {labels?.length === 0 && (
-          <span className="text-xs text-muted-foreground">No labels yet.</span>
+          <span className="text-xs text-muted-foreground">
+            {t("No labels yet.")}
+          </span>
         )}
         {labels?.map((l) => (
           <span
             key={l.id}
             className="rounded-full border px-2.5 py-0.5 text-xs"
             style={{ borderColor: l.color }}
-            title={l.team_id ? undefined : "Shared by every team"}
+            title={l.team_id ? undefined : t("Shared by every team")}
           >
             {l.name}
           </span>
@@ -330,16 +341,16 @@ function Labels({ teamId }: { teamId: string }) {
       >
         <input
           type="color"
-          aria-label="Label color"
+          aria-label={t("Label color")}
           value={color}
           onChange={(e) => setColor(e.target.value)}
           className="h-9 w-9 shrink-0 cursor-pointer rounded-md border bg-background p-1"
         />
         <input
-          aria-label="New label name"
+          aria-label={t("New label name")}
           value={name}
           onChange={(e) => setName(e.target.value)}
-          placeholder="New label, such as paper or idea"
+          placeholder={t("New label, such as paper or idea")}
           maxLength={40}
           className={`${input} min-w-0 flex-1`}
         />
@@ -348,7 +359,7 @@ function Labels({ teamId }: { teamId: string }) {
           className={primaryButton}
           disabled={!name.trim() || create.isPending}
         >
-          Add
+          {t("Add")}
         </button>
       </form>
       <Failure error={create.error} />

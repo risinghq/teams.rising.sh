@@ -1,5 +1,6 @@
 import { progress } from "../shared/progress";
 import type { Project, Task, TaskStatus } from "./api";
+import { t } from "./i18n";
 
 export const iso = (d: Date) =>
   `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
@@ -27,12 +28,12 @@ export type DueGroup =
   | "closed";
 
 export const DUE_GROUPS: { id: DueGroup; label: string }[] = [
-  { id: "overdue", label: "Overdue" },
-  { id: "today", label: "Today" },
-  { id: "week", label: "This week" },
-  { id: "later", label: "Later" },
-  { id: "none", label: "No date" },
-  { id: "closed", label: "Closed" },
+  { id: "overdue", label: t("Overdue") },
+  { id: "today", label: t("Today") },
+  { id: "week", label: t("This week") },
+  { id: "later", label: t("Later") },
+  { id: "none", label: t("No date") },
+  { id: "closed", label: t("Closed") },
 ];
 
 export function dueGroup(
@@ -188,8 +189,8 @@ export function weekGrid(anchor: string): string[] {
 
 export function relativeTime(then: string, now = Date.now()): string {
   const s = Math.max(0, Math.round((now - Date.parse(then)) / 1000));
-  if (s < 60) return "just now";
-  if (s < 3600) return `${Math.floor(s / 60)}m ago`;
-  if (s < 86400) return `${Math.floor(s / 3600)}h ago`;
-  return `${Math.floor(s / 86400)}d ago`;
+  if (s < 60) return t("just now");
+  if (s < 3600) return t("{n}m ago", { n: Math.floor(s / 60) });
+  if (s < 86400) return t("{n}h ago", { n: Math.floor(s / 3600) });
+  return t("{n}d ago", { n: Math.floor(s / 86400) });
 }
