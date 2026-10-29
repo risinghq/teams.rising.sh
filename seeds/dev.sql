@@ -21,8 +21,8 @@ INSERT OR IGNORE INTO projects (id, team_id, name, target_date) VALUES
   ('p-event', 't-ops', 'Spring event', date('now', '+14 day'));
 
 INSERT OR IGNORE INTO labels (id, team_id, name, color) VALUES
-  ('l-code', NULL, 'code', '#3b82f6'),
-  ('l-logistics', NULL, 'logistics', '#f59e0b'),
+  ('l-code', 't-eng', 'code', '#3b82f6'),
+  ('l-logistics', 't-ops', 'logistics', '#f59e0b'),
   ('l-vendor', 't-ops', 'vendor', '#10b981');
 
 INSERT OR IGNORE INTO tasks
