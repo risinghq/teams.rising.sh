@@ -186,8 +186,8 @@ function Detail({ task, onClose }: { task: TaskDetail; onClose?: () => void }) {
                   })
                 }
                 className={clsx(
-                  "rounded-full border px-2 py-0.5",
-                  on ? "font-medium" : "text-muted-foreground opacity-60",
+                  "h-8 rounded-full border px-3",
+                  on ? "bg-muted" : "border-dashed text-muted-foreground",
                 )}
                 style={on ? { borderColor: l.color } : undefined}
               >

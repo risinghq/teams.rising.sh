@@ -49,6 +49,10 @@ import {
 const shortDay = (s: string) =>
   parseDay(s).toLocaleDateString(undefined, { month: "short", day: "numeric" });
 
+// 16px on phones so iOS does not zoom into the field on focus.
+const formInput =
+  "h-9 rounded-md border bg-background px-2 text-base sm:text-sm";
+
 // A list page with an optional side panel. The panel opens from `?task=KEY`.
 export function WithPanel({ children }: { children: ReactNode }) {
   const search = useSearch({ strict: false }) as { task?: string };
@@ -215,9 +219,9 @@ export function TeamPage({ team }: { team: string }) {
           ))}
         </div>
       </Header>
-      {current ? (
+      {current || filters.project === "none" ? (
         <ProjectHeader
-          project={current}
+          project={current ?? null}
           canEdit={role === "leader"}
           onBack={() => pick("")}
         />
@@ -294,7 +298,8 @@ function ProjectList({
           rows.length > 0 && (
             <div key={title}>
               <h2 className="border-b bg-sidebar px-4 py-1.5 text-xs font-medium">
-                {title}
+                {title}{" "}
+                <span className="text-muted-foreground">{rows.length}</span>
               </h2>
               {rows.map((s) => (
                 <ProjectRow key={s.project.id} summary={s} onPick={onPick} />
@@ -309,7 +314,7 @@ function ProjectList({
           className="flex w-full items-center gap-3 border-b px-4 py-2 text-left text-muted-foreground hover:bg-muted/60"
         >
           <span className="flex-1">No project</span>
-          <span className="text-xs">{summary.loose} open</span>
+          <span className="text-xs tabular-nums">{summary.loose} open</span>
         </button>
       )}
       {canCreate &&
@@ -353,12 +358,15 @@ function ProjectRow({
       {project.target_date ? (
         <>
           <ProgressBar value={progress} />
+          <span className="w-8 text-right text-xs tabular-nums text-muted-foreground">
+            {Math.round(progress * 100)}%
+          </span>
           <span className="w-16 text-right text-xs tabular-nums text-muted-foreground">
             {shortDay(project.target_date)}
           </span>
         </>
       ) : (
-        <span className="text-xs text-muted-foreground">
+        <span className="text-xs tabular-nums text-muted-foreground">
           {open} open{nextDue && ` · next ${shortDay(nextDue)}`}
         </span>
       )}
@@ -366,20 +374,21 @@ function ProjectRow({
   );
 }
 
+// The picked project, or the tasks outside any project when `project` is null.
 function ProjectHeader({
   project,
   canEdit,
   onBack,
 }: {
-  project: Project;
+  project: Project | null;
   canEdit: boolean;
   onBack: () => void;
 }) {
   const [editing, setEditing] = useState(false);
   const save = useWrite((body: Record<string, unknown>) =>
-    api.patchProject(project.id, body),
+    api.patchProject(project?.id ?? "", body),
   );
-  if (editing)
+  if (editing && project)
     return (
       <section className="border-b">
         <ProjectForm
@@ -399,18 +408,20 @@ function ProjectHeader({
           type="button"
           aria-label="All projects"
           onClick={onBack}
-          className="rounded-md p-1 hover:bg-muted"
+          className="-ml-2 inline-flex size-8 items-center justify-center rounded-md hover:bg-muted"
         >
-          <ArrowLeft size={14} />
+          <ArrowLeft size={16} />
         </button>
-        <h2 className="font-semibold">{project.name}</h2>
+        <h2 className="font-semibold">{project?.name ?? "No project"}</h2>
         <span className="text-xs text-muted-foreground">
-          {project.target_date
-            ? `Target ${shortDay(project.target_date)}`
-            : "Ongoing area"}
-          {project.status !== "active" && ` · ${project.status}`}
+          {!project
+            ? "Ideas, papers and other loose tasks"
+            : project.target_date
+              ? `Target ${shortDay(project.target_date)}`
+              : "Ongoing area"}
+          {project && project.status !== "active" && ` · ${project.status}`}
         </span>
-        {canEdit && (
+        {project && canEdit && (
           <button
             type="button"
             className={clsx(button, "ml-auto")}
@@ -420,7 +431,7 @@ function ProjectHeader({
           </button>
         )}
       </div>
-      {project.description && (
+      {project?.description && (
         <p className="whitespace-pre-wrap text-sm">
           <LinkedText text={project.description} />
         </p>
@@ -449,6 +460,7 @@ function ProjectForm({
   return (
     <form
       className="flex flex-col gap-2 px-4 py-3"
+      onKeyDown={(e) => e.key === "Escape" && onCancel()}
       onSubmit={(e) => {
         e.preventDefault();
         if (!name.trim()) return;
@@ -466,7 +478,7 @@ function ProjectForm({
         value={name}
         onChange={(e) => setName(e.target.value)}
         placeholder="Name"
-        className={clsx(field, "text-sm")}
+        className={formInput}
       />
       <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
         <input
@@ -474,7 +486,7 @@ function ProjectForm({
           aria-label="Target date"
           value={target}
           onChange={(e) => setTarget(e.target.value)}
-          className={field}
+          className={formInput}
         />
         Leave the date empty for an ongoing area.
         {project && (
@@ -496,7 +508,7 @@ function ProjectForm({
         onChange={(e) => setDescription(e.target.value)}
         placeholder="What it is, plus links to its repo or spreadsheet"
         rows={3}
-        className="rounded-md border bg-background px-2 py-1.5 text-sm"
+        className="rounded-md border bg-background px-2 py-1.5 text-base sm:text-sm"
       />
       <div className="flex justify-end gap-2">
         <button type="button" className={button} onClick={onCancel}>
