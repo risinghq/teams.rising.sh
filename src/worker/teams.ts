@@ -16,7 +16,7 @@ export async function teamByKey(c: C, key: string): Promise<TeamRow> {
   )
     .bind(key.toUpperCase())
     .first<TeamRow>();
-  if (!team) throw new HttpError(404, "team not found");
+  if (!team) throw new HttpError(404, "equipo no encontrado");
   return team;
 }
 
@@ -43,7 +43,7 @@ teamRoutes.post("/teams", async (c) => {
   const input = await body(c);
   const key = text(input.key, "key", 6).toUpperCase();
   if (!/^[A-Z][A-Z0-9]{1,5}$/.test(key))
-    throw new HttpError(400, "key must be 2-6 letters or digits");
+    throw new HttpError(400, "la clave debe tener de 2 a 6 letras o números");
   const teamId = id();
   const leaders = Array.isArray(input.leaders)
     ? (input.leaders as string[])
@@ -65,7 +65,7 @@ teamRoutes.post("/teams", async (c) => {
       ),
     ]);
   } catch {
-    throw new HttpError(409, "team key is taken or a leader does not exist");
+    throw new HttpError(409, "la clave ya está en uso o un líder no existe");
   }
   return c.json(await teamByKey(c, key), 201);
 });
@@ -115,7 +115,7 @@ teamRoutes.put("/teams/:key/members/:userId", async (c) => {
       .bind(team.id, userId, role)
       .run();
   } catch {
-    throw new HttpError(404, "user not found");
+    throw new HttpError(404, "usuario no encontrado");
   }
   return c.json({ ok: true });
 });
@@ -150,7 +150,7 @@ async function keepALeader(
     .bind(teamId, userId)
     .first();
   if (isLeader && row?.others === 0)
-    throw new HttpError(409, "a team needs at least one leader");
+    throw new HttpError(409, "un equipo necesita al menos un líder");
 }
 
 teamRoutes.get("/teams/:key/projects", async (c) => {
@@ -166,7 +166,7 @@ teamRoutes.get("/teams/:key/projects", async (c) => {
 teamRoutes.post("/teams/:key/projects", async (c) => {
   const team = await teamByKey(c, c.req.param("key"));
   if ((await teamRole(c, team.id)) === null)
-    throw new HttpError(403, "join the team first");
+    throw new HttpError(403, "primero únete al equipo");
   const input = await body(c);
   const projectId = id();
   await c.env.DB.prepare(
@@ -202,7 +202,7 @@ teamRoutes.patch("/projects/:id", async (c) => {
       start_date: string | null;
       target_date: string | null;
     }>();
-  if (!project) throw new HttpError(404, "project not found");
+  if (!project) throw new HttpError(404, "proyecto no encontrado");
   await requireLeader(c, project.team_id);
   const input = await body(c);
   await c.env.DB.prepare(
@@ -254,7 +254,7 @@ teamRoutes.post("/labels", async (c) => {
       )
       .run();
   } catch {
-    throw new HttpError(409, "label already exists");
+    throw new HttpError(409, "esa etiqueta ya existe");
   }
   return c.json({ id: labelId }, 201);
 });

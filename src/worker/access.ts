@@ -31,11 +31,14 @@ export async function teamRole(c: C, teamId: string): Promise<Role> {
 
 export async function requireLeader(c: C, teamId: string): Promise<void> {
   if ((await teamRole(c, teamId)) !== "leader") {
-    throw new HttpError(403, "only a team leader or an admin can do this");
+    throw new HttpError(
+      403,
+      "solo un líder del equipo o un admin puede hacer esto",
+    );
   }
 }
 
 export function requireAdmin(c: C): void {
   if (!c.get("user").is_admin)
-    throw new HttpError(403, "only an admin can do this");
+    throw new HttpError(403, "solo un admin puede hacer esto");
 }

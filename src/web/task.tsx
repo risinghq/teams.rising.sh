@@ -22,7 +22,6 @@ import {
   useUsers,
   useWrite,
 } from "./data";
-import { t } from "./i18n";
 import { relativeTime } from "./lib";
 import {
   Avatar,
@@ -48,8 +47,8 @@ export function TaskView({
   if (q.isPending) return <Skeleton rows={4} />;
   if (q.isError)
     return (
-      <Empty title={t("Task not found")}>
-        {t("It may be private or deleted.")}
+      <Empty title="Tarea no encontrada">
+        Puede ser privada o haber sido borrada.
       </Empty>
     );
   return <Detail task={q.data} onClose={onClose} />;
@@ -77,7 +76,7 @@ function Detail({ task, onClose }: { task: TaskDetail; onClose?: () => void }) {
           <p className="flex items-center gap-1 text-xs text-muted-foreground">
             {task.key}
             {task.visibility === "private" && (
-              <Lock size={12} aria-label={t("Private")} />
+              <Lock size={12} aria-label="Privada" />
             )}
           </p>
           <h2 className="text-base font-semibold">{task.title}</h2>
@@ -85,7 +84,7 @@ function Detail({ task, onClose }: { task: TaskDetail; onClose?: () => void }) {
         {onClose && (
           <button
             type="button"
-            aria-label={t("Close")}
+            aria-label="Cerrar"
             onClick={onClose}
             className="rounded-md p-1 hover:bg-muted"
           >
@@ -95,11 +94,11 @@ function Detail({ task, onClose }: { task: TaskDetail; onClose?: () => void }) {
       </header>
 
       <dl className="grid grid-cols-[6rem_1fr] items-center gap-x-3 gap-y-2 border-b px-4 py-3 text-xs">
-        <dt className="text-muted-foreground">{t("Status")}</dt>
+        <dt className="text-muted-foreground">Estado</dt>
         <dd className="flex items-center gap-2">
           <StatusDot status={task.status} />
           <select
-            aria-label={t("Status")}
+            aria-label="Estado"
             className={field}
             value={task.status}
             onChange={(e) => set({ status: e.target.value as TaskStatus })}
@@ -111,16 +110,16 @@ function Detail({ task, onClose }: { task: TaskDetail; onClose?: () => void }) {
             ))}
           </select>
         </dd>
-        <dt className="text-muted-foreground">{t("Owner")}</dt>
+        <dt className="text-muted-foreground">Responsable</dt>
         <dd className="flex items-center gap-2">
           <Avatar person={task.owner} />
           <select
-            aria-label={t("Owner")}
+            aria-label="Responsable"
             className={field}
             value={task.owner?.id ?? ""}
             onChange={(e) => set({ owner_id: e.target.value || null })}
           >
-            <option value="">{t("Unassigned")}</option>
+            <option value="">Sin asignar</option>
             {users.data?.map((u) => (
               <option key={u.id} value={u.id}>
                 {u.name}
@@ -128,21 +127,21 @@ function Detail({ task, onClose }: { task: TaskDetail; onClose?: () => void }) {
             ))}
           </select>
         </dd>
-        <dt className="text-muted-foreground">{t("Due")}</dt>
+        <dt className="text-muted-foreground">Entrega</dt>
         <dd className="flex items-center gap-2">
           <input
             type="date"
-            aria-label={t("Due date")}
+            aria-label="Fecha de entrega"
             className={field}
             value={task.due_date ?? ""}
             onChange={(e) => set({ due_date: e.target.value || null })}
           />
           <DueChip task={task} today={today()} />
         </dd>
-        <dt className="text-muted-foreground">{t("Priority")}</dt>
+        <dt className="text-muted-foreground">Prioridad</dt>
         <dd>
           <select
-            aria-label={t("Priority")}
+            aria-label="Prioridad"
             className={field}
             value={task.priority}
             onChange={(e) => set({ priority: Number(e.target.value) })}
@@ -154,15 +153,15 @@ function Detail({ task, onClose }: { task: TaskDetail; onClose?: () => void }) {
             ))}
           </select>
         </dd>
-        <dt className="text-muted-foreground">{t("Project")}</dt>
+        <dt className="text-muted-foreground">Proyecto</dt>
         <dd>
           <select
-            aria-label={t("Project")}
+            aria-label="Proyecto"
             className={field}
             value={task.project_id ?? ""}
             onChange={(e) => set({ project_id: e.target.value || null })}
           >
-            <option value="">{t("No project")}</option>
+            <option value="">Sin proyecto</option>
             {projects.data
               ?.filter((p) => p.status === "active" || p.id === task.project_id)
               .map((p) => (
@@ -172,7 +171,7 @@ function Detail({ task, onClose }: { task: TaskDetail; onClose?: () => void }) {
               ))}
           </select>
         </dd>
-        <dt className="text-muted-foreground">{t("Labels")}</dt>
+        <dt className="text-muted-foreground">Etiquetas</dt>
         <dd className="flex flex-wrap gap-1">
           {labels?.map((l) => {
             const on = task.labels.some((x) => x.id === l.id);
@@ -214,7 +213,7 @@ function Detail({ task, onClose }: { task: TaskDetail; onClose?: () => void }) {
             );
           })}
         </dd>
-        <dt className="text-muted-foreground">{t("Helping")}</dt>
+        <dt className="text-muted-foreground">Ayudan</dt>
         <dd className="flex flex-wrap items-center gap-2">
           {task.collaborators.map((c) => (
             <span key={c.id} className="flex items-center gap-1">
@@ -228,7 +227,7 @@ function Detail({ task, onClose }: { task: TaskDetail; onClose?: () => void }) {
               joined ? leave.mutate(undefined) : join.mutate(undefined)
             }
           >
-            {joined ? t("Leave") : t("Help out")}
+            {joined ? "Salir" : "Ayudar"}
           </button>
         </dd>
       </dl>
@@ -242,7 +241,7 @@ function Detail({ task, onClose }: { task: TaskDetail; onClose?: () => void }) {
       {task.subtasks.length > 0 && (
         <section className="border-b px-4 py-3">
           <h3 className="mb-2 flex items-center gap-2 text-xs font-medium">
-            {t("Subtasks")} <ProgressBar value={task.progress} />
+            Subtareas <ProgressBar value={task.progress} />
           </h3>
           <ul className="space-y-1">
             {task.subtasks.map((s) => (
@@ -266,7 +265,7 @@ function Detail({ task, onClose }: { task: TaskDetail; onClose?: () => void }) {
 
       {task.links.length > 0 && (
         <section className="border-b px-4 py-3">
-          <h3 className="mb-2 text-xs font-medium">{t("Linked work")}</h3>
+          <h3 className="mb-2 text-xs font-medium">Trabajo enlazado</h3>
           <ul className="space-y-1">
             {task.links.map((l) => (
               <li key={l.id}>
@@ -279,7 +278,7 @@ function Detail({ task, onClose }: { task: TaskDetail; onClose?: () => void }) {
                   <ExternalLink size={12} />{" "}
                   {l.title || `${l.repo}#${l.external_id}`}
                   <span className="text-xs text-muted-foreground">
-                    {t(l.state)}
+                    {LINK_STATE[l.state] ?? l.state}
                   </span>
                 </a>
               </li>
@@ -293,19 +292,21 @@ function Detail({ task, onClose }: { task: TaskDetail; onClose?: () => void }) {
   );
 }
 
+const LINK_STATE: Record<string, string> = {
+  open: "abierto",
+  closed: "cerrado",
+  merged: "fusionado",
+};
+
 function describe(u: Update): string {
   const m = u.meta as { from?: unknown; to?: unknown };
   const name = (v: unknown) =>
-    v === null || v === undefined || v === "" ? t("none") : String(v);
+    v === null || v === undefined || v === "" ? "ninguno" : String(v);
   const status = (v: unknown) => STATUS_LABEL[v as TaskStatus] ?? name(v);
   if (u.kind === "status")
-    return t("changed status from {from} to {to}", {
-      from: status(m.from),
-      to: status(m.to),
-    });
-  if (u.kind === "owner") return t("changed the owner");
-  if (u.kind === "due")
-    return t("changed the due date to {to}", { to: name(m.to) });
+    return `cambió el estado de ${status(m.from)} a ${status(m.to)}`;
+  if (u.kind === "owner") return "cambió el responsable";
+  if (u.kind === "due") return `cambió la fecha de entrega a ${name(m.to)}`;
   return u.body;
 }
 
@@ -325,7 +326,7 @@ function Activity({
   };
   return (
     <section className="px-4 py-3">
-      <h3 className="mb-2 text-xs font-medium">{t("Activity")}</h3>
+      <h3 className="mb-2 text-xs font-medium">Actividad</h3>
       <ul className="space-y-3">
         {updates.map((u) => (
           <li key={u.id} className="flex gap-2">
@@ -343,7 +344,7 @@ function Activity({
             <div className="min-w-0 text-xs">
               <p>
                 <span className="font-medium">
-                  {u.author_name ?? t("System")}
+                  {u.author_name ?? "Sistema"}
                 </span>{" "}
                 <span className="text-muted-foreground">
                   {relativeTime(u.created_at)}
@@ -370,13 +371,13 @@ function Activity({
         }}
       >
         <textarea
-          aria-label={t("Comment")}
+          aria-label="Comentar"
           value={text}
           onChange={(e) => setText(e.target.value)}
           onKeyDown={(e) => {
             if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) submit();
           }}
-          placeholder={t("Write an update. Use @name to notify someone.")}
+          placeholder="Escribe una actualización. Usa @nombre para avisar a alguien."
           rows={3}
           className="rounded-md border bg-background p-2 text-sm"
         />
@@ -385,7 +386,7 @@ function Activity({
           className={`${primaryButton} self-end`}
           disabled={comment.isPending}
         >
-          {t("Comment")}
+          Comentar
         </button>
       </form>
     </section>

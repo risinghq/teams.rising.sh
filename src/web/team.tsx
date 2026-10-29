@@ -32,6 +32,7 @@ import {
   useWrite,
 } from "./data";
 import {
+  day,
   filterTasks,
   groupByDue,
   NO_FILTERS,
@@ -40,7 +41,6 @@ import {
   type Filters,
   type ProjectSummary,
 } from "./lib";
-import { day, t } from "./i18n";
 import { TaskView } from "./task";
 import {
   Avatar,
@@ -61,6 +61,12 @@ const shortDay = (s: string) =>
   day(parseDay(s), { month: "short", day: "numeric" });
 
 const formInput = "h-9 rounded-md border bg-background px-2 text-sm";
+
+const PROJECT_STATUS: Record<Project["status"], string> = {
+  active: "activo",
+  done: "terminado",
+  archived: "archivado",
+};
 
 // A list page with an optional side panel. The panel opens from `?task=KEY`.
 export function WithPanel({ children }: { children: ReactNode }) {
@@ -96,12 +102,12 @@ export function MyWork() {
   const search = useSearch({ strict: false }) as { task?: string };
   return (
     <WithPanel>
-      <Header title={t("My work")} />
+      <Header title="Mi trabajo" />
       {q.isPending ? (
         <Skeleton />
       ) : q.data?.length === 0 ? (
-        <Empty title={t("Nothing on your plate")}>
-          {t("Tasks you own show here, grouped by when they are due.")}
+        <Empty title="No tienes nada pendiente">
+          Aquí aparecen tus tareas, agrupadas por fecha de entrega.
         </Empty>
       ) : (
         groupByDue(q.data ?? [], now).map((g) => (
@@ -164,13 +170,13 @@ export function TeamPage({ team }: { team: string }) {
         subtitle={teamRow?.description}
       >
         <select
-          aria-label={t("Owner filter")}
+          aria-label="Filtro de responsable"
           className={field}
           value={filters.owner}
           onChange={set("owner")}
         >
-          <option value="">{t("Any owner")}</option>
-          <option value="none">{t("Unassigned")}</option>
+          <option value="">Responsable</option>
+          <option value="none">Sin asignar</option>
           {users.data?.map((u) => (
             <option key={u.id} value={u.id}>
               {u.name}
@@ -178,12 +184,12 @@ export function TeamPage({ team }: { team: string }) {
           ))}
         </select>
         <select
-          aria-label={t("Status filter")}
+          aria-label="Filtro de estado"
           className={field}
           value={filters.status}
           onChange={set("status")}
         >
-          <option value="">{t("Any status")}</option>
+          <option value="">Estado</option>
           {STATUSES.map((s) => (
             <option key={s} value={s}>
               {STATUS_LABEL[s]}
@@ -191,12 +197,12 @@ export function TeamPage({ team }: { team: string }) {
           ))}
         </select>
         <select
-          aria-label={t("Label filter")}
+          aria-label="Filtro de etiqueta"
           className={field}
           value={filters.label}
           onChange={set("label")}
         >
-          <option value="">{t("Any label")}</option>
+          <option value="">Etiqueta</option>
           {labels?.map((l) => (
             <option key={l.id} value={l.id}>
               {l.name}
@@ -204,24 +210,20 @@ export function TeamPage({ team }: { team: string }) {
           ))}
         </select>
         <select
-          aria-label={t("Project filter")}
+          aria-label="Filtro de proyecto"
           className={field}
           value={filters.project}
           onChange={set("project")}
         >
-          <option value="">{t("Any project")}</option>
-          <option value="none">{t("No project")}</option>
+          <option value="">Proyecto</option>
+          <option value="none">Sin proyecto</option>
           {projects.data?.map((p) => (
             <option key={p.id} value={p.id}>
               {p.name}
             </option>
           ))}
         </select>
-        <div
-          className="flex rounded-md border"
-          role="group"
-          aria-label={t("View")}
-        >
+        <div className="flex rounded-md border" role="group" aria-label="Vista">
           {(
             [
               ["list", LayoutList],
@@ -231,7 +233,7 @@ export function TeamPage({ team }: { team: string }) {
             <button
               key={id}
               type="button"
-              aria-label={id === "list" ? t("List view") : t("Board view")}
+              aria-label={id === "list" ? "Vista de lista" : "Vista de tablero"}
               aria-pressed={view === id}
               onClick={() => setView(id)}
               className={clsx("p-1.5", view === id && "bg-muted")}
@@ -244,7 +246,7 @@ export function TeamPage({ team }: { team: string }) {
           <Link
             to="/t/$team/settings"
             params={{ team }}
-            aria-label={t("Team settings")}
+            aria-label="Ajustes del equipo"
             className="inline-flex size-8 items-center justify-center rounded-md border hover:bg-muted"
           >
             <Settings size={14} />
@@ -271,8 +273,8 @@ export function TeamPage({ team }: { team: string }) {
       {tasks.isPending ? (
         <Skeleton />
       ) : shown.length === 0 ? (
-        <Empty title={t("No tasks here")}>
-          {t("Add one above, or clear the filters.")}
+        <Empty title="No hay tareas aquí">
+          Agrega una arriba o quita los filtros.
         </Empty>
       ) : view === "list" ? (
         groupByDue(shown, now).map((g) => (
@@ -321,9 +323,10 @@ function ProjectList({
   return (
     <section className="border-b px-4 py-4">
       <div className="mb-3 flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
-        <h2 className="text-xs font-medium">{t("Projects and areas")}</h2>
+        <h2 className="text-xs font-medium">Proyectos y áreas</h2>
         <p className="text-xs text-muted-foreground">
-          {t("Projects end on a date. Areas, like funding, stay open.")}
+          Los proyectos terminan en una fecha. Las áreas, como financiamiento,
+          siguen abiertas.
         </p>
       </div>
       {/* A swipeable row on phones so the tasks stay in view; a grid above. */}
@@ -338,16 +341,14 @@ function ProjectList({
             className={clsx(dashedCard, "gap-1")}
           >
             <span className="flex items-center gap-1 text-xs">
-              <Inbox size={12} aria-hidden /> {t("Loose")}
+              <Inbox size={12} aria-hidden /> Sueltas
             </span>
-            <span className="font-medium text-foreground">
-              {t("No project")}
-            </span>
+            <span className="font-medium text-foreground">Sin proyecto</span>
             <span className="line-clamp-1 text-xs">
-              {t("Ideas, papers and other loose tasks")}
+              Ideas, papers y otras tareas sueltas
             </span>
             <span className="mt-auto pt-2 text-xs tabular-nums">
-              {t("{n} open", { n: summary.loose })}
+              {summary.loose} abiertas
             </span>
           </button>
         )}
@@ -358,9 +359,7 @@ function ProjectList({
             className={clsx(dashedCard, "items-center justify-center gap-1")}
           >
             <Plus size={16} />
-            <span className="text-xs font-medium">
-              {t("New project or area")}
-            </span>
+            <span className="text-xs font-medium">Nuevo proyecto o área</span>
           </button>
         )}
       </div>
@@ -406,7 +405,7 @@ function ProjectCard({
       className="press group flex min-h-28 flex-col gap-1 rounded-lg bg-surface p-3 text-left shadow-card hover:ring-2 hover:ring-primary/30"
     >
       <span className="flex items-center gap-1 text-xs text-muted-foreground">
-        <Kind size={12} aria-hidden /> {area ? t("Area") : t("Project")}
+        <Kind size={12} aria-hidden /> {area ? "Área" : "Proyecto"}
       </span>
       <span className="truncate font-medium">{project.name}</span>
       {about && (
@@ -417,9 +416,9 @@ function ProjectCard({
       <span className="mt-auto flex items-center gap-2 pt-2 text-xs tabular-nums text-muted-foreground">
         {area ? (
           nextDue ? (
-            t("{n} open · next {date}", { n: open, date: shortDay(nextDue) })
+            `${open} abiertas · próxima ${shortDay(nextDue)}`
           ) : (
-            t("{n} open", { n: open })
+            `${open} abiertas`
           )
         ) : (
           <>
@@ -469,20 +468,22 @@ function ProjectHeader({
       <div className="flex items-center gap-2">
         <button
           type="button"
-          aria-label={t("All projects")}
+          aria-label="Todos los proyectos"
           onClick={onBack}
           className="-ml-2 inline-flex size-8 items-center justify-center rounded-md hover:bg-muted"
         >
           <ArrowLeft size={16} />
         </button>
-        <h2 className="font-semibold">{project?.name ?? t("No project")}</h2>
+        <h2 className="font-semibold">{project?.name ?? "Sin proyecto"}</h2>
         <span className="text-xs text-muted-foreground">
           {!project
-            ? t("Ideas, papers and other loose tasks")
+            ? "Ideas, papers y otras tareas sueltas"
             : project.target_date
-              ? t("Target {date}", { date: shortDay(project.target_date) })
-              : t("Ongoing area")}
-          {project && project.status !== "active" && ` · ${t(project.status)}`}
+              ? `Meta ${shortDay(project.target_date)}`
+              : "Área permanente"}
+          {project &&
+            project.status !== "active" &&
+            ` · ${PROJECT_STATUS[project.status]}`}
         </span>
         {project && canEdit && (
           <button
@@ -490,7 +491,7 @@ function ProjectHeader({
             className={clsx(button, "ml-auto")}
             onClick={() => setEditing(true)}
           >
-            {t("Edit")}
+            Editar
           </button>
         )}
       </div>
@@ -536,53 +537,53 @@ function ProjectForm({
       }}
     >
       <input
-        aria-label={t("Project name")}
+        aria-label="Nombre del proyecto"
         autoFocus
         value={name}
         onChange={(e) => setName(e.target.value)}
-        placeholder={t("Name")}
+        placeholder="Nombre"
         className={formInput}
       />
       <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
         <input
           type="date"
-          aria-label={t("Target date")}
+          aria-label="Fecha objetivo"
           value={target}
           onChange={(e) => setTarget(e.target.value)}
           className={formInput}
         />
-        {t("Leave the date empty for an ongoing area.")}
+        Deja la fecha vacía para un área permanente.
         {project && (
           <select
-            aria-label={t("Project status")}
+            aria-label="Estado del proyecto"
             className={clsx(field, "ml-auto")}
             value={status}
             onChange={(e) => setStatus(e.target.value as Project["status"])}
           >
-            <option value="active">{t("Active")}</option>
-            <option value="done">{t("Done")}</option>
-            <option value="archived">{t("Archived")}</option>
+            <option value="active">Activo</option>
+            <option value="done">Terminado</option>
+            <option value="archived">Archivado</option>
           </select>
         )}
       </div>
       <textarea
-        aria-label={t("Project description")}
+        aria-label="Descripción del proyecto"
         value={description}
         onChange={(e) => setDescription(e.target.value)}
-        placeholder={t("What it is, plus links to its repo or spreadsheet")}
+        placeholder="De qué trata, con enlaces a su repo u hoja de cálculo"
         rows={3}
         className="rounded-md border bg-background px-2 py-1.5 text-sm"
       />
       <div className="flex justify-end gap-2">
         <button type="button" className={button} onClick={onCancel}>
-          {t("Cancel")}
+          Cancelar
         </button>
         <button
           type="submit"
           className={primaryButton}
           disabled={pending || !name.trim()}
         >
-          {project ? t("Save") : t("Create")}
+          {project ? "Guardar" : "Crear"}
         </button>
       </div>
     </form>
@@ -609,10 +610,10 @@ function NewTask({ team, project }: { team: string; project?: string }) {
     >
       <Plus size={16} aria-hidden className="shrink-0 text-muted-foreground" />
       <input
-        aria-label={t("New task title")}
+        aria-label="Título de la nueva tarea"
         value={title}
         onChange={(e) => setTitle(e.target.value)}
-        placeholder={t("Add a task and press Enter")}
+        placeholder="Escribe una tarea y pulsa Enter"
         className="h-8 min-w-0 flex-1 bg-transparent text-sm outline-none"
       />
       {title.trim() && (
@@ -621,7 +622,7 @@ function NewTask({ team, project }: { team: string; project?: string }) {
           className={primaryButton}
           disabled={create.isPending}
         >
-          {t("Add")}
+          Agregar
         </button>
       )}
     </form>

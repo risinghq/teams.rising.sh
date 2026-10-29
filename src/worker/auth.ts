@@ -44,7 +44,7 @@ export function allowed(email: string, env: Env["Bindings"]): boolean {
 // Core 3.1.3.7 lets us skip the signature check and validate the claims.
 function claimsOf(idToken: string, clientId: string): Claims {
   const payload = idToken.split(".")[1];
-  if (!payload) throw new HttpError(400, "malformed id token");
+  if (!payload) throw new HttpError(400, "token de identidad mal formado");
   const claims = JSON.parse(
     new TextDecoder().decode(
       Uint8Array.from(
@@ -58,9 +58,10 @@ function claimsOf(idToken: string, clientId: string): Claims {
     "accounts.google.com",
   ].includes(claims.iss);
   if (!issuerOk || claims.aud !== clientId || claims.exp * 1000 < Date.now()) {
-    throw new HttpError(400, "id token rejected");
+    throw new HttpError(400, "token de identidad rechazado");
   }
-  if (!claims.email_verified) throw new HttpError(403, "email is not verified");
+  if (!claims.email_verified)
+    throw new HttpError(403, "el correo no está verificado");
   return claims;
 }
 
@@ -115,7 +116,10 @@ export const authRoutes = new Hono<Env>();
 
 authRoutes.get("/google", (c) => {
   if (!c.env.GOOGLE_CLIENT_ID)
-    throw new HttpError(400, "Google sign-in is not configured");
+    throw new HttpError(
+      400,
+      "el inicio de sesión con Google no está configurado",
+    );
   const state = bytes(16);
   setCookie(c, "oauth_state", state, {
     httpOnly: true,
@@ -142,9 +146,15 @@ authRoutes.get("/google/callback", async (c) => {
   const code = c.req.query("code");
   const state = c.req.query("state");
   if (!clientId || !secret)
-    throw new HttpError(400, "Google sign-in is not configured");
+    throw new HttpError(
+      400,
+      "el inicio de sesión con Google no está configurado",
+    );
   if (!code || !state || state !== getCookie(c, "oauth_state")) {
-    throw new HttpError(400, "sign-in state does not match");
+    throw new HttpError(
+      400,
+      "el inicio de sesión expiró o se abrió dos veces; vuelve a intentarlo desde el principio",
+    );
   }
   deleteCookie(c, "oauth_state", { path: "/api/auth" });
   const response = await fetch(GOOGLE_TOKEN, {
@@ -158,14 +168,14 @@ authRoutes.get("/google/callback", async (c) => {
     }),
   });
   if (!response.ok)
-    throw new HttpError(400, "Google rejected the sign-in code");
+    throw new HttpError(400, "Google rechazó el código de inicio de sesión");
   const tokens = (await response.json()) as {
     id_token: string;
     refresh_token?: string;
   };
   const claims = claimsOf(tokens.id_token, clientId);
   if (!allowed(claims.email, c.env))
-    throw new HttpError(403, "this account is not allowed");
+    throw new HttpError(403, "esta cuenta no tiene acceso");
   const userId = await upsertUser(
     c,
     claims.email,
@@ -186,7 +196,7 @@ authRoutes.get("/google/callback", async (c) => {
 });
 
 authRoutes.post("/dev", async (c) => {
-  if (c.env.DEV_LOGIN !== "1") throw new HttpError(404, "not found");
+  if (c.env.DEV_LOGIN !== "1") throw new HttpError(404, "no encontrado");
   const { email, name } = (await c.req.json()) as {
     email: string;
     name?: string;
@@ -219,7 +229,7 @@ export async function requireUser(
         .bind(session, new Date().toISOString())
         .first<User>()
     : null;
-  if (!user) throw new HttpError(401, "sign in required");
+  if (!user) throw new HttpError(401, "inicia sesión para continuar");
   c.set("user", user);
   await next();
 }

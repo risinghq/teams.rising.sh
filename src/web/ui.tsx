@@ -2,8 +2,7 @@ import clsx from "clsx";
 import { Lock } from "lucide-react";
 import type { ReactNode } from "react";
 import { STATUS_LABEL, type Person, type Task, type TaskStatus } from "./api";
-import { day, lang, setLang, t } from "./i18n";
-import { linkify, parseDay } from "./lib";
+import { day, linkify, parseDay } from "./lib";
 
 const STATUS_COLOR: Record<TaskStatus, string> = {
   backlog: "var(--muted-foreground)",
@@ -65,7 +64,7 @@ export function Avatar({
   if (!person)
     return (
       <span
-        title={t("Unassigned")}
+        title="Sin asignar"
         style={{ width: size, height: size }}
         className="inline-block shrink-0 rounded-full border border-dashed"
       />
@@ -164,7 +163,7 @@ export function TaskRow({
       {task.visibility === "private" && (
         <Lock
           size={12}
-          aria-label={t("Private")}
+          aria-label="Privada"
           className="shrink-0 text-muted-foreground"
         />
       )}
@@ -176,23 +175,6 @@ export function TaskRow({
       </span>
       <DueChip task={task} today={today} />
       <Avatar person={task.owner} />
-    </button>
-  );
-}
-
-// Offers the other language named in itself, which is the word its readers
-// look for.
-export function LanguageSwitch() {
-  const other = lang === "es" ? "en" : "es";
-  return (
-    <button
-      type="button"
-      lang={other}
-      title={t("Language")}
-      onClick={() => setLang(other)}
-      className="text-xs text-muted-foreground hover:underline"
-    >
-      {other === "es" ? "Español" : "English"}
     </button>
   );
 }

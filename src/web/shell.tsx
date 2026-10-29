@@ -14,8 +14,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { api } from "./api";
 import { useInbox, useMe, useTeams } from "./data";
 import { searchPalette, type PaletteItem } from "./lib";
-import { t } from "./i18n";
-import { Avatar, LanguageSwitch, TeamMark } from "./ui";
+import { Avatar, TeamMark } from "./ui";
 
 const nav =
   "flex items-center gap-2 rounded-md px-2 py-1.5 text-sm hover:bg-muted";
@@ -63,7 +62,7 @@ export function Shell() {
             type="button"
             onClick={() => setPalette(true)}
             className="flex items-center gap-1 rounded-md border px-2 py-1 text-xs text-muted-foreground hover:bg-muted"
-            aria-label={t("Search")}
+            aria-label="Buscar"
           >
             <Search size={12} /> ⌘K
           </button>
@@ -75,33 +74,31 @@ export function Shell() {
             activeProps={navOn}
             activeOptions={{ exact: true }}
           >
-            <CheckSquare size={16} /> {t("My work")}
+            <CheckSquare size={16} /> Mi trabajo
           </Link>
           <Link to="/inbox" className={nav} activeProps={navOn}>
-            <Bell size={16} /> {t("Inbox")}
+            <Bell size={16} /> Bandeja
             {unread > 0 && (
               <span
-                aria-label={t("{n} unread", { n: unread })}
+                aria-label={`${unread} sin leer`}
                 className="ml-auto h-2 w-2 rounded-full bg-primary"
               />
             )}
           </Link>
           <Link to="/calendar" className={nav} activeProps={navOn}>
-            <CalendarDays size={16} /> {t("Calendar")}
+            <CalendarDays size={16} /> Calendario
           </Link>
           <Link to="/overview" className={nav} activeProps={navOn}>
-            <LayoutDashboard size={16} /> {t("Overview")}
+            <LayoutDashboard size={16} /> Resumen
           </Link>
         </nav>
         <div className="min-h-0 flex-1 overflow-y-auto" onClick={close}>
           <div className="flex items-center justify-between px-2 pb-1">
-            <p className="text-xs font-medium text-muted-foreground">
-              {t("Teams")}
-            </p>
+            <p className="text-xs font-medium text-muted-foreground">Equipos</p>
             {me.data?.is_admin && (
               <Link
                 to="/teams/new"
-                aria-label={t("New team")}
+                aria-label="Nuevo equipo"
                 className="inline-flex size-6 items-center justify-center rounded-md text-muted-foreground hover:bg-muted"
               >
                 <Plus size={14} />
@@ -127,7 +124,6 @@ export function Shell() {
             <span className="min-w-0 flex-1 truncate text-xs">
               {me.data.name}
             </span>
-            <LanguageSwitch />
             <button
               type="button"
               className="text-xs text-muted-foreground hover:underline"
@@ -136,7 +132,7 @@ export function Shell() {
                 window.location.assign("/login");
               }}
             >
-              {t("Sign out")}
+              Cerrar sesión
             </button>
           </div>
         )}
@@ -145,7 +141,7 @@ export function Shell() {
         <div className="flex items-center gap-2 border-b px-3 py-2 md:hidden">
           <button
             type="button"
-            aria-label={t("Open menu")}
+            aria-label="Abrir menú"
             onClick={() => setDrawer(true)}
             className="rounded-md p-1 hover:bg-muted"
           >
@@ -162,6 +158,12 @@ export function Shell() {
   );
 }
 
+const KIND: Record<PaletteItem["kind"], string> = {
+  task: "tarea",
+  team: "equipo",
+  screen: "pantalla",
+};
+
 function Palette({ onClose }: { onClose: () => void }) {
   const navigate = useNavigate();
   const teams = useTeams();
@@ -177,25 +179,25 @@ function Palette({ onClose }: { onClose: () => void }) {
 
   const items = useMemo<PaletteItem[]>(
     () => [
-      { id: "s-work", kind: "screen", label: t("My work"), hint: "", to: "/" },
+      { id: "s-work", kind: "screen", label: "Mi trabajo", hint: "", to: "/" },
       {
         id: "s-inbox",
         kind: "screen",
-        label: t("Inbox"),
+        label: "Bandeja",
         hint: "",
         to: "/inbox",
       },
       {
         id: "s-cal",
         kind: "screen",
-        label: t("Calendar"),
+        label: "Calendario",
         hint: "",
         to: "/calendar",
       },
       {
         id: "s-over",
         kind: "screen",
-        label: t("Overview"),
+        label: "Resumen",
         hint: "",
         to: "/overview",
       },
@@ -231,7 +233,7 @@ function Palette({ onClose }: { onClose: () => void }) {
     >
       <div
         role="dialog"
-        aria-label={t("Command palette")}
+        aria-label="Paleta de comandos"
         className="w-full max-w-lg overflow-hidden rounded-lg border bg-background shadow-xl"
         onClick={(e) => e.stopPropagation()}
         onKeyDown={(e) => {
@@ -254,13 +256,13 @@ function Palette({ onClose }: { onClose: () => void }) {
             setQ(e.target.value);
             setAt(0);
           }}
-          placeholder={t("Jump to a task, team or screen")}
+          placeholder="Ir a una tarea, equipo o pantalla"
           className="w-full border-b bg-transparent px-4 py-3 text-sm outline-none"
         />
         <ul className="max-h-80 overflow-y-auto p-1">
           {results.length === 0 && (
             <li className="px-3 py-6 text-center text-xs text-muted-foreground">
-              {t("Nothing matches.")}
+              No hay coincidencias.
             </li>
           )}
           {results.map((r, i) => (
@@ -275,7 +277,7 @@ function Palette({ onClose }: { onClose: () => void }) {
                 )}
               >
                 <span className="w-16 shrink-0 text-xs text-muted-foreground">
-                  {r.hint || t(r.kind)}
+                  {r.hint || KIND[r.kind]}
                 </span>
                 <span className="truncate">{r.label}</span>
               </button>

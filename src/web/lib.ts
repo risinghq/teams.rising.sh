@@ -1,9 +1,12 @@
 import { progress } from "../shared/progress";
 import type { Project, Task, TaskStatus } from "./api";
-import { t } from "./i18n";
 
 export const iso = (d: Date) =>
   `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+
+// Dates are shown in Spanish, as is the rest of the interface.
+export const day = (d: Date, options: Intl.DateTimeFormatOptions) =>
+  d.toLocaleDateString("es", options);
 
 export const parseDay = (s: string) => {
   const [y, m, d] = s.split("-").map(Number);
@@ -28,12 +31,12 @@ export type DueGroup =
   | "closed";
 
 export const DUE_GROUPS: { id: DueGroup; label: string }[] = [
-  { id: "overdue", label: t("Overdue") },
-  { id: "today", label: t("Today") },
-  { id: "week", label: t("This week") },
-  { id: "later", label: t("Later") },
-  { id: "none", label: t("No date") },
-  { id: "closed", label: t("Closed") },
+  { id: "overdue", label: "Atrasadas" },
+  { id: "today", label: "Hoy" },
+  { id: "week", label: "Esta semana" },
+  { id: "later", label: "Más adelante" },
+  { id: "none", label: "Sin fecha" },
+  { id: "closed", label: "Cerradas" },
 ];
 
 export function dueGroup(
@@ -189,8 +192,8 @@ export function weekGrid(anchor: string): string[] {
 
 export function relativeTime(then: string, now = Date.now()): string {
   const s = Math.max(0, Math.round((now - Date.parse(then)) / 1000));
-  if (s < 60) return t("just now");
-  if (s < 3600) return t("{n}m ago", { n: Math.floor(s / 60) });
-  if (s < 86400) return t("{n}h ago", { n: Math.floor(s / 3600) });
-  return t("{n}d ago", { n: Math.floor(s / 86400) });
+  if (s < 60) return "ahora";
+  if (s < 3600) return `hace ${Math.floor(s / 60)} min`;
+  if (s < 86400) return `hace ${Math.floor(s / 3600)} h`;
+  return `hace ${Math.floor(s / 86400)} d`;
 }

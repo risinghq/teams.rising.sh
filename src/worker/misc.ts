@@ -38,7 +38,7 @@ async function eventById(c: C, eventId: string): Promise<EventRow> {
   const row = await c.env.DB.prepare("SELECT * FROM events WHERE id = ?")
     .bind(eventId)
     .first<EventRow>();
-  if (!row) throw new HttpError(404, "event not found");
+  if (!row) throw new HttpError(404, "evento no encontrado");
   return row;
 }
 
@@ -55,7 +55,7 @@ async function requireEventEditor(c: C, event: EventRow): Promise<void> {
   }
   throw new HttpError(
     403,
-    "only the creator or a leader can change this event",
+    "solo quien creó el evento o un líder puede cambiarlo",
   );
 }
 
@@ -64,7 +64,7 @@ async function teamIdByKey(c: C, key: unknown): Promise<string | null> {
   const team = await c.env.DB.prepare("SELECT id FROM teams WHERE key = ?")
     .bind(String(key).toUpperCase())
     .first<{ id: string }>();
-  if (!team) throw new HttpError(404, "team not found");
+  if (!team) throw new HttpError(404, "equipo no encontrado");
   return team.id;
 }
 
@@ -114,13 +114,16 @@ miscRoutes.put("/me/whatsapp", async (c) => {
       ? null
       : normalizeNumber(text(input.number, "number", 30));
   if (input.number !== null && number === null)
-    throw new HttpError(400, "number must be 8 to 15 digits with country code");
+    throw new HttpError(
+      400,
+      "el número debe tener de 8 a 15 dígitos, con código de país",
+    );
   try {
     await c.env.DB.prepare("UPDATE users SET whatsapp_number = ? WHERE id = ?")
       .bind(number, c.get("user").id)
       .run();
   } catch {
-    throw new HttpError(409, "that number belongs to another user");
+    throw new HttpError(409, "ese número pertenece a otra persona");
   }
   return c.json({ whatsapp_number: number });
 });

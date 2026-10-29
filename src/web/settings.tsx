@@ -3,7 +3,6 @@ import { ArrowLeft } from "lucide-react";
 import { useState, type ReactNode } from "react";
 import { api, type Member } from "./api";
 import { useLabels, useMe, useTeam, useUsers, useWrite } from "./data";
-import { t } from "./i18n";
 import {
   Avatar,
   button,
@@ -48,11 +47,11 @@ export function NewTeam() {
     api.createTeam(body),
   );
   if (me && !me.is_admin)
-    return <Empty title={t("Only an admin can create teams")} />;
+    return <Empty title="Solo un admin puede crear equipos" />;
   const valid = /^[A-Z][A-Z0-9]{1,5}$/.test(key) && name.trim() !== "";
   return (
     <div className="mx-auto max-w-xl">
-      <Header title={t("New team")} />
+      <Header title="Nuevo equipo" />
       <form
         className="flex flex-col gap-3 px-4 py-4"
         onSubmit={(e) => {
@@ -71,7 +70,7 @@ export function NewTeam() {
         }}
       >
         <label className="flex flex-col gap-1 text-xs font-medium">
-          {t("Name")}
+          Nombre
           <input
             autoFocus
             value={name}
@@ -82,7 +81,7 @@ export function NewTeam() {
         </label>
         <div className="flex flex-col gap-1 text-xs">
           <label htmlFor="team-key" className="font-medium">
-            {t("Key")}
+            Clave
           </label>
           <input
             id="team-key"
@@ -96,14 +95,11 @@ export function NewTeam() {
             className={`${input} w-28 uppercase`}
           />
           <p id="team-key-hint" className="text-muted-foreground">
-            {t(
-              "2 to 6 letters or digits. Tasks are numbered with it, as in {key}-12, and branch names use it to link to tasks.",
-              { key: key || "AIS" },
-            )}
+            {`De 2 a 6 letras o números. Numera las tareas, como en ${key || "AIS"}-12, y las ramas la usan para enlazarse a una tarea.`}
           </p>
         </div>
         <label className="flex flex-col gap-1 text-xs font-medium">
-          {t("Description")}
+          Descripción
           <textarea
             value={description}
             onChange={(e) => setDescription(e.target.value)}
@@ -117,7 +113,7 @@ export function NewTeam() {
             className={primaryButton}
             disabled={!valid || create.isPending}
           >
-            {t("Create team")}
+            Crear equipo
           </button>
         </div>
       </form>
@@ -131,7 +127,7 @@ export function NewTeam() {
 export function TeamSettings({ team }: { team: string }) {
   const q = useTeam(team);
   if (q.isPending) return <Skeleton rows={4} />;
-  if (q.isError) return <Empty title={t("Team not found")} />;
+  if (q.isError) return <Empty title="Equipo no encontrado" />;
   const detail = q.data;
   return (
     <div className="mx-auto max-w-2xl">
@@ -139,14 +135,12 @@ export function TeamSettings({ team }: { team: string }) {
         <Link
           to="/t/$team"
           params={{ team }}
-          aria-label={t("Back to {team}", { team: detail.name })}
+          aria-label={`Volver a ${detail.name}`}
           className="-ml-2 inline-flex size-8 items-center justify-center rounded-md hover:bg-muted"
         >
           <ArrowLeft size={16} />
         </Link>
-        <h1 className="text-sm font-semibold">
-          {t("{team} settings", { team: detail.name })}
-        </h1>
+        <h1 className="text-sm font-semibold">Ajustes de {detail.name}</h1>
       </header>
       <Details
         team={team}
@@ -175,7 +169,7 @@ function Details({
   );
   const changed = name !== initialName || description !== initialDescription;
   return (
-    <Section title={t("Details")}>
+    <Section title="Detalles">
       <form
         className="flex flex-col gap-2 px-4 py-3"
         onSubmit={(e) => {
@@ -184,16 +178,16 @@ function Details({
         }}
       >
         <input
-          aria-label={t("Team name")}
+          aria-label="Nombre del equipo"
           value={name}
           onChange={(e) => setName(e.target.value)}
           className={input}
         />
         <textarea
-          aria-label={t("Team description")}
+          aria-label="Descripción del equipo"
           value={description}
           onChange={(e) => setDescription(e.target.value)}
-          placeholder={t("What the team works on")}
+          placeholder="En qué trabaja el equipo"
           rows={2}
           className="rounded-md border bg-background px-2 py-1.5 text-sm"
         />
@@ -204,7 +198,7 @@ function Details({
               className={primaryButton}
               disabled={save.isPending || !name.trim()}
             >
-              {t("Save")}
+              Guardar
             </button>
           </div>
         )}
@@ -226,7 +220,7 @@ function Members({ team, members }: { team: string; members: Member[] }) {
     (u) => u.kind === "human" && !members.some((m) => m.id === u.id),
   );
   return (
-    <Section title={t("Members {n}", { n: members.length })}>
+    <Section title={`Miembros ${members.length}`}>
       <ul>
         {members.map((m) => (
           <li key={m.id} className="flex items-center gap-3 border-b px-4 py-2">
@@ -238,7 +232,7 @@ function Members({ team, members }: { team: string; members: Member[] }) {
               </span>
             </span>
             <select
-              aria-label={t("Role of {name}", { name: m.name })}
+              aria-label={`Rol de ${m.name}`}
               className={field}
               value={m.role}
               onChange={(e) =>
@@ -248,15 +242,15 @@ function Members({ team, members }: { team: string; members: Member[] }) {
                 })
               }
             >
-              <option value="leader">{t("Leader")}</option>
-              <option value="member">{t("Member")}</option>
+              <option value="leader">Líder</option>
+              <option value="member">Miembro</option>
             </select>
             <button
               type="button"
               className={button}
               onClick={() => remove.mutate(m.id)}
             >
-              {t("Remove")}
+              Quitar
             </button>
           </li>
         ))}
@@ -273,12 +267,12 @@ function Members({ team, members }: { team: string; members: Member[] }) {
         }}
       >
         <select
-          aria-label={t("Person to add")}
+          aria-label="Persona a agregar"
           className={`${field} min-w-0 flex-1`}
           value={adding}
           onChange={(e) => setAdding(e.target.value)}
         >
-          <option value="">{t("Add a person…")}</option>
+          <option value="">Agregar a una persona…</option>
           {outside?.map((u) => (
             <option key={u.id} value={u.id}>
               {u.name} · {u.email}
@@ -290,11 +284,11 @@ function Members({ team, members }: { team: string; members: Member[] }) {
           className={primaryButton}
           disabled={!adding || set.isPending}
         >
-          {t("Add")}
+          Agregar
         </button>
       </form>
       <p className="px-4 pb-3 text-xs text-muted-foreground">
-        {t("People show up here after they sign in for the first time.")}
+        Las personas aparecen aquí después de iniciar sesión por primera vez.
       </p>
       <Failure error={set.error ?? remove.error} />
     </Section>
@@ -311,17 +305,17 @@ function Labels({ teamId }: { teamId: string }) {
     api.createLabel(body),
   );
   return (
-    <Section title={t("Labels")}>
+    <Section title="Etiquetas">
       <div className="flex flex-wrap gap-1.5 px-4 py-3">
         {labels?.length === 0 && (
           <span className="text-xs text-muted-foreground">
-            {t("No labels yet.")}
+            Todavía no hay etiquetas.
           </span>
         )}
         {labels?.map((l) => (
           <span
             key={l.id}
-            title={l.team_id ? undefined : t("Shared by every team")}
+            title={l.team_id ? undefined : "Compartida por todos los equipos"}
           >
             <LabelChip label={l} />
           </span>
@@ -340,16 +334,16 @@ function Labels({ teamId }: { teamId: string }) {
       >
         <input
           type="color"
-          aria-label={t("Label color")}
+          aria-label="Color de la etiqueta"
           value={color}
           onChange={(e) => setColor(e.target.value)}
           className="h-9 w-9 shrink-0 cursor-pointer rounded-md border bg-background p-1"
         />
         <input
-          aria-label={t("New label name")}
+          aria-label="Nombre de la nueva etiqueta"
           value={name}
           onChange={(e) => setName(e.target.value)}
-          placeholder={t("New label, such as paper or idea")}
+          placeholder="Nueva etiqueta, como paper o idea"
           maxLength={40}
           className={`${input} min-w-0 flex-1`}
         />
@@ -358,7 +352,7 @@ function Labels({ teamId }: { teamId: string }) {
           className={primaryButton}
           disabled={!name.trim() || create.isPending}
         >
-          {t("Add")}
+          Agregar
         </button>
       </form>
       <Failure error={create.error} />

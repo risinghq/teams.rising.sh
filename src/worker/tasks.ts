@@ -41,7 +41,7 @@ const SELECT = `SELECT t.*, tm.key AS team_key, o.name AS owner_name, o.avatar_u
 
 function parseKey(key: string): { team: string; number: number } {
   const match = /^([A-Za-z][A-Za-z0-9]*)-(\d+)$/.exec(key);
-  if (!match?.[1] || !match[2]) throw new HttpError(404, "task not found");
+  if (!match?.[1] || !match[2]) throw new HttpError(404, "tarea no encontrada");
   return { team: match[1].toUpperCase(), number: Number(match[2]) };
 }
 
@@ -53,7 +53,7 @@ export async function taskByKey(c: C, key: string): Promise<TaskRow> {
   )
     .bind(team, number, ...v.params)
     .first<TaskRow>();
-  if (!row) throw new HttpError(404, "task not found");
+  if (!row) throw new HttpError(404, "tarea no encontrada");
   return row;
 }
 
@@ -206,7 +206,7 @@ taskRoutes.post("/tasks", async (c) => {
   const status = oneOf(input.status ?? "todo", STATUSES, "status");
   const priority = Number(input.priority ?? 0);
   if (!Number.isInteger(priority) || priority < 0 || priority > 3) {
-    throw new HttpError(400, "priority must be 0 to 3");
+    throw new HttpError(400, "la prioridad debe ser de 0 a 3");
   }
   const owner =
     input.owner_id === undefined ? user.id : (input.owner_id as string | null);
@@ -288,7 +288,7 @@ taskRoutes.patch("/tasks/:key", async (c) => {
   if (!(await canEdit(c, task)))
     throw new HttpError(
       403,
-      "only the owner, a collaborator or a leader can edit",
+      "solo el responsable, un colaborador o un líder puede editar",
     );
   const input = await body(c);
   const sets: string[] = [];
@@ -309,7 +309,7 @@ taskRoutes.patch("/tasks/:key", async (c) => {
   if (input.priority !== undefined) {
     const priority = Number(input.priority);
     if (!Number.isInteger(priority) || priority < 0 || priority > 3)
-      throw new HttpError(400, "priority must be 0 to 3");
+      throw new HttpError(400, "la prioridad debe ser de 0 a 3");
     set("priority", priority);
   }
   if (input.project_id !== undefined) set("project_id", input.project_id);
@@ -395,7 +395,10 @@ taskRoutes.put("/tasks/:key/collaborators/:userId", async (c) => {
     c.req.param("userId") === "me" ? user.id : c.req.param("userId");
   const joinsSelf = target === user.id && task.visibility === "open";
   if (!joinsSelf && !(await canEdit(c, task)))
-    throw new HttpError(403, "only the owner or a leader can add others");
+    throw new HttpError(
+      403,
+      "solo el responsable o un líder puede agregar a otras personas",
+    );
   try {
     await c.env.DB.prepare(
       "INSERT OR IGNORE INTO task_collaborators (task_id, user_id) VALUES (?, ?)",
@@ -403,7 +406,7 @@ taskRoutes.put("/tasks/:key/collaborators/:userId", async (c) => {
       .bind(task.id, target)
       .run();
   } catch {
-    throw new HttpError(404, "user not found");
+    throw new HttpError(404, "usuario no encontrado");
   }
   return c.json({ ok: true });
 });
@@ -414,7 +417,7 @@ taskRoutes.delete("/tasks/:key/collaborators/:userId", async (c) => {
   const target =
     c.req.param("userId") === "me" ? user.id : c.req.param("userId");
   if (target !== user.id && !(await canEdit(c, task)))
-    throw new HttpError(403, "not allowed");
+    throw new HttpError(403, "no permitido");
   await c.env.DB.prepare(
     "DELETE FROM task_collaborators WHERE task_id = ? AND user_id = ?",
   )
