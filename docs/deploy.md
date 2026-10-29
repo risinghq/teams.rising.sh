@@ -6,7 +6,9 @@ runs `bun run check` and `bun run build`.
 
 ## Settings
 
-Set each name as a Worker secret. Never write a value into the repository.
+Set the Google values as Worker secrets. Never write a secret into the
+repository. The allow-lists are not secret. `ALLOWED_DOMAINS` lives in
+`wrangler.jsonc` under `vars`, and a deploy applies it.
 
 | Name                   | Meaning                                                                           |
 | ---------------------- | --------------------------------------------------------------------------------- |
@@ -21,7 +23,6 @@ When neither allow-list is set, nobody can sign in. `DEV_LOGIN=1` enables
 ```
 wrangler secret put GOOGLE_CLIENT_ID
 wrangler secret put GOOGLE_CLIENT_SECRET
-wrangler secret put ALLOWED_DOMAINS
 ```
 
 ## Google OAuth client

@@ -19,5 +19,6 @@
     },
   ],
   "routes": [{ "pattern": "teams.rising.sh", "custom_domain": true }],
+  "vars": { "ALLOWED_DOMAINS": "rising.sh" },
   "observability": { "enabled": true },
 }
