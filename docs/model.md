@@ -27,8 +27,8 @@ Org (one per deployment)
 - Tasks are open by default. Everyone in the org can see and comment on an open
   task, and anyone can become a collaborator. This is how people help across
   teams.
-- A `private` task is visible only to its owner, its collaborators, the leaders
-  of its team and admins.
+- A `private` task is visible only to its owner, its creator, its collaborators,
+  the leaders of its team and admins.
 - Progress comes from `src/shared/progress.ts`: the share of done subtasks, or
   the status when there are none.
 - Labels carry the kind of work (code, logistics, and any other). There are no
@@ -37,9 +37,15 @@ Org (one per deployment)
 ## Updates
 
 `task_updates` is the timeline. `kind` is `comment`, `status`, `owner`, `due`,
-`progress`, `link` or `whatsapp`. Every change to a task writes an update in the
-same batch as the change. `meta` holds JSON, for example
-`{"from":"todo","to":"done"}` for a status update.
+`progress`, `link` or `whatsapp`. A change to status, owner or due date writes
+an update in the same batch as the change. Edits to the title, description,
+priority, visibility, project and labels write none. `meta` holds JSON, for
+example `{"from":"todo","to":"done"}` for a status update. A comment's `meta`
+lists the ids of the users it mentions.
+
+The inbox is the updates by other people on tasks the caller owns or
+collaborates on, plus comments that mention the caller. An update is unread when
+it is newer than `users.inbox_read_at`.
 
 ## Integrations
 
