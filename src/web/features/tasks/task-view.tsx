@@ -1,40 +1,35 @@
 import { Link } from "@tanstack/react-router";
-import clsx from "clsx";
 import { ExternalLink, Lock, X } from "lucide-react";
-import { useState } from "react";
+import type { TaskDetail } from "@/api";
+import { today } from "@/lib/dates";
 import {
-  api,
+  LINK_STATE_LABEL,
   PRIORITY_LABEL,
   STATUS_LABEL,
   STATUSES,
-  type TaskDetail,
   type TaskStatus,
-  type Update,
-} from "./api";
+} from "@/lib/domain";
+import { useProjects } from "@/features/projects/hooks";
+import { PersonAvatar } from "@/features/teams/person-avatar";
+import { useMe, useTeams, useUsers } from "@/features/teams/hooks";
+import { Button } from "@/ui/button";
+import { EmptyState } from "@/ui/empty-state";
+import { IconButton } from "@/ui/icon-button";
+import { Input } from "@/ui/input";
+import { ProgressBar } from "@/ui/progress-bar";
+import { Select } from "@/ui/select";
+import { SkeletonRows } from "@/ui/skeleton";
+import { StatusDot } from "@/ui/status-dot";
+import { DueChip } from "./due-chip";
 import {
-  today,
-  useLabels,
-  useMe,
+  useJoinTask,
+  useLeaveTask,
   usePatchTask,
-  useProjects,
   useTask,
-  useTeams,
-  useUsers,
-  useWrite,
-} from "./data";
-import { relativeTime } from "./lib";
-import {
-  Avatar,
-  button,
-  DueChip,
-  Empty,
-  field,
-  LinkedText,
-  primaryButton,
-  ProgressBar,
-  Skeleton,
-  StatusDot,
-} from "./ui";
+  useTeamLabels,
+} from "./hooks";
+import { LinkedText } from "./linked-text";
+import { TaskActivity } from "./task-activity";
 
 export function TaskView({
   taskKey,
@@ -44,12 +39,12 @@ export function TaskView({
   onClose?: () => void;
 }) {
   const q = useTask(taskKey);
-  if (q.isPending) return <Skeleton rows={4} />;
+  if (q.isPending) return <SkeletonRows rows={4} />;
   if (q.isError)
     return (
-      <Empty title="Tarea no encontrada">
+      <EmptyState title="Tarea no encontrada">
         Puede ser privada o haber sido borrada.
-      </Empty>
+      </EmptyState>
     );
   return <Detail task={q.data} onClose={onClose} />;
 }
@@ -59,14 +54,12 @@ function Detail({ task, onClose }: { task: TaskDetail; onClose?: () => void }) {
   const users = useUsers();
   const projects = useProjects(task.team);
   const teamId = useTeams().data?.find((t) => t.key === task.team)?.id;
-  const labels = useLabels().data?.filter(
-    (l) => l.team_id === null || l.team_id === teamId,
-  );
+  const labels = useTeamLabels(teamId);
   const patch = usePatchTask();
-  const join = useWrite(() => api.join(task.key));
-  const leave = useWrite(() => api.leave(task.key));
+  const join = useJoinTask();
+  const leave = useLeaveTask();
   const set = (p: Record<string, unknown>) =>
-    patch.mutate({ key: task.key, patch: p });
+    patch.mutate({ key: task.key, parentId: task.parent_id, patch: p });
   const joined = task.collaborators.some((c) => c.id === me.data?.id);
 
   return (
@@ -82,14 +75,9 @@ function Detail({ task, onClose }: { task: TaskDetail; onClose?: () => void }) {
           <h2 className="text-base font-semibold">{task.title}</h2>
         </div>
         {onClose && (
-          <button
-            type="button"
-            aria-label="Cerrar"
-            onClick={onClose}
-            className="rounded-md p-1 hover:bg-muted"
-          >
-            <X size={16} />
-          </button>
+          <IconButton label="Cerrar" size="icon-xs" onClick={onClose}>
+            <X />
+          </IconButton>
         )}
       </header>
 
@@ -97,9 +85,10 @@ function Detail({ task, onClose }: { task: TaskDetail; onClose?: () => void }) {
         <dt className="text-muted-foreground">Estado</dt>
         <dd className="flex items-center gap-2">
           <StatusDot status={task.status} />
-          <select
+          <Select
             aria-label="Estado"
-            className={field}
+            size="sm"
+            className="w-auto"
             value={task.status}
             onChange={(e) => set({ status: e.target.value as TaskStatus })}
           >
@@ -108,14 +97,15 @@ function Detail({ task, onClose }: { task: TaskDetail; onClose?: () => void }) {
                 {STATUS_LABEL[s]}
               </option>
             ))}
-          </select>
+          </Select>
         </dd>
         <dt className="text-muted-foreground">Responsable</dt>
         <dd className="flex items-center gap-2">
-          <Avatar person={task.owner} />
-          <select
+          <PersonAvatar person={task.owner} />
+          <Select
             aria-label="Responsable"
-            className={field}
+            size="sm"
+            className="w-auto"
             value={task.owner?.id ?? ""}
             onChange={(e) => set({ owner_id: e.target.value || null })}
           >
@@ -125,14 +115,15 @@ function Detail({ task, onClose }: { task: TaskDetail; onClose?: () => void }) {
                 {u.name}
               </option>
             ))}
-          </select>
+          </Select>
         </dd>
         <dt className="text-muted-foreground">Entrega</dt>
         <dd className="flex items-center gap-2">
-          <input
+          <Input
             type="date"
+            size="sm"
+            className="w-auto"
             aria-label="Fecha de entrega"
-            className={field}
             value={task.due_date ?? ""}
             onChange={(e) => set({ due_date: e.target.value || null })}
           />
@@ -140,9 +131,10 @@ function Detail({ task, onClose }: { task: TaskDetail; onClose?: () => void }) {
         </dd>
         <dt className="text-muted-foreground">Prioridad</dt>
         <dd>
-          <select
+          <Select
             aria-label="Prioridad"
-            className={field}
+            size="sm"
+            className="w-auto"
             value={task.priority}
             onChange={(e) => set({ priority: Number(e.target.value) })}
           >
@@ -151,13 +143,14 @@ function Detail({ task, onClose }: { task: TaskDetail; onClose?: () => void }) {
                 {p}
               </option>
             ))}
-          </select>
+          </Select>
         </dd>
         <dt className="text-muted-foreground">Proyecto</dt>
         <dd>
-          <select
+          <Select
             aria-label="Proyecto"
-            className={field}
+            size="sm"
+            className="w-auto"
             value={task.project_id ?? ""}
             onChange={(e) => set({ project_id: e.target.value || null })}
           >
@@ -169,16 +162,17 @@ function Detail({ task, onClose }: { task: TaskDetail; onClose?: () => void }) {
                   {p.name}
                 </option>
               ))}
-          </select>
+          </Select>
         </dd>
         <dt className="text-muted-foreground">Etiquetas</dt>
         <dd className="flex flex-wrap gap-1">
           {labels?.map((l) => {
             const on = task.labels.some((x) => x.id === l.id);
             return (
-              <button
+              <Button
                 key={l.id}
-                type="button"
+                variant="outline"
+                size="sm"
                 aria-pressed={on}
                 onClick={() =>
                   set({
@@ -189,12 +183,11 @@ function Detail({ task, onClose }: { task: TaskDetail; onClose?: () => void }) {
                       : [...task.labels.map((x) => x.id), l.id],
                   })
                 }
-                className={clsx(
-                  "press inline-flex h-8 items-center gap-1.5 rounded-full border px-3",
+                className={
                   on
-                    ? "border-transparent"
-                    : "border-dashed text-muted-foreground hover:text-foreground",
-                )}
+                    ? "rounded-full border-transparent"
+                    : "rounded-full border-dashed text-muted-foreground"
+                }
                 style={
                   on
                     ? {
@@ -209,7 +202,7 @@ function Detail({ task, onClose }: { task: TaskDetail; onClose?: () => void }) {
                   style={{ background: l.color }}
                 />
                 {l.name}
-              </button>
+              </Button>
             );
           })}
         </dd>
@@ -217,18 +210,20 @@ function Detail({ task, onClose }: { task: TaskDetail; onClose?: () => void }) {
         <dd className="flex flex-wrap items-center gap-2">
           {task.collaborators.map((c) => (
             <span key={c.id} className="flex items-center gap-1">
-              <Avatar person={c} /> {c.name}
+              <PersonAvatar person={c} /> {c.name}
             </span>
           ))}
-          <button
-            type="button"
-            className={button}
+          <Button
+            variant="outline"
+            size="sm"
             onClick={() =>
-              joined ? leave.mutate(undefined) : join.mutate(undefined)
+              joined
+                ? leave.mutate({ key: task.key })
+                : join.mutate({ key: task.key })
             }
           >
             {joined ? "Salir" : "Ayudar"}
-          </button>
+          </Button>
         </dd>
       </dl>
 
@@ -255,7 +250,7 @@ function Detail({ task, onClose }: { task: TaskDetail; onClose?: () => void }) {
                   {s.title}
                 </Link>
                 <span className="ml-auto">
-                  <Avatar person={s.owner} size={16} />
+                  <PersonAvatar person={s.owner} size={16} />
                 </span>
               </li>
             ))}
@@ -278,7 +273,7 @@ function Detail({ task, onClose }: { task: TaskDetail; onClose?: () => void }) {
                   <ExternalLink size={12} />{" "}
                   {l.title || `${l.repo}#${l.external_id}`}
                   <span className="text-xs text-muted-foreground">
-                    {LINK_STATE[l.state] ?? l.state}
+                    {LINK_STATE_LABEL[l.state] ?? l.state}
                   </span>
                 </a>
               </li>
@@ -287,108 +282,7 @@ function Detail({ task, onClose }: { task: TaskDetail; onClose?: () => void }) {
         </section>
       )}
 
-      <Activity taskKey={task.key} updates={task.updates} />
+      <TaskActivity taskKey={task.key} updates={task.updates} />
     </article>
-  );
-}
-
-const LINK_STATE: Record<string, string> = {
-  open: "abierto",
-  closed: "cerrado",
-  merged: "fusionado",
-};
-
-function describe(u: Update): string {
-  const m = u.meta as { from?: unknown; to?: unknown };
-  const name = (v: unknown) =>
-    v === null || v === undefined || v === "" ? "ninguno" : String(v);
-  const status = (v: unknown) => STATUS_LABEL[v as TaskStatus] ?? name(v);
-  if (u.kind === "status")
-    return `cambió el estado de ${status(m.from)} a ${status(m.to)}`;
-  if (u.kind === "owner") return "cambió el responsable";
-  if (u.kind === "due") return `cambió la fecha de entrega a ${name(m.to)}`;
-  return u.body;
-}
-
-function Activity({
-  taskKey,
-  updates,
-}: {
-  taskKey: string;
-  updates: Update[];
-}) {
-  const [text, setText] = useState("");
-  const comment = useWrite((body: string) => api.comment(taskKey, body));
-  const submit = () => {
-    const body = text.trim();
-    if (!body) return;
-    comment.mutate(body, { onSuccess: () => setText("") });
-  };
-  return (
-    <section className="px-4 py-3">
-      <h3 className="mb-2 text-xs font-medium">Actividad</h3>
-      <ul className="space-y-3">
-        {updates.map((u) => (
-          <li key={u.id} className="flex gap-2">
-            <Avatar
-              person={
-                u.author_id
-                  ? {
-                      id: u.author_id,
-                      name: u.author_name ?? "?",
-                      avatar_url: u.author_avatar,
-                    }
-                  : null
-              }
-            />
-            <div className="min-w-0 text-xs">
-              <p>
-                <span className="font-medium">
-                  {u.author_name ?? "Sistema"}
-                </span>{" "}
-                <span className="text-muted-foreground">
-                  {relativeTime(u.created_at)}
-                </span>
-              </p>
-              <p
-                className={
-                  u.kind === "comment"
-                    ? "whitespace-pre-wrap text-sm"
-                    : "text-muted-foreground"
-                }
-              >
-                {describe(u)}
-              </p>
-            </div>
-          </li>
-        ))}
-      </ul>
-      <form
-        className="mt-3 flex flex-col gap-2"
-        onSubmit={(e) => {
-          e.preventDefault();
-          submit();
-        }}
-      >
-        <textarea
-          aria-label="Comentar"
-          value={text}
-          onChange={(e) => setText(e.target.value)}
-          onKeyDown={(e) => {
-            if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) submit();
-          }}
-          placeholder="Escribe una actualización. Usa @nombre para avisar a alguien."
-          rows={3}
-          className="rounded-md border bg-background p-2 text-sm"
-        />
-        <button
-          type="submit"
-          className={`${primaryButton} self-end`}
-          disabled={comment.isPending}
-        >
-          Comentar
-        </button>
-      </form>
-    </section>
   );
 }

@@ -11,7 +11,8 @@
     "skipLibCheck": true,
     "noEmit": true,
     "isolatedModules": true,
-    "verbatimModuleSyntax": true
+    "verbatimModuleSyntax": true,
+    "paths": { "@/*": ["./src/web/*"] }
   },
   "include": ["src"]
 }

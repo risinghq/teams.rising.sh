@@ -6,6 +6,7 @@ export default defineConfig({
   root: "src/web",
   publicDir: false,
   plugins: [react(), tailwindcss()],
+  resolve: { tsconfigPaths: true },
   build: { outDir: "../../dist", emptyOutDir: true },
   server: { proxy: { "^/api/": "http://localhost:8787" } },
 });
