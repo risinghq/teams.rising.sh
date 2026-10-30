@@ -1,18 +1,14 @@
 import { describe, expect, test } from "bun:test";
 import type { Task } from "../src/web/api";
+import { addDays, monthGrid, weekGrid } from "../src/web/lib/dates";
+import { searchPalette, type PaletteItem } from "../src/web/lib/palette";
 import {
-  addDays,
   dropOnDay,
   filterTasks,
   groupByDue,
-  linkify,
-  monthGrid,
-  NO_FILTERS,
-  searchPalette,
   summarizeProjects,
-  weekGrid,
-  type PaletteItem,
-} from "../src/web/lib";
+} from "../src/web/lib/tasks";
+import { linkify } from "../src/web/lib/text";
 import type { Project } from "../src/web/api";
 
 const task = (over: Partial<Task>): Task => ({
@@ -74,30 +70,34 @@ describe("filterTasks", () => {
     }),
   ];
   test("no filters keeps everything", () => {
-    expect(filterTasks(tasks, NO_FILTERS)).toHaveLength(2);
+    expect(filterTasks(tasks, {})).toHaveLength(2);
   });
   test("owner none matches unassigned tasks", () => {
-    expect(
-      filterTasks(tasks, { ...NO_FILTERS, owner: "none" }).map((t) => t.key),
-    ).toEqual(["A-2"]);
+    expect(filterTasks(tasks, { owner: "none" }).map((t) => t.key)).toEqual([
+      "A-2",
+    ]);
   });
   test("project none matches tasks outside any project", () => {
-    expect(
-      filterTasks(tasks, { ...NO_FILTERS, project: "none" }).map((t) => t.key),
-    ).toEqual(["A-2"]);
+    expect(filterTasks(tasks, { project: "none" }).map((t) => t.key)).toEqual([
+      "A-2",
+    ]);
   });
   test("filters combine", () => {
     expect(
-      filterTasks(tasks, {
-        ...NO_FILTERS,
-        owner: "u1",
-        status: "done",
-        project: "p1",
-      }),
+      filterTasks(tasks, { owner: "u1", status: "done", project: "p1" }),
     ).toHaveLength(1);
-    expect(
-      filterTasks(tasks, { ...NO_FILTERS, owner: "u1", label: "l1" }),
-    ).toHaveLength(0);
+    expect(filterTasks(tasks, { owner: "u1", label: "l1" })).toHaveLength(0);
+  });
+  test("text matches the title or the key in any letter case", () => {
+    const named = [
+      task({ key: "A-1", title: "Escribir el Paper" }),
+      task({ key: "B-7", title: "Revisar datos" }),
+    ];
+    expect(filterTasks(named, { q: "paper" }).map((t) => t.key)).toEqual([
+      "A-1",
+    ]);
+    expect(filterTasks(named, { q: "b-7" }).map((t) => t.key)).toEqual(["B-7"]);
+    expect(filterTasks(named, { q: "  " })).toHaveLength(2);
   });
 });
 
