@@ -29,7 +29,7 @@ export function LabelsSection({ teamId }: { teamId: string }) {
         ))}
       </div>
       <form
-        className="flex items-center gap-2 px-4 pb-3"
+        className="flex items-center gap-2 px-4 pb-4"
         onSubmit={(e) => {
           e.preventDefault();
           if (!name.trim()) return;
@@ -54,7 +54,11 @@ export function LabelsSection({ teamId }: { teamId: string }) {
           maxLength={40}
           className="min-w-0 flex-1"
         />
-        <Button type="submit" disabled={!name.trim() || create.isPending}>
+        <Button
+          type="submit"
+          variant="outline"
+          disabled={!name.trim() || create.isPending}
+        >
           Agregar
         </Button>
       </form>

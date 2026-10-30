@@ -9,7 +9,7 @@ export function NewTask({ team, project }: { team: string; project?: string }) {
   const create = useCreateTask();
   return (
     <form
-      className="flex items-center gap-2 border-b px-4 py-2"
+      className="mb-2 flex items-center gap-2 rounded-lg px-3 py-1 focus-within:bg-muted/30"
       onSubmit={(e) => {
         e.preventDefault();
         const value = title.trim();
@@ -28,10 +28,10 @@ export function NewTask({ team, project }: { team: string; project?: string }) {
         value={title}
         onChange={(e) => setTitle(e.target.value)}
         placeholder="Escribe una tarea y pulsa Enter"
-        className="min-w-0 flex-1"
+        className="min-w-0 flex-1 px-0 focus-visible:ring-0"
       />
       {title.trim() && (
-        <Button type="submit" disabled={create.isPending}>
+        <Button type="submit" size="sm" disabled={create.isPending}>
           Agregar
         </Button>
       )}

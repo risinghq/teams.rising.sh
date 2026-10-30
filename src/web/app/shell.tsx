@@ -1,14 +1,31 @@
 import { Outlet } from "@tanstack/react-router";
 import { Menu } from "lucide-react";
-import { useEffect, useState } from "react";
+import { lazy, Suspense, useEffect, useState } from "react";
 import { IconButton } from "@/ui/icon-button";
-import { Sheet, SheetContent, SheetTitle } from "@/ui/sheet";
-import { Palette } from "./palette";
 import { SidebarContent } from "./sidebar";
+
+// The palette and the phone drawer sit on Radix dialogs. They load on first
+// use, so a first visit does not pay for code it may never open.
+const Palette = lazy(() =>
+  import("./palette").then((m) => ({ default: m.Palette })),
+);
+const Drawer = lazy(() =>
+  import("./drawer").then((m) => ({ default: m.Drawer })),
+);
+
+// True from the first time `open` is true, so a lazy overlay stays mounted
+// after it closes and can play its exit animation.
+function useEverOpened(open: boolean) {
+  const [ever, setEver] = useState(open);
+  if (open && !ever) setEver(true);
+  return ever;
+}
 
 export function Shell() {
   const [drawer, setDrawer] = useState(false);
   const [palette, setPalette] = useState(false);
+  const drawerLoaded = useEverOpened(drawer);
+  const paletteLoaded = useEverOpened(palette);
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -28,22 +45,9 @@ export function Shell() {
 
   return (
     <div className="flex h-full">
-      <aside className="hidden w-[284px] shrink-0 flex-col gap-4 border-r bg-sidebar p-3 md:flex">
+      <aside className="hidden w-64 shrink-0 flex-col gap-6 border-r bg-sidebar p-4 md:flex">
         <SidebarContent onSearch={openPalette} />
       </aside>
-      <Sheet open={drawer} onOpenChange={setDrawer}>
-        <SheetContent
-          side="left"
-          aria-describedby={undefined}
-          className="w-72 gap-4 bg-sidebar p-3 md:hidden"
-        >
-          <SheetTitle className="sr-only">Menú</SheetTitle>
-          <SidebarContent
-            onSearch={openPalette}
-            onNavigate={() => setDrawer(false)}
-          />
-        </SheetContent>
-      </Sheet>
       <div className="flex min-w-0 flex-1 flex-col">
         <div className="flex items-center gap-2 border-b px-3 py-2 md:hidden">
           <IconButton label="Abrir menú" onClick={() => setDrawer(true)}>
@@ -55,7 +59,16 @@ export function Shell() {
           <Outlet />
         </main>
       </div>
-      <Palette open={palette} onOpenChange={setPalette} />
+      <Suspense fallback={null}>
+        {drawerLoaded && (
+          <Drawer
+            open={drawer}
+            onOpenChange={setDrawer}
+            onSearch={openPalette}
+          />
+        )}
+        {paletteLoaded && <Palette open={palette} onOpenChange={setPalette} />}
+      </Suspense>
     </div>
   );
 }

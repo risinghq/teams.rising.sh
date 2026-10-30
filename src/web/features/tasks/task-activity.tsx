@@ -1,5 +1,5 @@
 import { useState } from "react";
-import type { Update } from "@/api";
+import type { Update } from "@shared/types";
 import { relativeTime } from "@/lib/dates";
 import { STATUS_LABEL, type TaskStatus } from "@/lib/domain";
 import { PersonAvatar } from "@/features/teams/person-avatar";
@@ -34,7 +34,7 @@ export function TaskActivity({
     comment.mutate({ key: taskKey, body }, { onSuccess: () => setText("") });
   };
   return (
-    <section className="px-4 py-3">
+    <section className="px-6 py-4">
       <h3 className="mb-2 text-xs font-medium">Actividad</h3>
       <ul className="space-y-3">
         {updates.map((u) => (

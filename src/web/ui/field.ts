@@ -16,6 +16,9 @@ export const fieldVariants = cva(
       appearance: {
         boxed: "",
         bare: "border-transparent bg-transparent",
+        // Use an underline when the field is the page's primary control.
+        underline:
+          "rounded-none border-0 border-b border-input bg-transparent px-0 focus-visible:border-foreground focus-visible:ring-0",
       },
     },
     defaultVariants: { size: "default", appearance: "boxed" },

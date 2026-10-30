@@ -1,11 +1,11 @@
-import { useNavigate } from "@tanstack/react-router";
+import { Link, useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
 import { useMe } from "@/features/teams/hooks";
-import { Button } from "@/ui/button";
+import { Button, buttonVariants } from "@/ui/button";
 import { EmptyState } from "@/ui/empty-state";
 import { Input } from "@/ui/input";
 import { Label } from "@/ui/label";
-import { PageHeader } from "@/ui/page-header";
+import { Page, PageHeader } from "@/ui/page-header";
 import { Textarea } from "@/ui/textarea";
 import { useCreateTeam } from "./hooks";
 
@@ -19,13 +19,28 @@ export function NewTeam() {
   const [description, setDescription] = useState("");
   const create = useCreateTeam();
   if (me && !me.is_admin)
-    return <EmptyState title="Solo un admin puede crear equipos" />;
+    return (
+      <EmptyState
+        as="h1"
+        title="Solo un admin puede crear equipos"
+        action={
+          <Link to="/" className={buttonVariants({ variant: "outline" })}>
+            Ir al inicio
+          </Link>
+        }
+      >
+        Pide a un admin que cree el equipo y te agregue.
+      </EmptyState>
+    );
   const valid = /^[A-Z][A-Z0-9]{1,5}$/.test(key) && name.trim() !== "";
   return (
-    <div className="mx-auto max-w-xl">
-      <PageHeader title="Nuevo equipo" />
+    <Page className="max-w-xl">
+      <PageHeader
+        title="Nuevo equipo"
+        description="Un equipo reúne personas, proyectos y tareas bajo una clave corta."
+      />
       <form
-        className="flex flex-col gap-3 px-4 py-4"
+        className="flex flex-col gap-6"
         onSubmit={(e) => {
           e.preventDefault();
           if (!valid || !me) return;
@@ -41,7 +56,7 @@ export function NewTeam() {
           );
         }}
       >
-        <div className="flex flex-col gap-1">
+        <div className="flex flex-col gap-2">
           <Label htmlFor="team-name">Nombre</Label>
           <Input
             id="team-name"
@@ -51,7 +66,7 @@ export function NewTeam() {
             placeholder="AI for Science"
           />
         </div>
-        <div className="flex flex-col gap-1 text-xs">
+        <div className="flex flex-col gap-2">
           <Label htmlFor="team-key">Clave</Label>
           <Input
             id="team-key"
@@ -64,17 +79,17 @@ export function NewTeam() {
             placeholder="AIS"
             className="w-28 uppercase"
           />
-          <p id="team-key-hint" className="text-muted-foreground">
+          <p id="team-key-hint" className="text-xs text-muted-foreground">
             {`De 2 a 6 letras o números. Numera las tareas, como en ${key || "AIS"}-12, y las ramas la usan para enlazarse a una tarea.`}
           </p>
         </div>
-        <div className="flex flex-col gap-1">
+        <div className="flex flex-col gap-2">
           <Label htmlFor="team-description">Descripción</Label>
           <Textarea
             id="team-description"
             value={description}
             onChange={(e) => setDescription(e.target.value)}
-            rows={2}
+            rows={3}
           />
         </div>
         <div className="flex justify-end">
@@ -83,6 +98,6 @@ export function NewTeam() {
           </Button>
         </div>
       </form>
-    </div>
+    </Page>
   );
 }

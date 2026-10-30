@@ -1,4 +1,4 @@
-import type { Task } from "@/api";
+import type { Task } from "@shared/types";
 import { cn } from "@/lib/cn";
 import { day, parseDay } from "@/lib/dates";
 import { isOpen } from "@/lib/tasks";

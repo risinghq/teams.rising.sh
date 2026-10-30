@@ -1,5 +1,6 @@
+import { Link } from "@tanstack/react-router";
 import { Columns3, LayoutList } from "lucide-react";
-import type { Label, Person, Project } from "@/api";
+import type { Label, Person, Project } from "@shared/types";
 import { parseStatus, STATUS_LABEL, STATUSES } from "@/lib/domain";
 import { Select } from "@/ui/select";
 import { SegmentedControl } from "@/ui/segmented-control";
@@ -8,8 +9,11 @@ import type { TeamSearch } from "./search";
 
 type Patch = (patch: Partial<TeamSearch>) => void;
 
-// The filters and the view choice of a task list. Owner and project filters
-// show only when their options are given: they make sense inside one team.
+const DUE_OPTIONS = [
+  { value: "overdue", label: "Atrasadas" },
+  { value: "week", label: "Esta semana" },
+] as const;
+
 export function TaskFilters({
   search,
   onChange,
@@ -32,7 +36,7 @@ export function TaskFilters({
         label="Buscar tareas"
         value={search.q ?? ""}
         onCommit={(q) => onChangeText({ q })}
-        className="w-36"
+        className="w-40"
       />
       {owners && (
         <Select
@@ -66,6 +70,24 @@ export function TaskFilters({
         ))}
       </Select>
       <Select
+        aria-label="Filtro de entrega"
+        size="sm"
+        className="w-auto"
+        value={search.due ?? ""}
+        onChange={(e) =>
+          onChange({
+            due: DUE_OPTIONS.find((o) => o.value === e.target.value)?.value,
+          })
+        }
+      >
+        <option value="">Entrega</option>
+        {DUE_OPTIONS.map((o) => (
+          <option key={o.value} value={o.value}>
+            {o.label}
+          </option>
+        ))}
+      </Select>
+      <Select
         aria-label="Filtro de etiqueta"
         size="sm"
         className="w-auto"
@@ -88,7 +110,6 @@ export function TaskFilters({
           onChange={(e) => onChange({ project: e.target.value })}
         >
           <option value="">Proyecto</option>
-          <option value="none">Sin proyecto</option>
           {projects.map((p) => (
             <option key={p.id} value={p.id}>
               {p.name}
@@ -99,9 +120,6 @@ export function TaskFilters({
       <SegmentedControl
         legend="Vista"
         value={search.view ?? "list"}
-        onValueChange={(view) =>
-          onChange({ view: view === "list" ? undefined : view })
-        }
         options={[
           {
             value: "list",
@@ -116,6 +134,16 @@ export function TaskFilters({
             iconOnly: true,
           },
         ]}
+        renderOption={({ value }, props) => (
+          <Link
+            {...props}
+            to="."
+            search={(prev: Record<string, unknown>) => ({
+              ...prev,
+              view: value === "list" ? undefined : value,
+            })}
+          />
+        )}
       />
     </>
   );

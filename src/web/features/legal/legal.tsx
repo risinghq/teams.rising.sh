@@ -12,15 +12,15 @@ function LegalPage({
   children: ReactNode;
 }) {
   return (
-    <div className="h-full overflow-y-auto">
-      <article className="mx-auto max-w-2xl space-y-4 px-6 py-12 text-sm leading-relaxed [&_h2]:pt-4 [&_h2]:text-base [&_h2]:font-semibold [&_li]:ml-5 [&_li]:list-disc">
+    <main className="h-full overflow-y-auto">
+      <article className="mx-auto max-w-2xl space-y-4 px-6 py-16 text-sm leading-relaxed [&_a]:underline [&_a]:underline-offset-4 [&_h2]:pt-6 [&_h2]:text-xl [&_h2]:font-semibold [&_li]:ml-5 [&_li]:list-disc">
         <Link
           to="/login"
-          className="text-xs text-muted-foreground hover:underline"
+          className="inline-block rounded-lg text-xs text-muted-foreground hover:text-foreground focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-ring"
         >
           ← Teams
         </Link>
-        <h1 className="text-2xl font-semibold">{title}</h1>
+        <h1 className="text-2xl font-semibold tracking-tight">{title}</h1>
         <p className="text-xs text-muted-foreground">
           Última actualización: {UPDATED}
         </p>
@@ -34,7 +34,7 @@ function LegalPage({
           para cualquier consulta sobre este documento.
         </p>
       </article>
-    </div>
+    </main>
   );
 }
 

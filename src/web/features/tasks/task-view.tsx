@@ -1,6 +1,6 @@
 import { Link } from "@tanstack/react-router";
-import { ExternalLink, Lock, X } from "lucide-react";
-import type { TaskDetail } from "@/api";
+import { ExternalLink, Lock, Maximize2, X } from "lucide-react";
+import type { TaskDetail } from "@shared/types";
 import { today } from "@/lib/dates";
 import {
   LINK_STATE_LABEL,
@@ -12,7 +12,7 @@ import {
 import { useProjects } from "@/features/projects/hooks";
 import { PersonAvatar } from "@/features/teams/person-avatar";
 import { useMe, useTeams, useUsers } from "@/features/teams/hooks";
-import { Button } from "@/ui/button";
+import { Button, buttonVariants } from "@/ui/button";
 import { EmptyState } from "@/ui/empty-state";
 import { IconButton } from "@/ui/icon-button";
 import { Input } from "@/ui/input";
@@ -31,6 +31,9 @@ import {
 import { LinkedText } from "./linked-text";
 import { TaskActivity } from "./task-activity";
 
+// A task's fields, subtasks, links and activity. `onClose` marks the side
+// panel, which adds a link to the task's own page; without it the view is that
+// page and its title is the page's `h1`.
 export function TaskView({
   taskKey,
   onClose,
@@ -42,7 +45,15 @@ export function TaskView({
   if (q.isPending) return <SkeletonRows rows={4} />;
   if (q.isError)
     return (
-      <EmptyState title="Tarea no encontrada">
+      <EmptyState
+        title="Tarea no encontrada"
+        as={onClose ? "p" : "h1"}
+        action={
+          <Link to="/" className={buttonVariants({ variant: "outline" })}>
+            Ir al inicio
+          </Link>
+        }
+      >
         Puede ser privada o haber sido borrada.
       </EmptyState>
     );
@@ -50,6 +61,7 @@ export function TaskView({
 }
 
 function Detail({ task, onClose }: { task: TaskDetail; onClose?: () => void }) {
+  const Title = onClose ? "h2" : "h1";
   const me = useMe();
   const users = useUsers();
   const projects = useProjects(task.team);
@@ -64,7 +76,7 @@ function Detail({ task, onClose }: { task: TaskDetail; onClose?: () => void }) {
 
   return (
     <article className="flex flex-col">
-      <header className="flex items-start gap-3 border-b px-4 py-3">
+      <header className="flex items-start gap-3 px-6 pt-6 pb-4">
         <div className="min-w-0 flex-1">
           <p className="flex items-center gap-1 text-xs text-muted-foreground">
             {task.key}
@@ -72,16 +84,31 @@ function Detail({ task, onClose }: { task: TaskDetail; onClose?: () => void }) {
               <Lock size={12} aria-label="Privada" />
             )}
           </p>
-          <h2 className="text-base font-semibold">{task.title}</h2>
+          <Title className="mt-1 text-xl font-semibold">{task.title}</Title>
         </div>
         {onClose && (
-          <IconButton label="Cerrar" size="icon-xs" onClick={onClose}>
-            <X />
-          </IconButton>
+          <>
+            <Button
+              asChild
+              variant="ghost"
+              size="icon-xs"
+              aria-label="Abrir en una página"
+            >
+              <Link
+                to="/t/$team/$number"
+                params={{ team: task.team, number: String(task.number) }}
+              >
+                <Maximize2 />
+              </Link>
+            </Button>
+            <IconButton label="Cerrar" size="icon-xs" onClick={onClose}>
+              <X />
+            </IconButton>
+          </>
         )}
       </header>
 
-      <dl className="grid grid-cols-[6rem_1fr] items-center gap-x-3 gap-y-2 border-b px-4 py-3 text-xs">
+      <dl className="grid grid-cols-[6rem_1fr] items-center gap-x-3 gap-y-3 border-y px-6 py-4 text-xs">
         <dt className="text-muted-foreground">Estado</dt>
         <dd className="flex items-center gap-2">
           <StatusDot status={task.status} />
@@ -228,14 +255,14 @@ function Detail({ task, onClose }: { task: TaskDetail; onClose?: () => void }) {
       </dl>
 
       {task.description && (
-        <p className="whitespace-pre-wrap border-b px-4 py-3 text-sm">
+        <p className="whitespace-pre-wrap border-b px-6 py-4 text-sm">
           <LinkedText text={task.description} />
         </p>
       )}
 
       {task.subtasks.length > 0 && (
-        <section className="border-b px-4 py-3">
-          <h3 className="mb-2 flex items-center gap-2 text-xs font-medium">
+        <section className="border-b px-6 py-4">
+          <h3 className="mb-3 flex items-center gap-2 text-xs font-semibold">
             Subtareas <ProgressBar value={task.progress} />
           </h3>
           <ul className="space-y-1">
@@ -259,8 +286,8 @@ function Detail({ task, onClose }: { task: TaskDetail; onClose?: () => void }) {
       )}
 
       {task.links.length > 0 && (
-        <section className="border-b px-4 py-3">
-          <h3 className="mb-2 text-xs font-medium">Trabajo enlazado</h3>
+        <section className="border-b px-6 py-4">
+          <h3 className="mb-3 text-xs font-semibold">Trabajo enlazado</h3>
           <ul className="space-y-1">
             {task.links.map((l) => (
               <li key={l.id}>
