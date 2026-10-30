@@ -1,51 +1,18 @@
-import {
-  TASK_STATUSES,
-  type CalEvent,
-  type InboxItem,
-  type Label,
-  type Me,
-  type Member,
-  type OverviewRow,
-  type Project,
-  type Task,
-  type TaskDetail,
-  type TaskStatus,
-  type Team,
-  type TeamDetail,
-  type User,
-} from "../shared/types";
-
-export type {
+import type {
   CalEvent,
   InboxItem,
   Label,
   Me,
   Member,
   OverviewRow,
-  Person,
   Project,
+  ProjectBase,
   Task,
   TaskDetail,
-  TaskLink,
-  TaskStatus,
   Team,
   TeamDetail,
-  Update,
   User,
-} from "../shared/types";
-
-export const STATUSES: TaskStatus[] = [...TASK_STATUSES];
-
-export const STATUS_LABEL: Record<TaskStatus, string> = {
-  backlog: "Pendiente",
-  todo: "Por hacer",
-  in_progress: "En curso",
-  blocked: "Bloqueada",
-  done: "Hecha",
-  canceled: "Cancelada",
-};
-
-export const PRIORITY_LABEL = ["Sin prioridad", "Baja", "Media", "Urgente"];
+} from "@shared/types";
 
 export class ApiError extends Error {
   constructor(
@@ -83,27 +50,13 @@ export async function request<T>(
 
 export type TaskPage = { items: Task[]; next: string | null };
 
-const PAGE_SIZE = "500";
+export type TaskQuery = Record<string, string>;
 
-async function tasksPage(
-  query: Record<string, string>,
-  cursor?: string,
-): Promise<TaskPage> {
+async function tasksPage(query: TaskQuery, cursor?: string): Promise<TaskPage> {
   const params = new URLSearchParams(query);
   if (cursor) params.set("cursor", cursor);
   const { data, headers } = await send<Task[]>("GET", `/api/tasks?${params}`);
   return { items: data, next: headers.get("X-Next-Cursor") };
-}
-
-async function tasks(query: Record<string, string>): Promise<Task[]> {
-  const all: Task[] = [];
-  let cursor: string | undefined;
-  do {
-    const page = await tasksPage({ limit: PAGE_SIZE, ...query }, cursor);
-    all.push(...page.items);
-    cursor = page.next ?? undefined;
-  } while (cursor);
-  return all;
 }
 
 export const api = {
@@ -124,12 +77,11 @@ export const api = {
   projects: (team: string) =>
     request<Project[]>("GET", `/api/teams/${team}/projects`),
   createProject: (team: string, body: Record<string, unknown>) =>
-    request<Project>("POST", `/api/teams/${team}/projects`, body),
+    request<ProjectBase>("POST", `/api/teams/${team}/projects`, body),
   patchProject: (id: string, body: Record<string, unknown>) =>
-    request<Project>("PATCH", `/api/projects/${id}`, body),
+    request<ProjectBase>("PATCH", `/api/projects/${id}`, body),
   labels: () =>
     request<(Label & { team_id: string | null })[]>("GET", "/api/labels"),
-  tasks,
   tasksPage,
   task: (key: string) => request<TaskDetail>("GET", `/api/tasks/${key}`),
   createTask: (body: Record<string, unknown>) =>

@@ -16,6 +16,9 @@ export const queryKeys = {
     all: ["tasks"] as const,
     lists: ["tasks", "list"] as const,
     list: (query: Record<string, string>) => ["tasks", "list", query] as const,
+    // A single page that is only counted or searched, never paged through.
+    peek: (query: Record<string, string>) =>
+      ["tasks", "list", "peek", query] as const,
     details: ["tasks", "detail"] as const,
     detail: (key: string) => ["tasks", "detail", key] as const,
   },

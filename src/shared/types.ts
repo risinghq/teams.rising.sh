@@ -97,15 +97,16 @@ export type ProjectCounts = {
   next_due: string | null;
 };
 
-// Only the project list carries the counts.
-export type Project = {
+export type ProjectBase = {
   id: string;
   team_id: string;
   name: string;
   description: string;
   status: "active" | "done" | "archived";
   target_date: string | null;
-} & Partial<ProjectCounts>;
+};
+
+export type Project = ProjectBase & ProjectCounts;
 
 export type User = Person & { email: string; kind: string };
 

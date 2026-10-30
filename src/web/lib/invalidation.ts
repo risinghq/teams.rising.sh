@@ -3,7 +3,7 @@ import type {
   QueryClient,
   QueryKey,
 } from "@tanstack/react-query";
-import type { TaskDetail } from "@/api";
+import type { TaskDetail } from "@shared/types";
 import { queryKeys as k } from "./query-keys";
 
 const byKey = (...keys: QueryKey[]): InvalidateQueryFilters[] =>
@@ -24,12 +24,16 @@ const detailOfTaskId = (id: string): InvalidateQueryFilters => ({
 // The filters take the arguments of the write, so a write scoped to a task
 // or a team invalidates just that one.
 export const invalidations = {
-  createTask: (_: unknown) => byKey(k.tasks.lists, k.calendar.all, k.overview),
+  // Project cards show the server's open, progress and next due counts, which
+  // every task write can move.
+  createTask: (_: unknown) =>
+    byKey(k.tasks.lists, k.projects.all, k.calendar.all, k.overview),
   // The inbox follows the owner and due date notices.
   patchTask: (a: { key: string; parentId: string | null }) => [
     ...byKey(
       k.tasks.detail(a.key),
       k.tasks.lists,
+      k.projects.all,
       k.calendar.all,
       k.inbox,
       k.overview,
