@@ -12,7 +12,11 @@ function d1(target: string, args: string[]) {
     { stderr: "inherit" },
   );
   if (run.exitCode !== 0) throw new Error(`wrangler exited ${run.exitCode}`);
-  return JSON.parse(run.stdout.toString()) as { results: unknown[] }[];
+  return run.stdout.toString();
+}
+
+function query(target: string, sql: string) {
+  return JSON.parse(d1(target, ["--command", sql])) as { results: unknown[] }[];
 }
 
 const [file, target = "--local"] = process.argv.slice(2);
@@ -29,10 +33,10 @@ if (!NAME.test(name)) {
 }
 
 // The name pattern admits no quote, so it is safe inside the SQL literal.
-const ran = d1(target, [
-  "--command",
+const ran = query(
+  target,
   `SELECT ran_at FROM script_runs WHERE name = '${name}'`,
-]);
+);
 const previous = ran[0]?.results[0] as { ran_at: string } | undefined;
 if (previous) {
   console.error(
@@ -48,6 +52,8 @@ try {
     batch,
     `${readFileSync(file, "utf8")}\nINSERT INTO script_runs (name) VALUES ('${name}');\n`,
   );
+  // A remote --file run prints upload progress to stdout ahead of the JSON,
+  // so only the exit code is trusted here.
   d1(target, ["--file", batch]);
   console.log(`${name} ran on ${target.slice(2)}`);
 } finally {
