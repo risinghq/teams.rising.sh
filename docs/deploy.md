@@ -7,8 +7,9 @@ runs `bun run check` and `bun run build`.
 ## Settings
 
 Set the Google values as Worker secrets. Never write a secret into the
-repository. The allow-lists are not secret. `ALLOWED_DOMAINS` lives in
-`wrangler.jsonc` under `vars`, and a deploy applies it.
+repository. The allow-lists are not secret. `ALLOWED_DOMAINS` and
+`ALLOWED_EMAILS` live in `wrangler.jsonc` under `vars`, and a deploy applies
+them.
 
 | Name                    | Meaning                                                                           |
 | ----------------------- | --------------------------------------------------------------------------------- |
@@ -41,6 +42,11 @@ wrangler secret put WHATSAPP_VERIFY_TOKEN
    - `https://teams.rising.sh/api/auth/google/callback`
    - `http://localhost:8787/api/auth/google/callback`
 4. Store the client id and secret as the secrets above.
+
+While the app's publishing status is Testing, Google refuses every account
+that is not on the Audience page's test-user list with `403 access_denied`,
+before the Worker sees it. An address outside `ALLOWED_DOMAINS` must be both a
+test user and in `ALLOWED_EMAILS`.
 
 ## Local run
 
