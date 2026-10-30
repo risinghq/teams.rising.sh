@@ -2,7 +2,7 @@ import { afterAll, beforeAll, expect, test, setDefaultTimeout } from "bun:test";
 import type { Miniflare } from "miniflare";
 import type { Project, Task } from "../src/shared/types";
 import { api } from "../src/web/api";
-import { summarizeProjects } from "../src/web/lib";
+import { summarizeProjects } from "../src/web/lib/tasks";
 import app from "../src/worker/index";
 import { HOST_TIMEOUT, migratedDb } from "./support";
 
