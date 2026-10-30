@@ -1,5 +1,5 @@
 import { useState } from "react";
-import type { Project } from "@/api";
+import type { ProjectBase } from "@shared/types";
 import { PROJECT_STATUS_LABEL } from "@/lib/domain";
 import { Button } from "@/ui/button";
 import { Input } from "@/ui/input";
@@ -14,7 +14,7 @@ export function ProjectForm({
   onSave,
   onCancel,
 }: {
-  project?: Project;
+  project?: ProjectBase;
   pending: boolean;
   onSave: (body: Record<string, unknown>) => void;
   onCancel: () => void;
@@ -60,9 +60,9 @@ export function ProjectForm({
             size="sm"
             className="ml-auto w-auto"
             value={status}
-            onChange={(e) => setStatus(e.target.value as Project["status"])}
+            onChange={(e) => setStatus(e.target.value as ProjectBase["status"])}
           >
-            {(Object.keys(PROJECT_STATUS_LABEL) as Project["status"][]).map(
+            {(Object.keys(PROJECT_STATUS_LABEL) as ProjectBase["status"][]).map(
               (s) => (
                 <option key={s} value={s}>
                   {PROJECT_STATUS_LABEL[s]}

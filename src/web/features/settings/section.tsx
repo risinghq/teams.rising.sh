@@ -1,5 +1,4 @@
 import type { ReactNode } from "react";
-import { GroupHeading } from "@/ui/page-header";
 
 export function Section({
   title,
@@ -9,8 +8,8 @@ export function Section({
   children: ReactNode;
 }) {
   return (
-    <section className="border-b">
-      <GroupHeading>{title}</GroupHeading>
+    <section className="mb-6 overflow-hidden rounded-xl border bg-surface">
+      <h2 className="px-4 pt-4 pb-1 text-base font-semibold">{title}</h2>
       {children}
     </section>
   );

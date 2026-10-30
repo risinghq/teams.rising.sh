@@ -1,5 +1,5 @@
 import { useState } from "react";
-import type { Member } from "@/api";
+import type { Member } from "@shared/types";
 import { ROLE_LABEL } from "@/lib/domain";
 import { useUsers } from "@/features/teams/hooks";
 import { PersonAvatar } from "@/features/teams/person-avatar";
@@ -26,7 +26,10 @@ export function MembersSection({
     <Section title={`Miembros ${members.length}`}>
       <ul>
         {members.map((m) => (
-          <li key={m.id} className="flex items-center gap-3 border-b px-4 py-2">
+          <li
+            key={m.id}
+            className="flex items-center gap-3 border-t px-4 py-3 first:border-t-0"
+          >
             <PersonAvatar person={m} />
             <span className="min-w-0 flex-1">
               <span className="block truncate">{m.name}</span>
@@ -87,11 +90,15 @@ export function MembersSection({
             </option>
           ))}
         </Select>
-        <Button type="submit" disabled={!adding || set.isPending}>
+        <Button
+          type="submit"
+          variant="outline"
+          disabled={!adding || set.isPending}
+        >
           Agregar
         </Button>
       </form>
-      <p className="px-4 pb-3 text-xs text-muted-foreground">
+      <p className="px-4 pb-4 text-xs text-muted-foreground">
         Las personas aparecen aquí después de iniciar sesión por primera vez.
       </p>
     </Section>

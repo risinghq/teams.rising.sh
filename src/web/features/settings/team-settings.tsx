@@ -1,8 +1,9 @@
 import { Link } from "@tanstack/react-router";
 import { ArrowLeft } from "lucide-react";
 import { useTeam } from "@/features/teams/hooks";
-import { Button } from "@/ui/button";
+import { buttonVariants } from "@/ui/button";
 import { EmptyState } from "@/ui/empty-state";
+import { Page, PageHeader } from "@/ui/page-header";
 import { SkeletonRows } from "@/ui/skeleton";
 import { DetailsSection } from "./details-section";
 import { LabelsSection } from "./labels-section";
@@ -12,25 +13,41 @@ import { MembersSection } from "./members-section";
 // them, so a member sees the page but the changes fail with a reason.
 export function TeamSettings({ team }: { team: string }) {
   const q = useTeam(team);
-  if (q.isPending) return <SkeletonRows rows={4} />;
-  if (q.isError) return <EmptyState title="Equipo no encontrado" />;
+  if (q.isPending)
+    return (
+      <Page className="max-w-2xl">
+        <SkeletonRows rows={4} />
+      </Page>
+    );
+  if (q.isError)
+    return (
+      <EmptyState
+        as="h1"
+        title="Equipo no encontrado"
+        action={
+          <Link to="/" className={buttonVariants({ variant: "outline" })}>
+            Ir al inicio
+          </Link>
+        }
+      >
+        Puede que no exista o que no seas miembro.
+      </EmptyState>
+    );
   const detail = q.data;
   return (
-    <div className="mx-auto max-w-2xl">
-      <header className="flex min-h-12 items-center gap-2 border-b px-4 py-2">
-        <Button
-          asChild
-          variant="ghost"
-          size="icon"
-          className="-ml-2"
-          aria-label={`Volver a ${detail.name}`}
-        >
-          <Link to="/t/$team" params={{ team }}>
-            <ArrowLeft />
+    <Page className="max-w-2xl">
+      <PageHeader
+        title={`Ajustes de ${detail.name}`}
+        action={
+          <Link
+            to="/t/$team"
+            params={{ team }}
+            className="inline-flex items-center gap-1.5 rounded-lg px-1 py-1 text-xs text-muted-foreground hover:text-foreground focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-ring"
+          >
+            <ArrowLeft size={14} aria-hidden /> Volver a {detail.name}
           </Link>
-        </Button>
-        <h1 className="text-sm font-semibold">Ajustes de {detail.name}</h1>
-      </header>
+        }
+      />
       <DetailsSection
         team={team}
         name={detail.name}
@@ -38,6 +55,6 @@ export function TeamSettings({ team }: { team: string }) {
       />
       <MembersSection team={team} members={detail.members} />
       <LabelsSection teamId={detail.id} />
-    </div>
+    </Page>
   );
 }

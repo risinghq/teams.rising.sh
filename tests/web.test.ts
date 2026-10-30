@@ -1,15 +1,14 @@
 import { describe, expect, test } from "bun:test";
-import type { Task } from "../src/web/api";
+import type { Task } from "../src/shared/types";
 import { addDays, monthGrid, weekGrid } from "../src/web/lib/dates";
 import { searchPalette, type PaletteItem } from "../src/web/lib/palette";
 import {
   dropOnDay,
-  filterTasks,
   groupByDue,
-  summarizeProjects,
+  taskQuery,
+  type TaskFilters,
 } from "../src/web/lib/tasks";
 import { linkify } from "../src/web/lib/text";
-import type { Project } from "../src/web/api";
 
 const task = (over: Partial<Task>): Task => ({
   id: "x",
@@ -59,88 +58,66 @@ describe("groupByDue", () => {
   });
 });
 
-describe("filterTasks", () => {
-  const ana = { id: "u1", name: "Ana", avatar_url: null };
-  const tasks = [
-    task({ key: "A-1", owner: ana, status: "done", project_id: "p1" }),
-    task({
-      key: "A-2",
-      owner: null,
-      labels: [{ id: "l1", name: "code", color: "#000" }],
-    }),
+describe("taskQuery", () => {
+  const today = "2026-10-29";
+  const cases: {
+    name: string;
+    base: Record<string, string>;
+    filters: TaskFilters & { view?: string; task?: string };
+    want: Record<string, string>;
+  }[] = [
+    {
+      name: "no filters keeps the base",
+      base: { owner: "me", open: "1" },
+      filters: {},
+      want: { owner: "me", open: "1" },
+    },
+    {
+      name: "filters add to the base and trim",
+      base: { team: "ENG", top: "1" },
+      filters: { owner: "none", status: "blocked", q: "  paper " },
+      want: {
+        team: "ENG",
+        top: "1",
+        owner: "none",
+        status: "blocked",
+        q: "paper",
+      },
+    },
+    {
+      name: "blank text is dropped",
+      base: { team: "ENG" },
+      filters: { q: "   " },
+      want: { team: "ENG" },
+    },
+    {
+      name: "view state never reaches the query",
+      base: { team: "ENG" },
+      filters: { view: "board", task: "ENG-4" },
+      want: { team: "ENG" },
+    },
+    {
+      name: "overdue means open and due before today",
+      base: { team: "ENG" },
+      filters: { due: "overdue" },
+      want: { team: "ENG", open: "1", due_before: "2026-10-28" },
+    },
+    {
+      name: "week runs from today to seven days ahead",
+      base: { owner: "me" },
+      filters: { due: "week" },
+      want: {
+        owner: "me",
+        open: "1",
+        due_after: "2026-10-29",
+        due_before: "2026-11-05",
+      },
+    },
   ];
-  test("no filters keeps everything", () => {
-    expect(filterTasks(tasks, {})).toHaveLength(2);
-  });
-  test("owner none matches unassigned tasks", () => {
-    expect(filterTasks(tasks, { owner: "none" }).map((t) => t.key)).toEqual([
-      "A-2",
-    ]);
-  });
-  test("project none matches tasks outside any project", () => {
-    expect(filterTasks(tasks, { project: "none" }).map((t) => t.key)).toEqual([
-      "A-2",
-    ]);
-  });
-  test("filters combine", () => {
-    expect(
-      filterTasks(tasks, { owner: "u1", status: "done", project: "p1" }),
-    ).toHaveLength(1);
-    expect(filterTasks(tasks, { owner: "u1", label: "l1" })).toHaveLength(0);
-  });
-  test("text matches the title or the key in any letter case", () => {
-    const named = [
-      task({ key: "A-1", title: "Escribir el Paper" }),
-      task({ key: "B-7", title: "Revisar datos" }),
-    ];
-    expect(filterTasks(named, { q: "paper" }).map((t) => t.key)).toEqual([
-      "A-1",
-    ]);
-    expect(filterTasks(named, { q: "b-7" }).map((t) => t.key)).toEqual(["B-7"]);
-    expect(filterTasks(named, { q: "  " })).toHaveLength(2);
-  });
-});
-
-describe("summarizeProjects", () => {
-  const project = (over: Partial<Project>): Project => ({
-    id: "p",
-    team_id: "t",
-    name: "p",
-    description: "",
-    status: "active",
-    target_date: null,
-    ...over,
-  });
-  const summary = summarizeProjects(
-    [
-      project({ id: "web", target_date: "2026-12-15" }),
-      project({ id: "funding" }),
-      project({ id: "old", target_date: "2026-01-01", status: "done" }),
-    ],
-    [
-      task({ key: "A-1", project_id: "web", status: "done" }),
-      task({ key: "A-2", project_id: "web" }),
-      task({ key: "A-3", project_id: "web", status: "canceled" }),
-      task({ key: "A-4", project_id: "funding", due_date: "2026-12-01" }),
-      task({ key: "A-5", project_id: "funding", due_date: "2026-11-30" }),
-      task({ key: "A-6", project_id: "funding", status: "done" }),
-      task({ key: "A-7" }),
-      task({ key: "A-8", status: "done" }),
-    ],
-  );
-  test("a target date makes a project, none makes an area", () => {
-    expect(summary.projects.map((s) => s.project.id)).toEqual(["web"]);
-    expect(summary.areas.map((s) => s.project.id)).toEqual(["funding"]);
-  });
-  test("progress ignores canceled tasks", () => {
-    expect(summary.projects[0]?.progress).toBe(0.5);
-  });
-  test("an area counts open tasks and its nearest due date", () => {
-    expect(summary.areas[0]).toMatchObject({ open: 2, nextDue: "2026-11-30" });
-  });
-  test("loose counts open tasks outside any project", () => {
-    expect(summary.loose).toBe(1);
-  });
+  for (const { name, base, filters, want } of cases)
+    test(name, () => {
+      expect(taskQuery(base, filters, today)).toEqual(want);
+    });
 });
 
 describe("linkify", () => {

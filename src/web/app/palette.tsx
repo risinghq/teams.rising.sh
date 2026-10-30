@@ -1,10 +1,10 @@
-import { useNavigate } from "@tanstack/react-router";
+import { Link, useNavigate } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
+import { useDebounced } from "@/hooks/use-debounced";
 import { cn } from "@/lib/cn";
 import { searchPalette, type PaletteItem } from "@/lib/palette";
-import { useTasks } from "@/features/tasks/hooks";
+import { usePeekTasks } from "@/features/tasks/hooks";
 import { useTeams } from "@/features/teams/hooks";
-import { Button } from "@/ui/button";
 import { Dialog, DialogContent, DialogTitle } from "@/ui/dialog";
 import { Input } from "@/ui/input";
 
@@ -40,7 +40,7 @@ export function Palette({
         placement="top"
         showCloseButton={false}
         aria-describedby={undefined}
-        className="max-w-lg gap-0 overflow-hidden rounded-lg p-0"
+        className="max-w-lg gap-0 overflow-hidden rounded-xl p-0"
       >
         <DialogTitle className="sr-only">Paleta de comandos</DialogTitle>
         <PaletteBody onClose={() => onOpenChange(false)} />
@@ -49,12 +49,20 @@ export function Palette({
   );
 }
 
+// The server searches by one word. The client checks every word before showing
+// the result.
+const longestWord = (q: string) =>
+  q
+    .split(/\s+/)
+    .reduce((best, word) => (word.length > best.length ? word : best), "");
+
 function PaletteBody({ onClose }: { onClose: () => void }) {
   const navigate = useNavigate();
   const teams = useTeams();
-  const tasks = useTasks({ top: "0" });
   const [q, setQ] = useState("");
   const [at, setAt] = useState(0);
+  const term = useDebounced(longestWord(q), 200);
+  const tasks = usePeekTasks({ q: term }, 20, term !== "");
 
   const items = useMemo<PaletteItem[]>(
     () => [
@@ -66,7 +74,7 @@ function PaletteBody({ onClose }: { onClose: () => void }) {
         hint: t.key,
         to: `/t/${t.key}`,
       })),
-      ...(tasks.data ?? []).map((t) => ({
+      ...(tasks.data?.items ?? []).map((t) => ({
         id: `k-${t.key}`,
         kind: "task" as const,
         label: t.title,
@@ -110,21 +118,25 @@ function PaletteBody({ onClose }: { onClose: () => void }) {
         placeholder="Ir a una tarea, equipo o pantalla"
         className="h-12 rounded-none border-b px-4"
       />
-      <ul className="max-h-80 overflow-y-auto p-1">
+      <ul className="max-h-80 overflow-y-auto p-2">
         {results.length === 0 && (
-          <li className="px-3 py-6 text-center text-xs text-muted-foreground">
+          <li className="px-3 py-6 text-center text-sm text-muted-foreground">
             No hay coincidencias.
           </li>
         )}
         {results.map((r, i) => (
           <li key={r.id}>
-            <Button
-              variant="plain"
-              size="auto"
-              onClick={() => go(r)}
+            <Link
+              to={r.to}
+              onClick={(e) => {
+                if (e.metaKey || e.ctrlKey || e.shiftKey || e.button !== 0)
+                  return;
+                e.preventDefault();
+                go(r);
+              }}
               onMouseEnter={() => setAt(i)}
               className={cn(
-                "w-full justify-start gap-3 rounded-md px-3 py-2",
+                "flex items-center gap-3 rounded-lg px-3 py-2 text-sm",
                 i === at && "bg-muted",
               )}
             >
@@ -132,7 +144,7 @@ function PaletteBody({ onClose }: { onClose: () => void }) {
                 {r.hint || KIND[r.kind]}
               </span>
               <span className="truncate">{r.label}</span>
-            </Button>
+            </Link>
           </li>
         ))}
       </ul>

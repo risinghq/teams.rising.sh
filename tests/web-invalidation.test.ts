@@ -20,6 +20,7 @@ const cached = {
   "projects OPS": k.projects.ofTeam("OPS"),
   "task list": k.tasks.list({ team: "ENG", top: "1" }),
   "my tasks": k.tasks.list({ owner: "me", open: "1" }),
+  "task peek": k.tasks.peek({ q: "paper", limit: "20" }),
   "task ENG-1": k.tasks.detail("ENG-1"),
   "task ENG-2": k.tasks.detail("ENG-2"),
   "task ENG-3": k.tasks.detail("ENG-3"),
@@ -48,7 +49,15 @@ const cases: Case[] = [
   {
     write: "createTask",
     run: () => invalidatedBy("createTask", {}),
-    want: ["task list", "my tasks", "calendar", "overview"],
+    want: [
+      "task list",
+      "my tasks",
+      "task peek",
+      "projects ENG",
+      "projects OPS",
+      "calendar",
+      "overview",
+    ],
   },
   {
     write: "patchTask",
@@ -56,6 +65,9 @@ const cases: Case[] = [
     want: [
       "task list",
       "my tasks",
+      "task peek",
+      "projects ENG",
+      "projects OPS",
       "task ENG-1",
       "calendar",
       "inbox",
@@ -69,6 +81,9 @@ const cases: Case[] = [
     want: [
       "task list",
       "my tasks",
+      "task peek",
+      "projects ENG",
+      "projects OPS",
       "task ENG-1",
       "task ENG-2",
       "calendar",
@@ -84,12 +99,12 @@ const cases: Case[] = [
   {
     write: "joinTask",
     run: () => invalidatedBy("joinTask", { key: "ENG-1" }),
-    want: ["task list", "my tasks", "task ENG-1"],
+    want: ["task list", "my tasks", "task peek", "task ENG-1"],
   },
   {
     write: "leaveTask",
     run: () => invalidatedBy("leaveTask", { key: "ENG-1" }),
-    want: ["task list", "my tasks", "task ENG-1"],
+    want: ["task list", "my tasks", "task peek", "task ENG-1"],
   },
   {
     write: "createProject",
@@ -99,7 +114,7 @@ const cases: Case[] = [
   {
     write: "patchProject",
     run: () => invalidatedBy("patchProject", { team: "ENG" }),
-    want: ["projects ENG", "task list", "my tasks"],
+    want: ["projects ENG", "task list", "my tasks", "task peek"],
   },
   {
     write: "createTeam",

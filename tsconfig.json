@@ -12,7 +12,7 @@
     "noEmit": true,
     "isolatedModules": true,
     "verbatimModuleSyntax": true,
-    "paths": { "@/*": ["./src/web/*"] }
+    "paths": { "@/*": ["./src/web/*"], "@shared/*": ["./src/shared/*"] }
   },
   "include": ["src"]
 }

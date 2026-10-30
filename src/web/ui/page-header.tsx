@@ -1,43 +1,62 @@
 import type { ReactNode } from "react";
 import { cn } from "@/lib/cn";
 
-// The bar at the top of a screen: the page's only `h1`, an optional line under
-// it, and its controls. Controls scroll sideways on phones so filters do not
-// push the content down.
+function Page({
+  children,
+  className,
+}: {
+  children: ReactNode;
+  className?: string;
+}) {
+  return (
+    <div
+      className={cn("mx-auto w-full max-w-4xl px-4 pb-24 sm:px-8", className)}
+    >
+      {children}
+    </div>
+  );
+}
+
 function PageHeader({
   title,
   icon,
   description,
   action,
+  controls,
 }: {
   title: string;
   icon?: ReactNode;
   description?: string;
   action?: ReactNode;
+  controls?: ReactNode;
 }) {
   return (
-    <header className="flex min-h-12 flex-wrap items-center gap-3 border-b px-4 py-2">
-      <div className="flex min-w-0 items-center gap-2.5">
+    <header className="flex flex-col gap-4 pt-8 pb-6">
+      <div className="flex items-start gap-3">
         {icon}
-        <div className="min-w-0">
-          <h1 className="text-sm font-semibold">{title}</h1>
+        <div className="min-w-0 flex-1">
+          <h1 className="truncate text-2xl font-semibold tracking-tight">
+            {title}
+          </h1>
           {description && (
-            <p className="truncate text-xs text-muted-foreground">
+            <p className="mt-1 line-clamp-2 text-sm text-muted-foreground">
               {description}
             </p>
           )}
         </div>
+        {action && (
+          <div className="flex shrink-0 items-center gap-2">{action}</div>
+        )}
       </div>
-      {action && (
-        <div className="ml-auto flex max-w-full items-center gap-2 overflow-x-auto p-0.5 sm:flex-wrap [&>*]:shrink-0">
-          {action}
+      {controls && (
+        <div className="-mx-4 flex items-center gap-2 overflow-x-auto px-4 py-0.5 sm:mx-0 sm:flex-wrap sm:overflow-visible sm:px-0 [&>*]:shrink-0">
+          {controls}
         </div>
       )}
     </header>
   );
 }
 
-// A band that titles a group of rows, with an optional count.
 function GroupHeading({
   children,
   count,
@@ -50,19 +69,14 @@ function GroupHeading({
   return (
     <h2
       className={cn(
-        "border-b bg-sidebar px-4 py-1.5 text-xs font-medium",
+        "flex items-baseline gap-2 px-3 pt-6 pb-2 text-xs text-muted-foreground",
         tone === "destructive" && "text-destructive",
       )}
     >
-      {children}
-      {count !== undefined && (
-        <>
-          {" "}
-          <span className="text-muted-foreground">{count}</span>
-        </>
-      )}
+      <span className="font-semibold">{children}</span>
+      {count !== undefined && <span className="tabular-nums">{count}</span>}
     </h2>
   );
 }
 
-export { GroupHeading, PageHeader };
+export { GroupHeading, Page, PageHeader };

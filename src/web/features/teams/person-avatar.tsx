@@ -1,4 +1,4 @@
-import type { Person } from "@/api";
+import type { Person } from "@shared/types";
 import { Avatar, AvatarFallback, AvatarImage } from "@/ui/avatar";
 
 const initialsOf = (name: string) =>

@@ -1,0 +1,100 @@
+import { Link } from "@tanstack/react-router";
+import { AlertTriangle, Bell, CalendarClock, OctagonAlert } from "lucide-react";
+import type { ComponentType } from "react";
+import { addDays } from "@/lib/dates";
+import { cn } from "@/lib/cn";
+import { useInbox } from "@/features/inbox/hooks";
+import { useOverview } from "@/features/overview/hooks";
+import { useMe } from "@/features/teams/hooks";
+import { usePeekTasks } from "./hooks";
+
+const WEEK_PEEK = 100;
+
+const CARD =
+  "flex flex-col items-start gap-1 rounded-xl p-4 transition-colors focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-ring";
+
+function Body({
+  Icon,
+  tone,
+  count,
+  label,
+}: {
+  Icon: ComponentType<{ className?: string }>;
+  tone: string;
+  count: string;
+  label: string;
+}) {
+  return (
+    <>
+      <Icon className={cn("size-4", tone)} aria-hidden />
+      <span className="text-2xl font-semibold tabular-nums">{count}</span>
+      <span className="text-xs text-muted-foreground">{label}</span>
+    </>
+  );
+}
+
+export function Shortcuts({ today }: { today: string }) {
+  const me = useMe().data;
+  const overview = useOverview().data;
+  const unread = useInbox().data?.unread;
+  const week = usePeekTasks(
+    {
+      owner: "me",
+      open: "1",
+      due_after: today,
+      due_before: addDays(today, 7),
+    },
+    WEEK_PEEK,
+  ).data;
+  const mine = overview?.owners.find((o) => o.id === me?.id);
+  const count = (n: number | undefined) => (n === undefined ? "–" : String(n));
+
+  return (
+    <nav aria-label="Atajos" className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+      <Link
+        to="/"
+        search={{ due: "overdue" }}
+        className={cn(CARD, "bg-destructive/10 hover:bg-destructive/15")}
+      >
+        <Body
+          Icon={AlertTriangle}
+          tone="text-destructive"
+          count={count(overview && (mine?.overdue ?? 0))}
+          label="Atrasadas"
+        />
+      </Link>
+      <Link
+        to="/"
+        search={{ due: "week" }}
+        className={cn(CARD, "bg-warn/10 hover:bg-warn/15")}
+      >
+        <Body
+          Icon={CalendarClock}
+          tone="text-warn"
+          count={week ? `${week.items.length}${week.next ? "+" : ""}` : "–"}
+          label="Vencen esta semana"
+        />
+      </Link>
+      <Link
+        to="/"
+        search={{ status: "blocked" }}
+        className={cn(CARD, "bg-primary/10 hover:bg-primary/15")}
+      >
+        <Body
+          Icon={OctagonAlert}
+          tone="text-primary"
+          count={count(overview && (mine?.blocked ?? 0))}
+          label="Bloqueadas"
+        />
+      </Link>
+      <Link to="/inbox" className={cn(CARD, "bg-ok/10 hover:bg-ok/15")}>
+        <Body
+          Icon={Bell}
+          tone="text-ok"
+          count={count(unread)}
+          label="Sin leer en la bandeja"
+        />
+      </Link>
+    </nav>
+  );
+}

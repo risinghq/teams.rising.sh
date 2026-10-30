@@ -9,21 +9,35 @@ type SegmentOption<Value extends string> = {
   iconOnly?: boolean;
 };
 
+type SegmentProps = {
+  className: string;
+  children: React.ReactNode;
+  "aria-label"?: string;
+  "aria-current"?: "true";
+};
+
 // A mutually exclusive choice with equal-width options and a sliding
-// indicator. Every option is a button, so the keyboard needs no extra wiring.
+// indicator. Options are buttons unless `renderOption` returns something else,
+// typically a router link, so a choice that lives in the URL can be opened in
+// a new tab. A link marks the current option with `aria-current`.
 function SegmentedControl<Value extends string>({
   className,
   disabled = false,
   legend,
   onValueChange,
   options,
+  renderOption,
   value,
 }: {
   className?: string;
   disabled?: boolean;
   legend: string;
-  onValueChange: (value: Value) => void;
+  onValueChange?: (value: Value) => void;
   options: readonly SegmentOption<Value>[];
+  renderOption?: (
+    option: SegmentOption<Value>,
+    props: SegmentProps,
+  ) => React.ReactNode;
   value: Value;
 }) {
   const selectedIndex = Math.max(
@@ -33,7 +47,7 @@ function SegmentedControl<Value extends string>({
   return (
     <fieldset
       className={cn(
-        "relative isolate h-8 max-w-full shrink-0 overflow-hidden rounded-md bg-muted/45 p-0.5 pointer-coarse:h-11",
+        "relative isolate h-8 max-w-full shrink-0 overflow-hidden rounded-lg bg-muted/45 p-0.5 pointer-coarse:h-11",
         "disabled:pointer-events-none disabled:opacity-50",
         className,
       )}
@@ -51,24 +65,39 @@ function SegmentedControl<Value extends string>({
       {/* A fieldset's legend escapes grid layout, so the columns live on an
           inner wrapper the legend is not part of. */}
       <div className="grid h-full auto-cols-fr grid-flow-col">
-        {options.map(({ value: optionValue, label, Icon, iconOnly }) => (
-          <button
-            aria-pressed={value === optionValue}
-            aria-label={iconOnly ? label : undefined}
-            className={cn(
-              "relative z-10 flex h-full items-center justify-center gap-1.5 rounded-md bg-transparent px-2.5 text-xs font-medium transition-colors duration-150 ease-out focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-ring motion-reduce:transition-none",
-              value === optionValue
-                ? "text-foreground"
+        {options.map((option) => {
+          const { value: optionValue, label, Icon, iconOnly } = option;
+          const on = value === optionValue;
+          const props: SegmentProps = {
+            className: cn(
+              "relative z-10 flex h-full items-center justify-center gap-1.5 rounded-md bg-transparent px-3 text-xs transition-colors duration-150 ease-out focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-ring motion-reduce:transition-none",
+              on
+                ? "font-semibold text-foreground"
                 : "text-muted-foreground hover:text-foreground",
-            )}
-            key={optionValue}
-            onClick={() => onValueChange(optionValue)}
-            type="button"
-          >
-            {Icon && <Icon className="h-3.5 w-3.5" />}
-            {!iconOnly && label}
-          </button>
-        ))}
+            ),
+            "aria-label": iconOnly ? label : undefined,
+            "aria-current": renderOption && on ? "true" : undefined,
+            children: (
+              <>
+                {Icon && <Icon className="h-3.5 w-3.5" />}
+                {!iconOnly && label}
+              </>
+            ),
+          };
+          return renderOption ? (
+            <span key={optionValue} className="contents">
+              {renderOption(option, props)}
+            </span>
+          ) : (
+            <button
+              {...props}
+              aria-pressed={on}
+              key={optionValue}
+              onClick={() => onValueChange?.(optionValue)}
+              type="button"
+            />
+          );
+        })}
       </div>
     </fieldset>
   );

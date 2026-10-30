@@ -63,21 +63,22 @@ caller can see. A private task the caller cannot see is not counted.
 
 ## Task list
 
-`GET /api/tasks` takes these query parameters. All are optional.
+`GET /api/tasks` takes these query parameters. All are optional, and a task must
+match every one given.
 
-| Parameter                 | Meaning                                                 |
-| ------------------------- | ------------------------------------------------------- |
-| `team`                    | Team key.                                               |
-| `owner`                   | A user id, `me`, or `none` for unassigned tasks.        |
-| `status`                  | Comma-separated statuses. Takes precedence over `open`. |
-| `open=1`                  | Excludes `done` and `canceled`.                         |
-| `top=1`                   | Excludes subtasks.                                      |
-| `project`, `label`        | A project id. A label id or name.                       |
-| `due_before`, `due_after` | Inclusive date bounds.                                  |
-| `collaborator=me`         | Tasks the caller collaborates on.                       |
-| `q`                       | Matches the title or the task key.                      |
-| `limit`                   | Page size, 1 to 500. Default 100.                       |
-| `cursor`                  | The `X-Next-Cursor` value of the previous page.         |
+| Parameter                 | Meaning                                          |
+| ------------------------- | ------------------------------------------------ |
+| `team`                    | Team key.                                        |
+| `owner`                   | A user id, `me`, or `none` for unassigned tasks. |
+| `status`                  | Comma-separated statuses.                        |
+| `open=1`                  | Excludes `done` and `canceled`.                  |
+| `top=1`                   | Excludes subtasks.                               |
+| `project`, `label`        | A project id. A label id or name.                |
+| `due_before`, `due_after` | Inclusive date bounds.                           |
+| `collaborator=me`         | Tasks the caller collaborates on.                |
+| `q`                       | Matches the title or the task key.               |
+| `limit`                   | Page size, 1 to 500. Default 100.                |
+| `cursor`                  | The `X-Next-Cursor` value of the previous page.  |
 
 Tasks are ordered by due date (tasks without one last), then priority
 descending, then last update descending, then id. The response is always a JSON

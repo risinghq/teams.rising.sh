@@ -82,7 +82,8 @@ export async function listTasks(
       "t.status IN (SELECT value FROM json_each(?))",
       JSON.stringify(q.status),
     );
-  } else if (q.open === "1") add("t.status NOT IN ('done', 'canceled')");
+  }
+  if (q.open === "1") add("t.status NOT IN ('done', 'canceled')");
   if (q.project) add("t.project_id = ?", q.project);
   if (q.label) {
     add(

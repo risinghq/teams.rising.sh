@@ -1,31 +1,28 @@
+import { Link } from "@tanstack/react-router";
 import { ArrowLeft } from "lucide-react";
 import { useState } from "react";
-import type { Project } from "@/api";
+import type { Project } from "@shared/types";
 import { shortDay } from "@/lib/dates";
 import { PROJECT_STATUS_LABEL } from "@/lib/domain";
 import { LinkedText } from "@/features/tasks/linked-text";
 import { Button } from "@/ui/button";
-import { IconButton } from "@/ui/icon-button";
 import { usePatchProject } from "./hooks";
 import { ProjectForm } from "./project-form";
 
-// The picked project, or the tasks outside any project when `project` is null.
 export function ProjectHeader({
   team,
   project,
   canEdit,
-  onBack,
 }: {
   team: string;
-  project: Project | null;
+  project: Project;
   canEdit: boolean;
-  onBack: () => void;
 }) {
   const [editing, setEditing] = useState(false);
   const save = usePatchProject();
-  if (editing && project)
+  if (editing)
     return (
-      <section className="border-b">
+      <section className="mb-6 rounded-xl bg-surface shadow-card">
         <ProjectForm
           project={project}
           pending={save.isPending}
@@ -40,27 +37,27 @@ export function ProjectHeader({
       </section>
     );
   return (
-    <section className="flex flex-col gap-2 border-b px-4 py-3">
-      <div className="flex items-center gap-2">
-        <IconButton
-          label="Todos los proyectos"
-          className="-ml-2"
-          onClick={onBack}
-        >
-          <ArrowLeft />
-        </IconButton>
-        <h2 className="font-semibold">{project?.name ?? "Sin proyecto"}</h2>
+    <section className="mb-6 flex flex-col gap-3">
+      <Link
+        to="."
+        search={(prev: Record<string, unknown>) => ({
+          ...prev,
+          project: undefined,
+        })}
+        className="-ml-1 inline-flex w-fit items-center gap-1.5 rounded-lg px-1 py-1 text-xs text-muted-foreground hover:text-foreground focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-ring"
+      >
+        <ArrowLeft size={14} aria-hidden /> Todos los proyectos
+      </Link>
+      <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
+        <h2 className="text-xl font-semibold">{project.name}</h2>
         <span className="text-xs text-muted-foreground">
-          {!project
-            ? "Ideas, papers y otras tareas sueltas"
-            : project.target_date
-              ? `Meta ${shortDay(project.target_date)}`
-              : "Área permanente"}
-          {project &&
-            project.status !== "active" &&
+          {project.target_date
+            ? `Meta ${shortDay(project.target_date)}`
+            : "Área permanente"}
+          {project.status !== "active" &&
             ` · ${PROJECT_STATUS_LABEL[project.status].toLowerCase()}`}
         </span>
-        {project && canEdit && (
+        {canEdit && (
           <Button
             variant="outline"
             size="sm"
@@ -71,7 +68,7 @@ export function ProjectHeader({
           </Button>
         )}
       </div>
-      {project?.description && (
+      {project.description && (
         <p className="whitespace-pre-wrap text-sm">
           <LinkedText text={project.description} />
         </p>

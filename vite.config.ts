@@ -7,6 +7,25 @@ export default defineConfig({
   publicDir: false,
   plugins: [react(), tailwindcss()],
   resolve: { tsconfigPaths: true },
-  build: { outDir: "../../dist", emptyOutDir: true },
-  server: { proxy: { "^/api/": "http://localhost:8787" } },
+  build: {
+    outDir: "../../dist",
+    emptyOutDir: true,
+    rolldownOptions: {
+      output: {
+        codeSplitting: {
+          groups: [
+            {
+              name: "react",
+              test: /node_modules[\\/](react|react-dom|scheduler)[\\/]/,
+            },
+          ],
+        },
+      },
+    },
+  },
+  server: {
+    proxy: {
+      "^/api/": `http://localhost:${process.env.API_PORT ?? 8787}`,
+    },
+  },
 });

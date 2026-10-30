@@ -1,4 +1,5 @@
-import { api, type Member } from "@/api";
+import type { Member } from "@shared/types";
+import { api } from "@/api";
 import { useWrite } from "@/hooks/use-write";
 
 export const useCreateTeam = () =>

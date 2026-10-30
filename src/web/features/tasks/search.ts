@@ -20,10 +20,13 @@ const status = z
 
 const board = z.literal("board").optional().catch(undefined);
 
+const due = z.enum(["overdue", "week"]).optional().catch(undefined);
+
 export const taskParam = text;
 
 const myWorkShape = {
   status,
+  due,
   label: text,
   q: text,
   view: board,
