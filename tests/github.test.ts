@@ -1,29 +1,20 @@
-import { afterAll, beforeAll, expect, test } from "bun:test";
-import { readdirSync, readFileSync } from "node:fs";
-import { Miniflare } from "miniflare";
+import { afterAll, beforeAll, expect, test, setDefaultTimeout } from "bun:test";
+import type { Miniflare } from "miniflare";
 import app from "../src/worker/index";
-import { taskKeys } from "../src/worker/github";
+import { taskKeys } from "../src/worker/github/events";
 import { validSignature } from "../src/worker/signature";
+import { HOST_TIMEOUT, migratedDb } from "./support";
+
+setDefaultTimeout(HOST_TIMEOUT);
 
 const SECRET = "hook-secret";
 let mf: Miniflare;
 let env: Record<string, unknown>;
 
 beforeAll(async () => {
-  mf = new Miniflare({
-    modules: true,
-    script: "export default { fetch() { return new Response('') } }",
-    d1Databases: { DB: "hooks" },
-  });
-  const DB = await mf.getD1Database("DB");
-  const dir = new URL("../migrations/", import.meta.url);
-  for (const file of readdirSync(dir).sort()) {
-    const sql = readFileSync(new URL(file, dir), "utf8");
-    for (const statement of sql.split(/;\s*\n/)) {
-      const clean = statement.replace(/^--.*$/gm, "").trim();
-      if (clean) await DB.prepare(clean).run();
-    }
-  }
+  const started = await migratedDb("hooks");
+  mf = started.mf;
+  const DB = started.DB;
   env = {
     DB,
     ASSETS: { fetch: () => new Response("asset") },

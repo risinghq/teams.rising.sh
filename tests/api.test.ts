@@ -1,26 +1,20 @@
-import { afterAll, beforeAll, expect, test } from "bun:test";
-import { readdirSync, readFileSync } from "node:fs";
-import { Miniflare } from "miniflare";
+import { afterAll, beforeAll, expect, test, setDefaultTimeout } from "bun:test";
+import type { Miniflare } from "miniflare";
+import type { Project, Task } from "../src/shared/types";
+import { api } from "../src/web/api";
+import { summarizeProjects } from "../src/web/lib";
 import app from "../src/worker/index";
+import { HOST_TIMEOUT, migratedDb } from "./support";
+
+setDefaultTimeout(HOST_TIMEOUT);
 
 let mf: Miniflare;
 let env: Record<string, unknown>;
 
 beforeAll(async () => {
-  mf = new Miniflare({
-    modules: true,
-    script: "export default { fetch() { return new Response('') } }",
-    d1Databases: { DB: "test" },
-  });
-  const DB = await mf.getD1Database("DB");
-  const dir = new URL("../migrations/", import.meta.url);
-  for (const file of readdirSync(dir).sort()) {
-    const sql = readFileSync(new URL(file, dir), "utf8");
-    for (const statement of sql.split(/;\s*\n/)) {
-      const clean = statement.replace(/^--.*$/gm, "").trim();
-      if (clean) await DB.prepare(clean).run();
-    }
-  }
+  const started = await migratedDb("test");
+  mf = started.mf;
+  const DB = started.DB;
   env = { DB, ASSETS: { fetch: () => new Response("asset") }, DEV_LOGIN: "1" };
 });
 
@@ -54,7 +48,11 @@ async function call(
     env,
   );
   const text = await res.text();
-  return { status: res.status, body: text ? JSON.parse(text) : null };
+  return {
+    status: res.status,
+    headers: res.headers,
+    body: text ? JSON.parse(text) : null,
+  };
 }
 
 const run = Date.now().toString(36);
@@ -289,4 +287,273 @@ test("sign-in by Google is limited to the allow list", async () => {
     googleEnv,
   );
   expect(dev.status).toBe(404);
+});
+
+test("project counts match the web summary and hide private tasks", async () => {
+  const admin = await login(`admin-${run}@x.test`);
+  const stranger = await login(`stranger-${run}@x.test`);
+  const team = key(8);
+  await call(admin, "POST", "/api/teams", { key: team, name: "Counts" });
+  const project = async (name: string, target_date: string | null) =>
+    (
+      await call(admin, "POST", `/api/teams/${team}/projects`, {
+        name,
+        target_date,
+      })
+    ).body as Project;
+  const web = await project("Web", "2031-12-01");
+  const funding = await project("Funding", null);
+  const canceled = await project("Canceled only", "2031-12-01");
+  await project("Empty", null);
+  if (!web || !funding || !canceled) throw new Error("projects not created");
+  const make = (project_id: string, fields: Record<string, unknown>) =>
+    call(admin, "POST", "/api/tasks", {
+      team,
+      title: "t",
+      project_id,
+      ...fields,
+    });
+  await make(web.id, { status: "done" });
+  await make(web.id, { status: "blocked", due_date: "2031-02-01" });
+  await make(web.id, { due_date: "2020-01-01" });
+  await make(web.id, { status: "canceled" });
+  await make(web.id, { visibility: "private", due_date: "2019-01-01" });
+  await make(funding.id, { due_date: "2031-05-01" });
+  await make(funding.id, { status: "done", due_date: "2018-01-01" });
+  await make(canceled.id, { status: "canceled" });
+
+  const listed = async (who: Session) =>
+    (await call(who, "GET", `/api/teams/${team}/projects`)).body as Project[];
+  const byName = (projects: Project[], name: string) =>
+    projects.find((p) => p.name === name);
+  const asAdmin = await listed(admin);
+  const asStranger = await listed(stranger);
+
+  expect(byName(asAdmin, "Web")).toMatchObject({
+    open: 3,
+    progress: 0.25,
+    next_due: "2019-01-01",
+  });
+  expect(byName(asStranger, "Web")).toMatchObject({
+    open: 2,
+    progress: 1 / 3,
+    next_due: "2020-01-01",
+  });
+  expect(byName(asStranger, "Funding")).toMatchObject({
+    open: 1,
+    progress: 0.5,
+    next_due: "2031-05-01",
+  });
+  expect(byName(asStranger, "Canceled only")).toMatchObject({
+    open: 0,
+    progress: 0,
+    next_due: null,
+  });
+  expect(byName(asStranger, "Empty")).toMatchObject({
+    open: 0,
+    progress: 0,
+    next_due: null,
+  });
+
+  for (const [who, projects] of [
+    [admin, asAdmin],
+    [stranger, asStranger],
+  ] as const) {
+    const tasks = (await call(who, "GET", `/api/tasks?team=${team}`))
+      .body as Task[];
+    const { projects: dated, areas } = summarizeProjects(projects, tasks);
+    for (const s of [...dated, ...areas]) {
+      expect(byName(projects, s.project.name)).toMatchObject({
+        open: s.open,
+        progress: s.progress,
+        next_due: s.nextDue,
+      });
+    }
+  }
+});
+
+test("paging returns every task once and sets the cursor only when more remain", async () => {
+  const admin = await login(`admin-${run}@x.test`);
+  const team = key(9);
+  await call(admin, "POST", "/api/teams", { key: team, name: "Pages" });
+  const due = [
+    "2031-01-02",
+    null,
+    "2031-01-01",
+    "2031-01-02",
+    null,
+    "2031-01-02",
+    "2031-01-01",
+    null,
+  ];
+  for (const [i, due_date] of due.entries()) {
+    await call(admin, "POST", "/api/tasks", {
+      team,
+      title: `task ${i}`,
+      due_date,
+      priority: i % 2,
+    });
+  }
+  const everything = await call(admin, "GET", `/api/tasks?team=${team}`);
+  const expected = everything.body.map((t: Task) => t.key);
+  expect(expected).toHaveLength(due.length);
+  expect(everything.headers.get("x-next-cursor")).toBeNull();
+
+  const walk = async (limit: number) => {
+    const keys: string[] = [];
+    const sizes: number[] = [];
+    let cursor: string | null = null;
+    do {
+      const path: string = `/api/tasks?team=${team}&limit=${limit}${cursor ? `&cursor=${cursor}` : ""}`;
+      const page = await call(admin, "GET", path);
+      expect(page.status).toBe(200);
+      keys.push(...page.body.map((t: Task) => t.key));
+      sizes.push(page.body.length);
+      cursor = page.headers.get("x-next-cursor");
+    } while (cursor);
+    return { keys, sizes };
+  };
+  expect(await walk(3)).toEqual({ keys: expected, sizes: [3, 3, 2] });
+  expect(await walk(4)).toEqual({ keys: expected, sizes: [4, 4] });
+
+  const rejected = [
+    ["limit=0", "limit debe ser un entero de 1 a 500"],
+    ["limit=501", "limit debe ser un entero de 1 a 500"],
+    ["limit=abc", "limit debe ser un entero de 1 a 500"],
+    ["cursor=garbage", "cursor no es válido"],
+  ];
+  for (const [query, error] of rejected) {
+    const res = await call(admin, "GET", `/api/tasks?${query}`);
+    expect([res.status, res.body.error]).toEqual([400, error]);
+  }
+});
+
+test("the web client follows the cursor", async () => {
+  const admin = await login(`admin-${run}@x.test`);
+  const team = key(10);
+  await call(admin, "POST", "/api/teams", { key: team, name: "Client" });
+  for (const i of [0, 1, 2, 3, 4]) {
+    await call(admin, "POST", "/api/tasks", { team, title: `c${i}` });
+  }
+  const realFetch = globalThis.fetch;
+  globalThis.fetch = ((path: string, init: RequestInit) =>
+    app.request(
+      path,
+      { ...init, headers: { ...init.headers, cookie: admin.cookie } },
+      env,
+    )) as unknown as typeof fetch;
+  try {
+    const first = await api.tasksPage({ team, limit: "2" });
+    expect(first.items).toHaveLength(2);
+    expect(first.next).toBeString();
+    const second = await api.tasksPage({ team, limit: "2" }, first.next ?? "");
+    expect(second.items.map((t) => t.key)).not.toContain(first.items[0]?.key);
+    const all = await api.tasks({ team, limit: "2" });
+    expect(all).toHaveLength(5);
+    expect(new Set(all.map((t) => t.key)).size).toBe(5);
+    expect((await api.tasksPage({ team })).next).toBeNull();
+  } finally {
+    globalThis.fetch = realFetch;
+  }
+});
+
+test("a malformed body gets a 400 in Spanish that names the field", async () => {
+  const admin = await login(`admin-${run}@x.test`);
+  const team = key(11);
+  await call(admin, "POST", "/api/teams", { key: team, name: "Bad" });
+  const cases: [string, string, string, unknown, string][] = [
+    [
+      "body is not an object",
+      "POST",
+      "/api/tasks",
+      [],
+      "el cuerpo debe ser un objeto JSON",
+    ],
+    ["title missing", "POST", "/api/tasks", { team }, "title es obligatorio"],
+    [
+      "title wrong type",
+      "POST",
+      "/api/tasks",
+      { team, title: 5 },
+      "title debe ser texto",
+    ],
+    [
+      "title blank",
+      "POST",
+      "/api/tasks",
+      { team, title: "  " },
+      "title no puede estar vacío",
+    ],
+    [
+      "title too long",
+      "POST",
+      "/api/tasks",
+      { team, title: "x".repeat(301) },
+      "title no puede superar 300 caracteres",
+    ],
+    [
+      "priority out of range",
+      "POST",
+      "/api/tasks",
+      { team, title: "t", priority: 9 },
+      "priority debe ser un entero de 0 a 3",
+    ],
+    [
+      "status unknown",
+      "POST",
+      "/api/tasks",
+      { team, title: "t", status: "x" },
+      "status debe ser uno de: backlog, todo, in_progress, blocked, done, canceled",
+    ],
+    [
+      "date impossible",
+      "POST",
+      "/api/tasks",
+      { team, title: "t", due_date: "2031-02-31" },
+      "due_date debe tener el formato AAAA-MM-DD o ser null",
+    ],
+    [
+      "labels not a list",
+      "POST",
+      "/api/tasks",
+      { team, title: "t", labels: "a" },
+      "labels debe ser una lista de ids",
+    ],
+    [
+      "team key shape",
+      "POST",
+      "/api/teams",
+      { key: "1ab", name: "n" },
+      "key debe tener de 2 a 6 letras o números y empezar con una letra",
+    ],
+    [
+      "team name missing",
+      "POST",
+      "/api/teams",
+      { key: "OKAY" },
+      "name es obligatorio",
+    ],
+    [
+      "event start",
+      "POST",
+      "/api/events",
+      { title: "e", starts_at: "nope" },
+      "starts_at debe ser una fecha y hora válida",
+    ],
+    [
+      "whatsapp number",
+      "PUT",
+      "/api/me/whatsapp",
+      { number: "12" },
+      "number debe tener de 8 a 15 dígitos, con código de país",
+    ],
+  ];
+  const results = [];
+  for (const [name, method, path, body] of cases) {
+    const res = await call(admin, method, path, body);
+    results.push([name, res.status, res.body.error]);
+  }
+  expect(results).toEqual(
+    cases.map(([name, , , , error]) => [name, 400, error]),
+  );
 });
