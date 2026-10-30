@@ -764,3 +764,82 @@ test("a malformed body gets a 400 in Spanish that names the field", async () => 
     cases.map(([name, , , , error]) => [name, 400, error]),
   );
 });
+
+test("a task refers only to people, and to projects, labels and parents of its team", async () => {
+  const admin = await login(`admin-${run}@x.test`);
+  const [team, other] = [key(18), key(19)];
+  for (const k of [team, other])
+    await call(admin, "POST", "/api/teams", { key: k, name: k });
+  const teamOf = async (k: string) =>
+    (
+      (await call(admin, "GET", "/api/teams")).body as {
+        id: string;
+        key: string;
+      }[]
+    ).find((t) => t.key === k)!.id;
+  const project = async (k: string) =>
+    (await call(admin, "POST", `/api/teams/${k}/projects`, { name: "P" })).body
+      .id as string;
+  const label = async (team_id: string | null) =>
+    (
+      await call(admin, "POST", "/api/labels", {
+        team_id,
+        name: `l-${Math.random()}`,
+      })
+    ).body.id as string;
+  const own = {
+    project: await project(team),
+    label: await label(await teamOf(team)),
+  };
+  const foreign = {
+    project: await project(other),
+    label: await label(await teamOf(other)),
+    parent: (
+      await call(admin, "POST", "/api/tasks", { team: other, title: "p" })
+    ).body.key as string,
+  };
+  const orgLabel = await label(null);
+
+  const create = (fields: Record<string, unknown>) =>
+    call(admin, "POST", "/api/tasks", { team, title: "t", ...fields });
+  const refused = async (
+    res: Promise<{ status: number; body: { error?: string } }>,
+  ) => {
+    const { status, body } = await res;
+    return [status, body.error];
+  };
+  expect(await refused(create({ owner_id: "nobody" }))).toEqual([
+    400,
+    "owner_id no es una persona de la organización",
+  ]);
+  expect(await refused(create({ project_id: foreign.project }))).toEqual([
+    400,
+    "project_id no es un proyecto de este equipo",
+  ]);
+  expect(await refused(create({ labels: [foreign.label] }))).toEqual([
+    400,
+    "labels incluye una etiqueta que no es de este equipo",
+  ]);
+  expect(await refused(create({ parent: foreign.parent }))).toEqual([
+    400,
+    "parent no es una tarea de este equipo",
+  ]);
+
+  const made = await create({
+    project_id: own.project,
+    labels: [own.label, orgLabel, own.label],
+  });
+  expect(made.status).toBe(201);
+  expect((made.body as Task).labels).toHaveLength(2);
+  const patch = (fields: Record<string, unknown>) =>
+    call(admin, "PATCH", `/api/tasks/${made.body.key}`, fields);
+  expect(await refused(patch({ project_id: foreign.project }))).toEqual([
+    400,
+    "project_id no es un proyecto de este equipo",
+  ]);
+  expect(await refused(patch({ labels: ["nope"] }))).toEqual([
+    400,
+    "labels incluye una etiqueta que no es de este equipo",
+  ]);
+  expect((await patch({ owner_id: null, project_id: null })).status).toBe(200);
+});

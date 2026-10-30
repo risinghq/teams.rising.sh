@@ -6,7 +6,12 @@ UTC. Ids are opaque strings. Errors return `{"error": "message"}` with a 4xx or
 
 A request body that is not a JSON object, or has a field of the wrong type,
 shape or size, gets 400. The message is in Spanish and starts with the field
-name, for example `title es obligatorio`. Only the first problem is reported.
+name, for example `title es obligatorio`. Only the first problem is reported. A
+list of ids drops repeats.
+
+A task's `owner_id` must name a person, and its `project_id`, `labels` and
+`parent` must belong to the task's team. A label with no team belongs to the
+whole org. Any other reference gets 400.
 
 Every route except `/api/health` and `/api/auth/*` needs a session cookie. A
 request without one gets 401.

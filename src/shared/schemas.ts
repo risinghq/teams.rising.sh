@@ -28,8 +28,11 @@ const oneOf = <T extends string>(
     error: `${field} debe ser uno de: ${allowed.join(", ")}`,
   });
 
-const ids = (field: string) =>
-  z.array(z.string(), { error: `${field} debe ser una lista de ids` });
+const ids = (field: string, max = Infinity) =>
+  z
+    .array(z.string(), { error: `${field} debe ser una lista de ids` })
+    .max(max)
+    .transform((list) => [...new Set(list)]);
 
 const isCalendarDate = (value: string) => {
   const parsed = new Date(`${value}T00:00:00Z`);
@@ -196,7 +199,7 @@ export const createEvent = z.object({
   all_day: z
     .boolean({ error: "all_day debe ser verdadero o falso" })
     .default(false),
-  attendees: ids("attendees").max(50).default([]),
+  attendees: ids("attendees", 50).default([]),
   meet: z.boolean({ error: "meet debe ser verdadero o falso" }).default(false),
 });
 
@@ -226,7 +229,7 @@ export const patchEvent = z.object({
   all_day: z
     .boolean({ error: "all_day debe ser verdadero o falso" })
     .optional(),
-  attendees: ids("attendees").max(50).optional(),
+  attendees: ids("attendees", 50).optional(),
 });
 
 export const devLogin = z.object({
