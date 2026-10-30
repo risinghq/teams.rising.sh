@@ -1,17 +1,25 @@
 import type { ReactNode } from "react";
 import { cn } from "@/lib/cn";
 
+// Every page shares one column, so the title stays put when you move between
+// pages. "form" keeps that column and narrows the content to a readable
+// measure on its left edge. "wide" is for a grid that needs the room, the
+// calendar.
+const WIDTH = {
+  page: "max-w-4xl",
+  form: "max-w-4xl [&>*]:max-w-2xl",
+  wide: "max-w-6xl",
+};
+
 function Page({
   children,
-  className,
+  width = "page",
 }: {
   children: ReactNode;
-  className?: string;
+  width?: keyof typeof WIDTH;
 }) {
   return (
-    <div
-      className={cn("mx-auto w-full max-w-4xl px-4 pb-24 sm:px-8", className)}
-    >
+    <div className={cn("mx-auto w-full px-4 pb-24 sm:px-8", WIDTH[width])}>
       {children}
     </div>
   );
@@ -49,7 +57,7 @@ function PageHeader({
         )}
       </div>
       {controls && (
-        <div className="-mx-4 flex items-center gap-2 overflow-x-auto px-4 py-0.5 sm:mx-0 sm:flex-wrap sm:overflow-visible sm:px-0 [&>*]:shrink-0">
+        <div className="-mx-4 flex items-center gap-2 overflow-x-auto px-4 py-0.5 [scrollbar-width:none] sm:mx-0 sm:flex-wrap sm:overflow-visible sm:px-0 [&>*]:shrink-0">
           {controls}
         </div>
       )}

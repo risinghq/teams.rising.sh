@@ -3,6 +3,7 @@ import { useState } from "react";
 import { useMe } from "@/features/teams/hooks";
 import { Button, buttonVariants } from "@/ui/button";
 import { EmptyState } from "@/ui/empty-state";
+import { FormError } from "@/ui/form-error";
 import { Input } from "@/ui/input";
 import { Label } from "@/ui/label";
 import { Page, PageHeader } from "@/ui/page-header";
@@ -33,7 +34,7 @@ export function NewTeam() {
     );
   const valid = /^[A-Z][A-Z0-9]{1,5}$/.test(key) && name.trim() !== "";
   return (
-    <Page className="max-w-xl">
+    <Page width="form">
       <PageHeader
         title="Nuevo equipo"
         description="Un equipo reúne personas, proyectos y tareas bajo una clave corta."
@@ -82,7 +83,8 @@ export function NewTeam() {
             {`De 2 a 6 letras o números. Numera las tareas, como en ${key || "AIS"}-12, y las ramas la usan para enlazarse a una tarea.`}
           </p>
         </div>
-        <div className="flex justify-end">
+        <div className="flex items-center justify-end gap-3">
+          <FormError error={create.error} className="mr-auto" />
           <Button type="submit" disabled={!valid || create.isPending}>
             Crear equipo
           </Button>

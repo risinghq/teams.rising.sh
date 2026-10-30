@@ -7,6 +7,8 @@ declare module "@tanstack/react-query" {
     mutationMeta: {
       // A background write whose failure the person need not see.
       silent?: boolean;
+      // A form that shows the failure next to its button.
+      inline?: boolean;
     };
   }
 }
@@ -14,9 +16,10 @@ declare module "@tanstack/react-query" {
 const isSignedOut = (error: Error) =>
   error instanceof ApiError && error.status === 401;
 
-// An expired session sends the person to the login page. Any other failed
-// write is told in a toast with the server's reason, so no form needs its own
-// error line.
+// An expired session sends the person to the login page. A form shows its own
+// failure next to its button. A one-click change has no form, so its failure
+// is told in a toast with the server's reason after the change is undone. That
+// toast stays until it is closed: a failure read in passing is a failure missed.
 export function createQueryClient() {
   return new QueryClient({
     defaultOptions: { queries: { retry: false, staleTime: 10_000 } },
@@ -28,9 +31,11 @@ export function createQueryClient() {
     mutationCache: new MutationCache({
       onError: (error, _variables, _context, mutation) => {
         if (isSignedOut(error)) return window.location.assign("/login");
-        if (mutation.meta?.silent) return;
+        if (mutation.meta?.silent || mutation.meta?.inline) return;
         toast.error("No se pudo guardar el cambio", {
           description: error.message,
+          duration: Infinity,
+          closeButton: true,
         });
       },
     }),

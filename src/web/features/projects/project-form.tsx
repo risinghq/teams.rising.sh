@@ -2,6 +2,7 @@ import { useState } from "react";
 import type { ProjectBase } from "@shared/types";
 import { PROJECT_STATUS_LABEL } from "@/lib/domain";
 import { Button } from "@/ui/button";
+import { FormError } from "@/ui/form-error";
 import { Input } from "@/ui/input";
 import { Select } from "@/ui/select";
 import { Textarea } from "@/ui/textarea";
@@ -11,11 +12,13 @@ import { Textarea } from "@/ui/textarea";
 export function ProjectForm({
   project,
   pending,
+  error,
   onSave,
   onCancel,
 }: {
   project?: ProjectBase;
   pending: boolean;
+  error?: Error | null;
   onSave: (body: Record<string, unknown>) => void;
   onCancel: () => void;
 }) {
@@ -79,7 +82,8 @@ export function ProjectForm({
         placeholder="De qué trata, con enlaces a su repo u hoja de cálculo"
         rows={3}
       />
-      <div className="flex justify-end gap-2">
+      <div className="flex items-center justify-end gap-2">
+        <FormError error={error ?? null} className="mr-auto" />
         <Button type="button" variant="outline" onClick={onCancel}>
           Cancelar
         </Button>

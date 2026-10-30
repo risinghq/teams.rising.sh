@@ -15,7 +15,7 @@ export function TeamSettings({ team }: { team: string }) {
   const q = useTeam(team);
   if (q.isPending)
     return (
-      <Page className="max-w-2xl">
+      <Page width="form">
         <SkeletonRows rows={4} />
       </Page>
     );
@@ -35,7 +35,7 @@ export function TeamSettings({ team }: { team: string }) {
     );
   const detail = q.data;
   return (
-    <Page className="max-w-2xl">
+    <Page width="form">
       <PageHeader
         title={`Ajustes de ${detail.name}`}
         action={

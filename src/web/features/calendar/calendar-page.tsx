@@ -61,7 +61,7 @@ export function CalendarPage() {
 
   return (
     <WithPanel>
-      <Page className="max-w-6xl">
+      <Page width="wide">
         <PageHeader
           title={day(parseDay(anchor), { month: "long", year: "numeric" })}
           action={

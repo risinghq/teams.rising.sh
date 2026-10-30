@@ -7,6 +7,7 @@ import { useMe } from "@/features/teams/hooks";
 import { PersonAvatar } from "@/features/teams/person-avatar";
 import { useWrite } from "@/hooks/use-write";
 import { mentionHandle } from "@/lib/mentions";
+import { mePatch } from "@/lib/optimistic";
 import { Button } from "@/ui/button";
 import { Input } from "@/ui/input";
 import { Label } from "@/ui/label";
@@ -14,12 +15,14 @@ import { Page, PageHeader } from "@/ui/page-header";
 import { SkeletonRows } from "@/ui/skeleton";
 
 const usePatchMe = () =>
-  useWrite("patchMe", (body: Record<string, unknown>) => api.patchMe(body));
+  useWrite("patchMe", (body: Record<string, unknown>) => api.patchMe(body), {
+    optimistic: mePatch,
+  });
 
 export function ProfilePage() {
   const me = useMe().data;
   return (
-    <Page className="max-w-2xl">
+    <Page width="form">
       <PageHeader title="Perfil" />
       {me ? <ProfileForm me={me} /> : <SkeletonRows rows={4} />}
     </Page>

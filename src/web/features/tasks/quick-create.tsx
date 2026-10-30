@@ -1,17 +1,19 @@
-import { useNavigate } from "@tanstack/react-router";
+import { Link } from "@tanstack/react-router";
 import { useId, useState } from "react";
-import { toast } from "sonner";
+import type { Task } from "@shared/types";
 import { useMe } from "@/features/teams/hooks";
+import { TeamMark } from "@/features/teams/team-mark";
+import { FormError } from "@/ui/form-error";
 import { Input } from "@/ui/input";
-import { Select } from "@/ui/select";
+import { FieldMenu } from "./field-menu";
 import { useCreateTask } from "./hooks";
 
 export function QuickCreate() {
   const teams = useMe().data?.teams ?? [];
   const [title, setTitle] = useState("");
   const [picked, setPicked] = useState<string>();
+  const [created, setCreated] = useState<Task>();
   const create = useCreateTask();
-  const navigate = useNavigate();
   const hint = useId();
   const me = useMe().data;
   const team = picked ?? teams[0]?.key;
@@ -29,53 +31,60 @@ export function QuickCreate() {
           {
             onSuccess: (task) => {
               setTitle("");
-              toast.success(`${task.key} creada`, {
-                action: {
-                  label: "Abrir",
-                  onClick: () =>
-                    void navigate({
-                      to: "/t/$team/$number",
-                      params: { team: task.team, number: String(task.number) },
-                    }),
-                },
-              });
+              setCreated(task);
             },
           },
         );
       }}
     >
-      <div className="flex items-end gap-3">
+      <div className="flex items-end gap-3 border-b border-input focus-within:border-foreground">
         <Input
           aria-label="Título de la nueva tarea"
           aria-describedby={hint}
-          appearance="underline"
+          appearance="bare"
           disabled={disabled}
           value={title}
           onChange={(e) => setTitle(e.target.value)}
           placeholder="¿Qué quieres hacer hoy?"
-          className="h-12 min-w-0 flex-1 text-xl placeholder:text-muted-foreground/70 md:text-xl"
+          className="h-12 min-w-0 flex-1 px-0 text-xl placeholder:text-muted-foreground/70 focus-visible:ring-0 md:text-xl"
         />
-        {teams.length > 1 && (
-          <Select
-            aria-label="Equipo de la nueva tarea"
-            appearance="underline"
-            className="h-12 w-auto max-w-40 shrink-0"
+        {teams.length > 1 && team && (
+          <FieldMenu
+            label="Equipo de la nueva tarea"
             value={team}
-            onChange={(e) => setPicked(e.target.value)}
-          >
-            {teams.map((t) => (
-              <option key={t.key} value={t.key}>
-                {t.name}
-              </option>
-            ))}
-          </Select>
+            onChange={setPicked}
+            chevron="always"
+            align="end"
+            className="mb-2 ml-0 max-w-44 shrink-0 text-muted-foreground"
+            options={teams.map((t) => ({
+              value: t.key,
+              label: t.name,
+              lead: <TeamMark teamKey={t.key} size={16} />,
+            }))}
+          />
         )}
       </div>
-      <p id={hint} className="text-xs text-muted-foreground">
-        {teams.length === 0 && me
-          ? "Únete a un equipo para crear tareas."
-          : "Pulsa Enter para crearla. Queda asignada a ti."}
+      {/* The last task created takes the hint's place until the next one, so
+          a slow reader still finds the link and nothing below moves. */}
+      <p id={hint} aria-live="polite" className="text-xs text-muted-foreground">
+        {created ? (
+          <>
+            <span className="text-foreground">{created.key} creada</span> ·{" "}
+            <Link
+              to="/t/$team/$number"
+              params={{ team: created.team, number: String(created.number) }}
+              className="text-foreground underline underline-offset-2"
+            >
+              Abrir
+            </Link>
+          </>
+        ) : teams.length === 0 && me ? (
+          "Únete a un equipo para crear tareas."
+        ) : (
+          "Pulsa Enter para crearla. Queda asignada a ti."
+        )}
       </p>
+      <FormError error={create.error} />
     </form>
   );
 }

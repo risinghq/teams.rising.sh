@@ -2,6 +2,7 @@ import { useState } from "react";
 import { LabelChip } from "@/features/tasks/label-chip";
 import { useTeamLabels } from "@/features/tasks/hooks";
 import { Button } from "@/ui/button";
+import { FormError } from "@/ui/form-error";
 import { Input } from "@/ui/input";
 import { useCreateLabel } from "./hooks";
 import { Section } from "./section";
@@ -29,7 +30,7 @@ export function LabelsSection({ teamId }: { teamId: string }) {
         ))}
       </div>
       <form
-        className="flex items-center gap-2 px-4 pb-4"
+        className="flex flex-wrap items-center gap-2 px-4 pb-4"
         onSubmit={(e) => {
           e.preventDefault();
           if (!name.trim()) return;
@@ -61,6 +62,7 @@ export function LabelsSection({ teamId }: { teamId: string }) {
         >
           Agregar
         </Button>
+        <FormError error={create.error} className="basis-full" />
       </form>
     </Section>
   );
