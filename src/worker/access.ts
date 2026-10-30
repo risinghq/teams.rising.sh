@@ -1,13 +1,14 @@
-import type { User } from "./env";
-import { HttpError, type C } from "./http";
+import type { SessionUser } from "./env";
+import { HttpError } from "./http";
 
 export type Role = "leader" | "member" | null;
 
 // SQL that keeps only the tasks `user` may see. `t` is the tasks alias. An open
 // task is visible to all. A private one is visible to its owner, creator,
-// collaborators, the leaders of its team and admins.
+// collaborators, the leaders of its team and admins. Every query that returns
+// or counts tasks applies it.
 export function visible(
-  user: User,
+  user: SessionUser,
   t = "t",
 ): { sql: string; params: unknown[] } {
   return {
@@ -18,19 +19,25 @@ export function visible(
   };
 }
 
-export async function teamRole(c: C, teamId: string): Promise<Role> {
-  const user = c.get("user");
+export async function teamRole(
+  db: D1Database,
+  user: SessionUser,
+  teamId: string,
+): Promise<Role> {
   if (user.is_admin) return "leader";
-  const row = await c.env.DB.prepare(
-    "SELECT role FROM team_members WHERE team_id = ? AND user_id = ?",
-  )
+  const row = await db
+    .prepare("SELECT role FROM team_members WHERE team_id = ? AND user_id = ?")
     .bind(teamId, user.id)
     .first<{ role: "leader" | "member" }>();
   return row?.role ?? null;
 }
 
-export async function requireLeader(c: C, teamId: string): Promise<void> {
-  if ((await teamRole(c, teamId)) !== "leader") {
+export async function requireLeader(
+  db: D1Database,
+  user: SessionUser,
+  teamId: string,
+): Promise<void> {
+  if ((await teamRole(db, user, teamId)) !== "leader") {
     throw new HttpError(
       403,
       "solo un líder del equipo o un admin puede hacer esto",
@@ -38,7 +45,7 @@ export async function requireLeader(c: C, teamId: string): Promise<void> {
   }
 }
 
-export function requireAdmin(c: C): void {
-  if (!c.get("user").is_admin)
+export function requireAdmin(user: SessionUser): void {
+  if (!user.is_admin)
     throw new HttpError(403, "solo un admin puede hacer esto");
 }

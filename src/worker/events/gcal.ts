@@ -1,16 +1,9 @@
-import type { Env } from "./env";
+import type { CalEvent } from "../../shared/types";
+import { refreshTokenOf } from "../auth/queries";
+import type { Env } from "../env";
+import { setGoogleEventId } from "./queries";
 
 type Bindings = Env["Bindings"];
-
-export type CalendarEvent = {
-  id: string;
-  title: string;
-  description: string;
-  starts_at: string;
-  ends_at: string | null;
-  all_day: number;
-  google_event_id: string | null;
-};
 
 const TOKEN_URL = "https://oauth2.googleapis.com/token";
 const EVENTS_URL =
@@ -18,18 +11,14 @@ const EVENTS_URL =
 
 async function accessToken(env: Bindings, userId: string) {
   if (!env.GOOGLE_CLIENT_ID || !env.GOOGLE_CLIENT_SECRET) return null;
-  const row = await env.DB.prepare(
-    "SELECT refresh_token FROM google_tokens WHERE user_id = ?",
-  )
-    .bind(userId)
-    .first<{ refresh_token: string }>();
-  if (!row) return null;
+  const refreshToken = await refreshTokenOf(env.DB, userId);
+  if (!refreshToken) return null;
   const res = await fetch(TOKEN_URL, {
     method: "POST",
     body: new URLSearchParams({
       client_id: env.GOOGLE_CLIENT_ID,
       client_secret: env.GOOGLE_CLIENT_SECRET,
-      refresh_token: row.refresh_token,
+      refresh_token: refreshToken,
       grant_type: "refresh_token",
     }),
   });
@@ -38,7 +27,7 @@ async function accessToken(env: Bindings, userId: string) {
 }
 
 // Google wants a plain date for an all-day event, and its end date is exclusive.
-function when(event: CalendarEvent) {
+function when(event: CalEvent) {
   if (!event.all_day) {
     const start = Date.parse(event.starts_at);
     const end = event.ends_at ? Date.parse(event.ends_at) : start + 3600_000;
@@ -59,7 +48,7 @@ async function send(
   userId: string,
   method: "POST" | "PUT" | "DELETE",
   googleId: string | null,
-  event?: CalendarEvent,
+  event?: CalEvent,
 ): Promise<string | null> {
   const token = await accessToken(env, userId);
   if (!token) return null;
@@ -88,7 +77,7 @@ async function send(
 export async function syncEvent(
   env: Bindings,
   userId: string,
-  event: CalendarEvent,
+  event: CalEvent,
 ) {
   try {
     const googleId = await send(
@@ -98,11 +87,8 @@ export async function syncEvent(
       event.google_event_id,
       event,
     );
-    if (googleId && googleId !== event.google_event_id) {
-      await env.DB.prepare("UPDATE events SET google_event_id = ? WHERE id = ?")
-        .bind(googleId, event.id)
-        .run();
-    }
+    if (googleId && googleId !== event.google_event_id)
+      await setGoogleEventId(env.DB, event.id, googleId);
   } catch (err) {
     console.error("google calendar sync failed", err);
   }
@@ -111,7 +97,7 @@ export async function syncEvent(
 export async function removeEvent(
   env: Bindings,
   userId: string,
-  event: CalendarEvent,
+  event: CalEvent,
 ) {
   if (!event.google_event_id) return;
   try {

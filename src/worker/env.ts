@@ -1,4 +1,4 @@
-export type User = {
+export type SessionUser = {
   id: string;
   email: string;
   name: string;
@@ -20,5 +20,5 @@ export type Env = {
     // Lets a test or a local run sign in without Google. Never set in production.
     DEV_LOGIN?: string;
   };
-  Variables: { user: User };
+  Variables: { user: SessionUser };
 };
