@@ -43,10 +43,10 @@ wrangler secret put WHATSAPP_VERIFY_TOKEN
    - `http://localhost:8787/api/auth/google/callback`
 4. Store the client id and secret as the secrets above.
 
-While the app's publishing status is Testing, Google refuses every account
-that is not on the Audience page's test-user list with `403 access_denied`,
-before the Worker sees it. An address outside `ALLOWED_DOMAINS` must be both a
-test user and in `ALLOWED_EMAILS`.
+While the app's publishing status is Testing, Google refuses every account that
+is not on the Audience page's test-user list with `403 access_denied`, before
+the Worker sees it. An address outside `ALLOWED_DOMAINS` must be both a test
+user and in `ALLOWED_EMAILS`.
 
 ## Local run
 
