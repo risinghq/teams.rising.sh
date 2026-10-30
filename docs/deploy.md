@@ -43,10 +43,13 @@ wrangler secret put WHATSAPP_VERIFY_TOKEN
    - `http://localhost:8787/api/auth/google/callback`
 4. Store the client id and secret as the secrets above.
 
-While the app's publishing status is Testing, Google refuses every account that
-is not on the Audience page's test-user list with `403 access_denied`, before
-the Worker sees it. An address outside `ALLOWED_DOMAINS` must be both a test
-user and in `ALLOWED_EMAILS`.
+The app is published (status In production), so Google lets any account through
+and `ALLOWED_DOMAINS` and `ALLOWED_EMAILS` alone decide access. Do not move it
+back to Testing: Google then refuses accounts that are not on the test user
+list, and it expires refresh tokens after 7 days, which stops the calendar
+mirror. The Branding page links the home page, `/privacidad` and `/terminos`,
+which publishing requires. The calendar scope is sensitive and unverified, so
+users see Google's unverified-app warning and the app is capped at 100 users.
 
 ## Local run
 
