@@ -126,10 +126,12 @@ export type InboxItem = {
   body: string;
   meta: Record<string, unknown>;
   created_at: string;
+  author_id: string | null;
   author_name: string | null;
   task_key: string;
   task_title: string;
   unread: boolean;
+  mentioned: boolean;
 };
 
 export type OverviewRow = {

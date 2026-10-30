@@ -1,6 +1,6 @@
 import { describe, expect, test } from "bun:test";
-import type { Task, User } from "../src/shared/types";
-import { addDays, monthGrid, weekGrid } from "../src/web/lib/dates";
+import type { InboxItem, Task, User } from "../src/shared/types";
+import { addDays, monthGrid, shortDay, weekGrid } from "../src/web/lib/dates";
 import {
   insertMention,
   matchPeople,
@@ -15,6 +15,7 @@ import {
   type TaskFilters,
 } from "../src/web/lib/tasks";
 import { linkify } from "../src/web/lib/text";
+import { describeUpdate, groupInbox } from "../src/web/lib/updates";
 
 const task = (over: Partial<Task>): Task => ({
   id: "x",
@@ -227,6 +228,81 @@ describe("mentions", () => {
     expect(
       insertMention("hola @pe y más", 5, 8, mentionHandle(people[2]!)),
     ).toEqual({ text: "hola @pedro.rojas.f24  y más", caret: 22 });
+  });
+});
+
+describe("describeUpdate", () => {
+  const names: Record<string, string> = { caro: "Caro Diaz", ben: "Ben Cole" };
+  const nameOf = (id: string) => names[id] ?? "alguien";
+  const say = (
+    kind: string,
+    meta: Record<string, unknown>,
+    author = "ben",
+    me = "caro",
+  ) => describeUpdate({ kind, body: "", meta, author_id: author }, nameOf, me);
+  test("owner changes name the new owner, or the reader", () => {
+    expect(say("owner", { from: null, to: "caro" })).toBe("te asignó la tarea");
+    expect(say("owner", { from: "caro", to: "ben" })).toBe(
+      "asignó la tarea a Ben Cole",
+    );
+    expect(say("owner", { from: "caro", to: null })).toBe(
+      "quitó al responsable",
+    );
+  });
+  test("collaborator changes tell joining from being added", () => {
+    expect(say("collaborator", { added: "ben" })).toBe("se unió");
+    expect(say("collaborator", { added: "caro" })).toBe("te agregó");
+    expect(say("collaborator", { removed: "caro" })).toBe(
+      "te quitó de la tarea",
+    );
+    expect(say("collaborator", { added: "caro" }, "ben", "ben")).toBe(
+      "agregó a Caro Diaz",
+    );
+  });
+  test("a due change shows the day, a comment its body", () => {
+    expect(say("due", { from: null, to: "2026-11-03" })).toBe(
+      `cambió la entrega al ${shortDay("2026-11-03")}`,
+    );
+    expect(
+      describeUpdate(
+        { kind: "comment", body: "hola", meta: {}, author_id: "ben" },
+        nameOf,
+      ),
+    ).toBe("hola");
+  });
+});
+
+describe("groupInbox", () => {
+  const item = (over: Partial<InboxItem>): InboxItem => ({
+    id: "i",
+    kind: "comment",
+    body: "",
+    meta: {},
+    created_at: "2026-10-01T00:00:00.000Z",
+    author_id: "ben",
+    author_name: "Ben",
+    task_key: "ENG-1",
+    task_title: "t",
+    unread: false,
+    mentioned: false,
+    ...over,
+  });
+  test("one thread per task, newest first, counting only unread items", () => {
+    const threads = groupInbox([
+      item({ id: "a", created_at: "2026-10-03T00:00:00.000Z", unread: true }),
+      item({ id: "b", task_key: "ENG-2", created_at: "2026-10-04T00:00:00Z" }),
+      item({ id: "c", created_at: "2026-10-02T00:00:00.000Z", unread: true }),
+      item({ id: "d", created_at: "2026-10-01T00:00:00.000Z" }),
+    ]);
+    expect(threads.map((t) => [t.task_key, t.latest.id, t.unread])).toEqual([
+      ["ENG-2", "b", 0],
+      ["ENG-1", "a", 2],
+    ]);
+  });
+  test("only an unread mention marks the thread", () => {
+    const [read] = groupInbox([item({ mentioned: true })]);
+    const [fresh] = groupInbox([item({ mentioned: true, unread: true })]);
+    expect([read?.mentioned, fresh?.mentioned]).toEqual([false, true]);
   });
 });
 

@@ -27,26 +27,27 @@ becomes an admin.
 
 ## Resources
 
-| Route                                                  | Behavior                                                                                                           |
-| ------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------ |
-| `GET /api/users`                                       | All users, for pickers.                                                                                            |
-| `GET/POST /api/teams`                                  | List teams with member counts. Admin creates. Create and patch return the team with its `members` count.           |
-| `GET/PATCH /api/teams/:key`                            | Team with members and roles. Leader or admin patches.                                                              |
-| `PUT/DELETE /api/teams/:key/members/:userId`           | Leader or admin sets role or removes.                                                                              |
-| `GET/POST /api/teams/:key/projects`                    | List and create projects. The list adds `open`, `progress` and `next_due` to each project (see Project counts).    |
-| `PATCH /api/projects/:id`                              | Update a project.                                                                                                  |
-| `GET /api/tasks`                                       | Tasks the caller can see, each with `progress`, `key`, `owner`, `labels`. Filters and paging are under Task list.  |
-| `POST /api/tasks`                                      | Create. Body: `team`, `title`, and optional fields. Assigns the next number.                                       |
-| `GET /api/tasks/:key`                                  | Task with subtasks, collaborators, labels, links and updates.                                                      |
-| `PATCH /api/tasks/:key`                                | Change fields. Writes the matching updates.                                                                        |
-| `POST /api/tasks/:key/updates`                         | Add a comment. Body: `{"body": "..."}`.                                                                            |
-| `PUT/DELETE /api/tasks/:key/collaborators/:userId`     | Any user can add themselves to an open task. Anyone who can edit the task adds others.                             |
-| `GET/POST /api/labels`                                 | List and create labels.                                                                                            |
-| `GET /api/inbox`                                       | Updates on tasks the caller owns, collaborates on, or is mentioned in, newest first. Returns `unread` and `items`. |
-| `POST /api/inbox/read`                                 | Marks the inbox read up to now.                                                                                    |
-| `GET/POST /api/events`, `PATCH/DELETE /api/events/:id` | Calendar events. Query `from`, `to`.                                                                               |
-| `GET /api/calendar`                                    | Tasks with dates and events in `from`..`to`, merged.                                                               |
-| `GET /api/overview`                                    | Open, blocked and overdue counts by team and by owner.                                                             |
+| Route                                                  | Behavior                                                                                                                                                  |
+| ------------------------------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `GET /api/users`                                       | All users, for pickers.                                                                                                                                   |
+| `GET/POST /api/teams`                                  | List teams with member counts. Admin creates. Create and patch return the team with its `members` count.                                                  |
+| `GET/PATCH /api/teams/:key`                            | Team with members and roles. Leader or admin patches.                                                                                                     |
+| `PUT/DELETE /api/teams/:key/members/:userId`           | Leader or admin sets role or removes.                                                                                                                     |
+| `GET/POST /api/teams/:key/projects`                    | List and create projects. The list adds `open`, `progress` and `next_due` to each project (see Project counts).                                           |
+| `PATCH /api/projects/:id`                              | Update a project.                                                                                                                                         |
+| `GET /api/tasks`                                       | Tasks the caller can see, each with `progress`, `key`, `owner`, `labels`. Filters and paging are under Task list.                                         |
+| `POST /api/tasks`                                      | Create. Body: `team`, `title`, and optional fields. Assigns the next number.                                                                              |
+| `GET /api/tasks/:key`                                  | Task with subtasks, collaborators, labels, links and updates.                                                                                             |
+| `PATCH /api/tasks/:key`                                | Change fields. Writes the matching updates.                                                                                                               |
+| `POST /api/tasks/:key/updates`                         | Add a comment. Body: `{"body": "..."}`.                                                                                                                   |
+| `PUT/DELETE /api/tasks/:key/collaborators/:userId`     | Any user can add themselves to an open task. Anyone who can edit the task adds others.                                                                    |
+| `GET/POST /api/labels`                                 | List and create labels.                                                                                                                                   |
+| `GET /api/inbox`                                       | Updates on tasks the caller owns, collaborates on, or is mentioned in, newest first. Returns `items` and `unread`, the number of tasks with unread items. |
+| `POST /api/inbox/read`                                 | Marks the whole inbox read up to now.                                                                                                                     |
+| `POST /api/inbox/read/:key`                            | Marks one task's inbox items read up to now. The web app calls it when a task opens.                                                                      |
+| `GET/POST /api/events`, `PATCH/DELETE /api/events/:id` | Calendar events. Query `from`, `to`.                                                                                                                      |
+| `GET /api/calendar`                                    | Tasks with dates and events in `from`..`to`, merged.                                                                                                      |
+| `GET /api/overview`                                    | Open, blocked and overdue counts by team and by owner.                                                                                                    |
 
 ## Project counts
 

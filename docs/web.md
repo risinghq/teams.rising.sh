@@ -18,7 +18,7 @@ and paging are the server's.
 | Path                | Screen                                                  |
 | ------------------- | ------------------------------------------------------- |
 | `/`                 | Mi trabajo: greeting, quick create, shortcuts, my tasks |
-| `/inbox`            | Bandeja                                                 |
+| `/inbox`            | Bandeja: one row per task; opening the task reads it    |
 | `/calendar`         | Calendario, by month or week                            |
 | `/overview`         | Resumen by team and by person                           |
 | `/t/$team`          | A team's projects and tasks                             |

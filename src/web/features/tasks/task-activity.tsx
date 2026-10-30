@@ -1,23 +1,12 @@
 import { useState } from "react";
 import type { Update } from "@shared/types";
 import { relativeTime } from "@/lib/dates";
-import { STATUS_LABEL, type TaskStatus } from "@/lib/domain";
+import { describeUpdate } from "@/lib/updates";
 import { PersonAvatar } from "@/features/teams/person-avatar";
+import { useMe, useNameOf } from "@/features/teams/hooks";
 import { Button } from "@/ui/button";
 import { useComment } from "./hooks";
 import { MentionTextarea } from "./mention-textarea";
-
-function describe(u: Update): string {
-  const m = u.meta as { from?: unknown; to?: unknown };
-  const name = (v: unknown) =>
-    v === null || v === undefined || v === "" ? "ninguno" : String(v);
-  const status = (v: unknown) => STATUS_LABEL[v as TaskStatus] ?? name(v);
-  if (u.kind === "status")
-    return `cambió el estado de ${status(m.from)} a ${status(m.to)}`;
-  if (u.kind === "owner") return "cambió el responsable";
-  if (u.kind === "due") return `cambió la fecha de entrega a ${name(m.to)}`;
-  return u.body;
-}
 
 export function TaskActivity({
   taskKey,
@@ -28,6 +17,8 @@ export function TaskActivity({
 }) {
   const [text, setText] = useState("");
   const comment = useComment();
+  const nameOf = useNameOf();
+  const me = useMe().data?.id;
   const submit = () => {
     const body = text.trim();
     if (!body) return;
@@ -66,7 +57,7 @@ export function TaskActivity({
                     : "text-muted-foreground"
                 }
               >
-                {describe(u)}
+                {describeUpdate(u, nameOf, me)}
               </p>
             </div>
           </li>

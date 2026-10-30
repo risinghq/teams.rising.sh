@@ -146,7 +146,7 @@ taskRoutes.put("/tasks/:key/collaborators/:userId", async (c) => {
       403,
       "solo el responsable, un colaborador o un líder puede agregar a otras personas",
     );
-  if (!(await addCollaborator(c.env.DB, task.id, target)))
+  if (!(await addCollaborator(c.env.DB, task.id, target, user.id)))
     throw new HttpError(404, "usuario no encontrado");
   return c.json({ ok: true });
 });
@@ -157,6 +157,6 @@ taskRoutes.delete("/tasks/:key/collaborators/:userId", async (c) => {
   const target = collaboratorTarget(c, c.req.param("userId"));
   if (target !== user.id && !(await canEdit(c, task)))
     throw new HttpError(403, "no permitido");
-  await removeCollaborator(c.env.DB, task.id, target);
+  await removeCollaborator(c.env.DB, task.id, target, user.id);
   return c.json({ ok: true });
 });

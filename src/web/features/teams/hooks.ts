@@ -18,6 +18,12 @@ export const useUsers = () =>
     staleTime: 60_000,
   });
 
+// A user's name by id, for updates that store only ids.
+export function useNameOf(): (userId: string) => string {
+  const users = useUsers().data;
+  return (userId) => users?.find((u) => u.id === userId)?.name ?? "alguien";
+}
+
 // What the signed-in person may do in a team. Admins lead every team.
 export function useTeamRole(team: string) {
   const me = useMe().data;

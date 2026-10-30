@@ -104,6 +104,7 @@ export const api = {
   inbox: () =>
     request<{ unread: number; items: InboxItem[] }>("GET", "/api/inbox"),
   readInbox: () => request("POST", "/api/inbox/read"),
+  readInboxTask: (key: string) => request("POST", `/api/inbox/read/${key}`),
   overview: () =>
     request<{ teams: OverviewRow[]; owners: OverviewRow[] }>(
       "GET",
