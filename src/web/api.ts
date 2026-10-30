@@ -1,15 +1,40 @@
-import type { TaskStatus } from "../shared/progress";
+import {
+  TASK_STATUSES,
+  type CalEvent,
+  type InboxItem,
+  type Label,
+  type Me,
+  type Member,
+  type OverviewRow,
+  type Project,
+  type Task,
+  type TaskDetail,
+  type TaskStatus,
+  type Team,
+  type TeamDetail,
+  type User,
+} from "../shared/types";
 
-export type { TaskStatus };
+export type {
+  CalEvent,
+  InboxItem,
+  Label,
+  Me,
+  Member,
+  OverviewRow,
+  Person,
+  Project,
+  Task,
+  TaskDetail,
+  TaskLink,
+  TaskStatus,
+  Team,
+  TeamDetail,
+  Update,
+  User,
+} from "../shared/types";
 
-export const STATUSES: TaskStatus[] = [
-  "backlog",
-  "todo",
-  "in_progress",
-  "blocked",
-  "done",
-  "canceled",
-];
+export const STATUSES: TaskStatus[] = [...TASK_STATUSES];
 
 export const STATUS_LABEL: Record<TaskStatus, string> = {
   backlog: "Pendiente",
@@ -22,122 +47,6 @@ export const STATUS_LABEL: Record<TaskStatus, string> = {
 
 export const PRIORITY_LABEL = ["Sin prioridad", "Baja", "Media", "Urgente"];
 
-export type Person = { id: string; name: string; avatar_url: string | null };
-export type Label = { id: string; name: string; color: string };
-
-export type Task = {
-  id: string;
-  key: string;
-  team: string;
-  number: number;
-  title: string;
-  description: string;
-  status: TaskStatus;
-  visibility: "open" | "private";
-  priority: number;
-  start_date: string | null;
-  due_date: string | null;
-  project_id: string | null;
-  parent_id: string | null;
-  owner: Person | null;
-  labels: Label[];
-  progress: number;
-  subtask_count: number;
-  created_at: string;
-  updated_at: string;
-};
-
-export type Update = {
-  id: string;
-  kind: string;
-  body: string;
-  meta: Record<string, unknown>;
-  created_at: string;
-  author_id: string | null;
-  author_name: string | null;
-  author_avatar: string | null;
-};
-
-export type TaskLink = {
-  id: string;
-  kind: string;
-  repo: string;
-  external_id: string;
-  url: string;
-  title: string;
-  state: string;
-};
-
-export type TaskDetail = Task & {
-  subtasks: Task[];
-  collaborators: Person[];
-  links: TaskLink[];
-  updates: Update[];
-};
-
-export type Me = {
-  id: string;
-  email: string;
-  name: string;
-  avatar_url: string | null;
-  is_admin: boolean;
-  teams: { key: string; name: string; role: "leader" | "member" }[];
-};
-
-export type Team = {
-  id: string;
-  key: string;
-  name: string;
-  description: string;
-  members: number;
-};
-
-export type Member = Person & { email: string; role: "leader" | "member" };
-export type TeamDetail = Omit<Team, "members"> & { members: Member[] };
-
-export type Project = {
-  id: string;
-  team_id: string;
-  name: string;
-  description: string;
-  status: "active" | "done" | "archived";
-  target_date: string | null;
-};
-
-export type User = Person & { email: string; kind: string };
-
-export type CalEvent = {
-  id: string;
-  team_id: string | null;
-  title: string;
-  starts_at: string;
-  ends_at: string | null;
-  all_day: number;
-};
-
-export type InboxItem = {
-  id: string;
-  kind: string;
-  body: string;
-  meta: Record<string, unknown>;
-  created_at: string;
-  author_name: string | null;
-  task_key: string;
-  task_title: string;
-  unread: boolean;
-};
-
-export type OverviewRow = {
-  key?: string;
-  id?: string;
-  name: string;
-  avatar_url?: string | null;
-  open: number;
-  blocked: number;
-  overdue: number;
-  done: number;
-};
-
 export class ApiError extends Error {
   constructor(
     readonly status: number,
@@ -147,11 +56,11 @@ export class ApiError extends Error {
   }
 }
 
-export async function request<T>(
+async function send<T>(
   method: string,
   path: string,
   body?: unknown,
-): Promise<T> {
+): Promise<{ data: T; headers: Headers }> {
   const res = await fetch(path, {
     method,
     headers: body === undefined ? {} : { "content-type": "application/json" },
@@ -161,7 +70,40 @@ export async function request<T>(
     error?: string;
   } | null;
   if (!res.ok) throw new ApiError(res.status, data?.error ?? res.statusText);
-  return data as T;
+  return { data: data as T, headers: res.headers };
+}
+
+export async function request<T>(
+  method: string,
+  path: string,
+  body?: unknown,
+): Promise<T> {
+  return (await send<T>(method, path, body)).data;
+}
+
+export type TaskPage = { items: Task[]; next: string | null };
+
+const PAGE_SIZE = "500";
+
+async function tasksPage(
+  query: Record<string, string>,
+  cursor?: string,
+): Promise<TaskPage> {
+  const params = new URLSearchParams(query);
+  if (cursor) params.set("cursor", cursor);
+  const { data, headers } = await send<Task[]>("GET", `/api/tasks?${params}`);
+  return { items: data, next: headers.get("X-Next-Cursor") };
+}
+
+async function tasks(query: Record<string, string>): Promise<Task[]> {
+  const all: Task[] = [];
+  let cursor: string | undefined;
+  do {
+    const page = await tasksPage({ limit: PAGE_SIZE, ...query }, cursor);
+    all.push(...page.items);
+    cursor = page.next ?? undefined;
+  } while (cursor);
+  return all;
 }
 
 export const api = {
@@ -187,8 +129,8 @@ export const api = {
     request<Project>("PATCH", `/api/projects/${id}`, body),
   labels: () =>
     request<(Label & { team_id: string | null })[]>("GET", "/api/labels"),
-  tasks: (query: Record<string, string>) =>
-    request<Task[]>("GET", `/api/tasks?${new URLSearchParams(query)}`),
+  tasks,
+  tasksPage,
   task: (key: string) => request<TaskDetail>("GET", `/api/tasks/${key}`),
   createTask: (body: Record<string, unknown>) =>
     request<Task>("POST", "/api/tasks", body),
