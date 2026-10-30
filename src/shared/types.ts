@@ -45,6 +45,13 @@ export type Update = {
   author_id: string | null;
   author_name: string | null;
   author_avatar: string | null;
+  reactions: Reaction[];
+};
+
+export type Reaction = {
+  emoji: string;
+  names: string[];
+  mine: boolean;
 };
 
 export type TaskLink = {

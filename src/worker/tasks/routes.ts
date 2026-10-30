@@ -3,6 +3,7 @@ import {
   comment as commentBody,
   createTask as createTaskBody,
   patchTask as patchTaskBody,
+  reaction,
   taskQuery,
 } from "../../shared/schemas";
 import type { TaskDetail } from "../../shared/types";
@@ -22,6 +23,7 @@ import {
   listTasks,
   mentionedUserIds,
   removeCollaborator,
+  setReaction,
   subtasksOf,
   taskById,
   updatesOf,
@@ -96,7 +98,7 @@ taskRoutes.get("/tasks/:key", async (c) => {
     subtasksOf(c.env.DB, user, row.id),
     collaboratorsOf(c.env.DB, row.id),
     linksOf(c.env.DB, row.id),
-    updatesOf(c.env.DB, row.id),
+    updatesOf(c.env.DB, row.id, user.id),
   ]);
   const detail: TaskDetail = {
     ...(task as TaskDetail),
@@ -135,6 +137,27 @@ taskRoutes.post("/tasks/:key/updates", async (c) => {
   );
   return c.json({ id: updateId }, 201);
 });
+
+// Anyone who can see the task can react, as anyone who can see it can comment.
+const react = (on: boolean) => async (c: C) => {
+  const user = c.get("user");
+  const task = await taskByKey(c, c.req.param("key")!);
+  const emoji = reaction.safeParse(c.req.param("emoji"));
+  if (!emoji.success) throw new HttpError(400, "reacción desconocida");
+  const found = await setReaction(
+    c.env.DB,
+    task.id,
+    c.req.param("id")!,
+    user.id,
+    emoji.data,
+    on,
+  );
+  if (!found) throw new HttpError(404, "actualización no encontrada");
+  return c.json({ ok: true });
+};
+const REACTION_PATH = "/tasks/:key/updates/:id/reactions/:emoji";
+taskRoutes.put(REACTION_PATH, react(true));
+taskRoutes.delete(REACTION_PATH, react(false));
 
 taskRoutes.put("/tasks/:key/collaborators/:userId", async (c) => {
   const user = c.get("user");

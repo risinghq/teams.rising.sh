@@ -3,6 +3,7 @@ import type { PatchTask, TaskQuery } from "../../shared/schemas";
 import type {
   Label,
   Person,
+  Reaction,
   Task,
   TaskLink,
   TaskStatus,
@@ -244,17 +245,78 @@ export async function linksOf(
 export async function updatesOf(
   db: D1Database,
   taskId: string,
+  viewerId: string,
 ): Promise<Update[]> {
-  const { results } = await db
+  const [updates, reactions] = await db.batch([
+    db
+      .prepare(
+        `SELECT up.id, up.kind, up.body, up.meta, up.created_at, up.author_id,
+           a.name AS author_name, a.avatar_url AS author_avatar
+         FROM task_updates up LEFT JOIN users a ON a.id = up.author_id
+         WHERE up.task_id = ? ORDER BY up.created_at, up.rowid`,
+      )
+      .bind(taskId),
+    db
+      .prepare(
+        `SELECT r.update_id, r.emoji, r.user_id, u.name
+         FROM update_reactions r
+         JOIN task_updates up ON up.id = r.update_id
+         JOIN users u ON u.id = r.user_id
+         WHERE up.task_id = ? ORDER BY r.created_at, r.rowid`,
+      )
+      .bind(taskId),
+  ]);
+  const byUpdate = new Map<string, Reaction[]>();
+  for (const r of reactions!.results as {
+    update_id: string;
+    emoji: string;
+    user_id: string;
+    name: string;
+  }[]) {
+    const list = byUpdate.get(r.update_id) ?? [];
+    let entry = list.find((x) => x.emoji === r.emoji);
+    if (!entry) {
+      entry = { emoji: r.emoji, names: [], mine: false };
+      list.push(entry);
+    }
+    entry.names.push(r.name);
+    entry.mine ||= r.user_id === viewerId;
+    byUpdate.set(r.update_id, list);
+  }
+  return (
+    updates!.results as (Omit<Update, "meta" | "reactions"> & {
+      meta: string;
+    })[]
+  ).map((u) => ({
+    ...u,
+    meta: JSON.parse(u.meta),
+    reactions: byUpdate.get(u.id) ?? [],
+  }));
+}
+
+// False when the update is not on the task.
+export async function setReaction(
+  db: D1Database,
+  taskId: string,
+  updateId: string,
+  userId: string,
+  emoji: string,
+  on: boolean,
+): Promise<boolean> {
+  const update = await db
+    .prepare("SELECT 1 FROM task_updates WHERE id = ? AND task_id = ?")
+    .bind(updateId, taskId)
+    .first();
+  if (!update) return false;
+  await db
     .prepare(
-      `SELECT up.id, up.kind, up.body, up.meta, up.created_at, up.author_id,
-         a.name AS author_name, a.avatar_url AS author_avatar
-       FROM task_updates up LEFT JOIN users a ON a.id = up.author_id
-       WHERE up.task_id = ? ORDER BY up.created_at, up.rowid`,
+      on
+        ? "INSERT OR IGNORE INTO update_reactions (update_id, user_id, emoji) VALUES (?, ?, ?)"
+        : "DELETE FROM update_reactions WHERE update_id = ? AND user_id = ? AND emoji = ?",
     )
-    .bind(taskId)
-    .all<Omit<Update, "meta"> & { meta: string }>();
-  return results.map((u) => ({ ...u, meta: JSON.parse(u.meta) }));
+    .bind(updateId, userId, emoji)
+    .run();
+  return true;
 }
 
 export async function isCollaborator(
