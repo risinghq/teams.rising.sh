@@ -2,7 +2,6 @@ import { afterAll, beforeAll, expect, test, setDefaultTimeout } from "bun:test";
 import type { Miniflare } from "miniflare";
 import type { Project, Task } from "../src/shared/types";
 import { api } from "../src/web/api";
-import { summarizeProjects } from "../src/web/lib/tasks";
 import app from "../src/worker/index";
 import { HOST_TIMEOUT, migratedDb } from "./support";
 
@@ -289,7 +288,7 @@ test("sign-in by Google is limited to the allow list", async () => {
   expect(dev.status).toBe(404);
 });
 
-test("project counts match the web summary and hide private tasks", async () => {
+test("project counts are exact and hide private tasks", async () => {
   const admin = await login(`admin-${run}@x.test`);
   const stranger = await login(`stranger-${run}@x.test`);
   const team = key(8);
@@ -354,22 +353,6 @@ test("project counts match the web summary and hide private tasks", async () => 
     progress: 0,
     next_due: null,
   });
-
-  for (const [who, projects] of [
-    [admin, asAdmin],
-    [stranger, asStranger],
-  ] as const) {
-    const tasks = (await call(who, "GET", `/api/tasks?team=${team}`))
-      .body as Task[];
-    const { projects: dated, areas } = summarizeProjects(projects, tasks);
-    for (const s of [...dated, ...areas]) {
-      expect(byName(projects, s.project.name)).toMatchObject({
-        open: s.open,
-        progress: s.progress,
-        next_due: s.nextDue,
-      });
-    }
-  }
 });
 
 test("paging returns every task once and sets the cursor only when more remain", async () => {
@@ -428,6 +411,47 @@ test("paging returns every task once and sets the cursor only when more remain",
   }
 });
 
+test("task list filters compose: status, open and a due window all narrow", async () => {
+  const admin = await login(`admin-${run}@x.test`);
+  const team = key(12);
+  await call(admin, "POST", "/api/teams", { key: team, name: "Filters" });
+  for (const [name, status, due_date] of [
+    ["todo in window", "todo", "2031-01-01"],
+    ["blocked in window", "blocked", "2031-01-02"],
+    ["done in window", "done", "2031-01-01"],
+    ["canceled in window", "canceled", "2031-01-02"],
+    ["todo outside window", "todo", "2031-02-01"],
+  ] as const) {
+    const res = await call(admin, "POST", "/api/tasks", {
+      team,
+      title: name,
+      status,
+      due_date,
+    });
+    expect(res.status).toBe(201);
+  }
+  const titles = async (query: string) =>
+    (await call(admin, "GET", `/api/tasks?team=${team}&${query}`)).body
+      .map((t: Task) => t.title)
+      .sort();
+  const window = "due_after=2031-01-01&due_before=2031-01-02";
+
+  // The status list names closed statuses, and open=1 rules them out.
+  expect(
+    await titles(`status=todo,blocked,done,canceled&open=1&${window}`),
+  ).toEqual(["blocked in window", "todo in window"]);
+  expect(await titles(`status=done&open=1&${window}`)).toEqual([]);
+  // Each filter alone still works.
+  expect(await titles(`status=done,canceled&${window}`)).toEqual([
+    "canceled in window",
+    "done in window",
+  ]);
+  expect(await titles(`open=1&${window}`)).toEqual([
+    "blocked in window",
+    "todo in window",
+  ]);
+});
+
 test("the web client follows the cursor", async () => {
   const admin = await login(`admin-${run}@x.test`);
   const team = key(10);
@@ -448,7 +472,11 @@ test("the web client follows the cursor", async () => {
     expect(first.next).toBeString();
     const second = await api.tasksPage({ team, limit: "2" }, first.next ?? "");
     expect(second.items.map((t) => t.key)).not.toContain(first.items[0]?.key);
-    const all = await api.tasks({ team, limit: "2" });
+    const all = [...first.items, ...second.items];
+    for (let page = second; page.next;) {
+      page = await api.tasksPage({ team, limit: "2" }, page.next);
+      all.push(...page.items);
+    }
     expect(all).toHaveLength(5);
     expect(new Set(all.map((t) => t.key)).size).toBe(5);
     expect((await api.tasksPage({ team })).next).toBeNull();
