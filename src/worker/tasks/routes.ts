@@ -13,6 +13,7 @@ import { HttpError, id, parseBody, parseQuery, type C } from "../http";
 import { teamByKey } from "../teams/routes";
 import {
   addCollaborator,
+  badReference,
   collaboratorsOf,
   findVisibleTask,
   hydrate,
@@ -51,6 +52,15 @@ async function canEdit(c: C, task: TaskRow): Promise<boolean> {
   return isCollaborator(c.env.DB, task.id, user.id);
 }
 
+async function checkReferences(
+  c: C,
+  teamId: string,
+  refs: Parameters<typeof badReference>[2],
+): Promise<void> {
+  const problem = await badReference(c.env.DB, teamId, refs);
+  if (problem) throw new HttpError(400, problem);
+}
+
 const mentionNames = (text: string) =>
   // A handle ends on a word character, so "@lucia." at a sentence end is lucia.
   [...text.matchAll(/@([\w.-]*\w)/g)].map((m) => (m[1] ?? "").toLowerCase());
@@ -76,17 +86,20 @@ taskRoutes.post("/tasks", async (c) => {
   const input = await parseBody(c, createTaskBody);
   const team = await teamByKey(c, input.team);
   const parent = input.parent ? await taskByKey(c, input.parent) : null;
-  const taskId = id();
-  await insertTask(c.env.DB, {
+  if (parent && parent.team_id !== team.id)
+    throw new HttpError(400, "parent no es una tarea de este equipo");
+  const task = {
     ...input,
-    id: taskId,
+    id: id(),
     team_id: team.id,
     parent_id: parent?.id ?? null,
     project_id: input.project_id ?? null,
     owner_id: input.owner_id === undefined ? user.id : input.owner_id,
     created_by: user.id,
-  });
-  const row = (await taskById(c.env.DB, taskId)) as TaskRow;
+  };
+  await checkReferences(c, team.id, task);
+  await insertTask(c.env.DB, task);
+  const row = (await taskById(c.env.DB, task.id)) as TaskRow;
   return c.json((await hydrate(c.env.DB, user, [row]))[0], 201);
 });
 
@@ -118,7 +131,9 @@ taskRoutes.patch("/tasks/:key", async (c) => {
       403,
       "solo el responsable, un colaborador o un líder puede editar",
     );
-  await updateTask(c.env.DB, user.id, task, await parseBody(c, patchTaskBody));
+  const patch = await parseBody(c, patchTaskBody);
+  await checkReferences(c, task.team_id, patch);
+  await updateTask(c.env.DB, user.id, task, patch);
   const updated = await taskByKey(c, c.req.param("key"));
   return c.json((await hydrate(c.env.DB, user, [updated]))[0]);
 });

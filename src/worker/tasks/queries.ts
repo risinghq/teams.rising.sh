@@ -353,6 +353,46 @@ export async function mentionedUserIds(
   return results.map((u) => u.id);
 }
 
+// The first reference of a task in team `teamId` that names no person, or a
+// project or label of another team, as a Spanish message; null when all hold.
+// A label with no team belongs to the whole org.
+export async function badReference(
+  db: D1Database,
+  teamId: string,
+  refs: {
+    owner_id?: string | null;
+    project_id?: string | null;
+    labels?: string[];
+  },
+): Promise<string | null> {
+  const owner = refs.owner_id ?? null;
+  const project = refs.project_id ?? null;
+  const labels = refs.labels ?? [];
+  const row = await db
+    .prepare(
+      `SELECT
+         ? IS NULL OR EXISTS (SELECT 1 FROM users WHERE id = ?) AS owner,
+         ? IS NULL OR EXISTS (SELECT 1 FROM projects WHERE id = ? AND team_id = ?) AS project,
+         (SELECT COUNT(*) FROM labels WHERE id IN (SELECT value FROM json_each(?))
+            AND (team_id IS NULL OR team_id = ?)) AS labels`,
+    )
+    .bind(
+      owner,
+      owner,
+      project,
+      project,
+      teamId,
+      JSON.stringify(labels),
+      teamId,
+    )
+    .first<{ owner: number; project: number; labels: number }>();
+  if (!row?.owner) return "owner_id no es una persona de la organización";
+  if (!row.project) return "project_id no es un proyecto de este equipo";
+  if (row.labels !== labels.length)
+    return "labels incluye una etiqueta que no es de este equipo";
+  return null;
+}
+
 export async function insertTask(
   db: D1Database,
   task: {
