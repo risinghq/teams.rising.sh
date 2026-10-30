@@ -27,7 +27,6 @@ export type TaskRow = {
   owner_avatar: string | null;
   status: TaskStatus;
   visibility: "open" | "private";
-  priority: number;
   start_date: string | null;
   due_date: string | null;
   created_by: string;
@@ -180,7 +179,6 @@ export async function hydrate(
       description: r.description,
       status: r.status,
       visibility: r.visibility,
-      priority: r.priority,
       start_date: r.start_date,
       due_date: r.due_date,
       project_id: r.project_id,
@@ -303,7 +301,6 @@ export async function insertTask(
     owner_id: string | null;
     status: TaskStatus;
     visibility: "open" | "private";
-    priority: number;
     start_date: string | null;
     due_date: string | null;
     created_by: string;
@@ -314,9 +311,9 @@ export async function insertTask(
     db
       .prepare(
         `INSERT INTO tasks (id, team_id, number, project_id, parent_id, title, description, owner_id,
-           status, visibility, priority, start_date, due_date, created_by)
+           status, visibility, start_date, due_date, created_by)
          VALUES (?, ?, (SELECT COALESCE(MAX(number), 0) + 1 FROM tasks WHERE team_id = ?),
-           ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+           ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       )
       .bind(
         task.id,
@@ -329,7 +326,6 @@ export async function insertTask(
         task.owner_id,
         task.status,
         task.visibility,
-        task.priority,
         task.start_date,
         task.due_date,
         task.created_by,
@@ -360,7 +356,6 @@ export async function updateTask(
   if (patch.title !== undefined) set("title", patch.title);
   if (patch.description !== undefined) set("description", patch.description);
   if (patch.visibility !== undefined) set("visibility", patch.visibility);
-  if (patch.priority !== undefined) set("priority", patch.priority);
   if (patch.project_id !== undefined) set("project_id", patch.project_id);
   if (patch.status !== undefined && patch.status !== task.status) {
     set("status", patch.status);

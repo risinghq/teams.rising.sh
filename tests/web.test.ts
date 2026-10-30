@@ -1,6 +1,12 @@
 import { describe, expect, test } from "bun:test";
-import type { Task } from "../src/shared/types";
+import type { Task, User } from "../src/shared/types";
 import { addDays, monthGrid, weekGrid } from "../src/web/lib/dates";
+import {
+  insertMention,
+  matchPeople,
+  mentionAt,
+  mentionHandle,
+} from "../src/web/lib/mentions";
 import { searchPalette, type PaletteItem } from "../src/web/lib/palette";
 import {
   dropOnDay,
@@ -19,7 +25,6 @@ const task = (over: Partial<Task>): Task => ({
   description: "",
   status: "todo",
   visibility: "open",
-  priority: 0,
   start_date: null,
   due_date: null,
   project_id: null,
@@ -181,6 +186,47 @@ describe("searchPalette", () => {
   });
   test("an empty query lists the first items", () => {
     expect(searchPalette(items, "", 2)).toHaveLength(2);
+  });
+});
+
+describe("mentions", () => {
+  const person = (name: string, email: string): User => ({
+    id: email,
+    name,
+    email,
+    avatar_url: null,
+    kind: "person",
+  });
+  const people = [
+    person("Mateo Quispe", "mateo@example.test"),
+    person("Lucía Paredes", "lucia@example.test"),
+    person("Pedro Rojas", "pedro.rojas.f24@gmail.com"),
+  ];
+  test("the caret after an @ word opens a query", () => {
+    expect(mentionAt("hola @luc", 9)).toEqual({ start: 5, query: "luc" });
+    expect(mentionAt("@", 1)).toEqual({ start: 0, query: "" });
+  });
+  test("an email or a finished word opens nothing", () => {
+    expect(mentionAt("ana@example", 11)).toBeNull();
+    expect(mentionAt("@luc hola", 9)).toBeNull();
+  });
+  test("matching ignores accents and ranks handles and first names first", () => {
+    expect(matchPeople(people, "luc").map((u) => u.name)).toEqual([
+      "Lucía Paredes",
+    ]);
+    expect(matchPeople(people, "ro").map((u) => u.name)).toEqual([
+      "Pedro Rojas",
+    ]);
+    expect(matchPeople(people, "p").map((u) => u.name)).toEqual([
+      "Pedro Rojas",
+      "Lucía Paredes",
+      "Mateo Quispe",
+    ]);
+  });
+  test("picking replaces the query with the email handle", () => {
+    expect(
+      insertMention("hola @pe y más", 5, 8, mentionHandle(people[2]!)),
+    ).toEqual({ text: "hola @pedro.rojas.f24  y más", caret: 22 });
   });
 });
 

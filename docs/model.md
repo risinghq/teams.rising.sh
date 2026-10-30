@@ -30,10 +30,8 @@ Org (one per deployment)
 ## Tasks
 
 - A task has a per-team `number`. Its key is the team key plus the number, for
-  example `OPS-12`. Git branches, PR titles and WhatsApp messages refer to it by
-  key.
+  example `OPS-12`. Git branches and PR titles refer to it by key.
 - Status: `backlog`, `todo`, `in_progress`, `blocked`, `done`, `canceled`.
-- Priority: 0 none, 1 low, 2 medium, 3 urgent.
 - Tasks are open by default. Everyone in the org can see and comment on an open
   task, and anyone can become a collaborator. This is how people help across
   teams.
@@ -47,11 +45,11 @@ Org (one per deployment)
 ## Updates
 
 `task_updates` is the timeline. `kind` is `comment`, `status`, `owner`, `due`,
-`progress`, `link` or `whatsapp`. A change to status, owner or due date writes
-an update in the same batch as the change. Edits to the title, description,
-priority, visibility, project and labels write none. `meta` holds JSON, for
-example `{"from":"todo","to":"done"}` for a status update. A comment's `meta`
-lists the ids of the users it mentions.
+`progress` or `link`. A change to status, owner or due date writes an update in
+the same batch as the change. Edits to the title, description, visibility,
+project and labels write none. `meta` holds JSON, for example
+`{"from":"todo","to":"done"}` for a status update. A comment's `meta` lists the
+ids of the users it mentions.
 
 The inbox is the updates by other people on tasks the caller owns or
 collaborates on, plus comments that mention the caller. An update is unread when
@@ -66,6 +64,3 @@ it is newer than `users.inbox_read_at`.
   keeps that calendar's id in `events.google_event_id`. Nothing is read back, so
   private Google events never reach the org. A Google failure leaves the Teams
   event saved.
-- WhatsApp: a webhook at `/hooks/whatsapp` turns a message from a known
-  `users.whatsapp_number` into an update on a task. Notifications go out through
-  the Cloud API.

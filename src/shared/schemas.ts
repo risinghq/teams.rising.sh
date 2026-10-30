@@ -1,6 +1,5 @@
 import { z } from "zod";
 import { TASK_STATUSES } from "./types";
-import { normalizeNumber } from "./whatsapp";
 
 // Every message names the field and says what is wrong, in Spanish, because the
 // web client shows it to the user as is.
@@ -55,12 +54,6 @@ const timestamp = (field: string) =>
     error: `${field} debe ser una fecha y hora válida`,
   });
 
-const priority = z
-  .number({ error: "priority debe ser un entero de 0 a 3" })
-  .int("priority debe ser un entero de 0 a 3")
-  .min(0, "priority debe ser un entero de 0 a 3")
-  .max(3, "priority debe ser un entero de 0 a 3");
-
 const visibility = oneOf("visibility", ["open", "private"]);
 const status = oneOf("status", TASK_STATUSES);
 
@@ -74,13 +67,11 @@ export const teamKey = text("key", 6)
 export const createTeam = z.object({
   key: teamKey,
   name: text("name", 100),
-  description: plain("description").default(""),
   leaders: ids("leaders").default([]),
 });
 
 export const patchTeam = z.object({
   name: text("name", 100).optional(),
-  description: plain("description").optional(),
 });
 
 export const setMember = z.object({
@@ -116,7 +107,6 @@ export const createTask = z.object({
   labels: ids("labels").default([]),
   visibility: visibility.default("open"),
   status: status.default("todo"),
-  priority: priority.default(0),
   owner_id: z.string({ error: "owner_id debe ser texto o null" }).nullish(),
   project_id: z.string({ error: "project_id debe ser texto o null" }).nullish(),
   start_date: nullableDate("start_date").default(null),
@@ -127,7 +117,6 @@ export const patchTask = z.object({
   title: text("title", 300).optional(),
   description: plain("description").optional(),
   visibility: visibility.optional(),
-  priority: priority.optional(),
   project_id: z
     .string({ error: "project_id debe ser texto o null" })
     .nullable()
@@ -163,26 +152,6 @@ export const patchEvent = z.object({
   all_day: z
     .boolean({ error: "all_day debe ser verdadero o falso" })
     .optional(),
-});
-
-export const setWhatsappNumber = z.object({
-  number: z
-    .string({ error: "number debe ser texto o null" })
-    .trim()
-    .max(30, "number no puede superar 30 caracteres")
-    .transform((value, ctx) => {
-      const digits = normalizeNumber(value);
-      if (digits === null) {
-        ctx.issues.push({
-          code: "custom",
-          input: value,
-          message: "number debe tener de 8 a 15 dígitos, con código de país",
-        });
-        return z.NEVER;
-      }
-      return digits;
-    })
-    .nullable(),
 });
 
 export const devLogin = z.object({

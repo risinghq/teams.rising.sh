@@ -48,11 +48,7 @@ export function TeamSettings({ team }: { team: string }) {
           </Link>
         }
       />
-      <DetailsSection
-        team={team}
-        name={detail.name}
-        description={detail.description}
-      />
+      <DetailsSection team={team} name={detail.name} />
       <MembersSection team={team} members={detail.members} />
       <LabelsSection teamId={detail.id} />
     </Page>

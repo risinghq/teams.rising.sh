@@ -32,5 +32,9 @@ applies them.
   belongs in a script only if `ALLOWED_EMAILS` in `wrangler.jsonc` already lists
   it. A fictional person uses the reserved `example.test` domain, which no
   Google account has.
-- `tests/once-scripts.test.ts` applies every script twice to a migrated
-  database. A script that fails there fails the check.
+- Start the file with `-- after: <migration file>`, the last migration the
+  target environment had when the script ran. A later migration may drop a
+  column the script writes, and the header keeps the script testable.
+- `tests/once-scripts.test.ts` replays production order: migrations up to each
+  script's `after`, the script twice, then the remaining migrations on its rows.
+  A script that fails there fails the check.

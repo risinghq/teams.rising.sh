@@ -24,7 +24,6 @@ export type Task = {
   description: string;
   status: TaskStatus;
   visibility: "open" | "private";
-  priority: number;
   start_date: string | null;
   due_date: string | null;
   project_id: string | null;
@@ -80,7 +79,6 @@ export type Team = {
   id: string;
   key: string;
   name: string;
-  description: string;
   members: number;
 };
 

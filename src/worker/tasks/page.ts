@@ -7,7 +7,6 @@ import { HttpError } from "../http";
 const KEYS = [
   { expr: "(t.due_date IS NULL)", desc: false },
   { expr: "COALESCE(t.due_date, '')", desc: false },
-  { expr: "t.priority", desc: true },
   { expr: "t.updated_at", desc: true },
   { expr: "t.id", desc: false },
 ];
@@ -19,14 +18,12 @@ export const ORDER_BY = KEYS.map((k) => k.expr + (k.desc ? " DESC" : "")).join(
 type Position = {
   id: string;
   due_date: string | null;
-  priority: number;
   updated_at: string;
 };
 
 const cursorShape = z.tuple([
   z.union([z.literal(0), z.literal(1)]),
   z.string(),
-  z.number(),
   z.string(),
   z.string(),
 ]);
@@ -41,7 +38,6 @@ export function cursorOf(row: Position): string {
   const cursor: Cursor = [
     row.due_date === null ? 1 : 0,
     row.due_date ?? "",
-    row.priority,
     row.updated_at,
     row.id,
   ];

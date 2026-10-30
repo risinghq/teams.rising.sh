@@ -90,9 +90,10 @@ export const api = {
     request<Task>("PATCH", `/api/tasks/${key}`, body),
   comment: (key: string, body: string) =>
     request<{ id: string }>("POST", `/api/tasks/${key}/updates`, { body }),
-  join: (key: string) => request("PUT", `/api/tasks/${key}/collaborators/me`),
-  leave: (key: string) =>
-    request("DELETE", `/api/tasks/${key}/collaborators/me`),
+  addCollaborator: (key: string, userId: string) =>
+    request("PUT", `/api/tasks/${key}/collaborators/${userId}`),
+  removeCollaborator: (key: string, userId: string) =>
+    request("DELETE", `/api/tasks/${key}/collaborators/${userId}`),
   calendar: (from: string, to: string) =>
     request<{ tasks: Task[]; events: CalEvent[] }>(
       "GET",

@@ -6,8 +6,7 @@ UTC. Ids are opaque strings. Errors return `{"error": "message"}` with a 4xx or
 
 A request body that is not a JSON object, or has a field of the wrong type,
 shape or size, gets 400. The message is in Spanish and starts with the field
-name, for example `title es obligatorio` or
-`priority debe ser un entero de 0 a 3`. Only the first problem is reported.
+name, for example `title es obligatorio`. Only the first problem is reported.
 
 Every route except `/api/health` and `/api/auth/*` needs a session cookie. A
 request without one gets 401.
@@ -20,7 +19,6 @@ request without one gets 401.
 | `GET /api/auth/google/callback` | Creates the user and session, sets the `session` cookie (HttpOnly, Secure, SameSite=Lax), redirects to `/`. |
 | `POST /api/auth/logout`         | Deletes the session.                                                                                        |
 | `GET /api/me`                   | The user, their teams with roles, and `is_admin`.                                                           |
-| `PUT /api/me/whatsapp`          | Body `{number}`: set the user's WhatsApp number, or `null` to clear it. 409 when another user has it.       |
 | `POST /api/auth/dev`            | Signs in by email without Google. Exists only when `DEV_LOGIN=1`, for tests and local runs. Otherwise 404.  |
 
 Sign-in is limited to the Google Workspace domain or email list in the
@@ -42,7 +40,7 @@ becomes an admin.
 | `GET /api/tasks/:key`                                  | Task with subtasks, collaborators, labels, links and updates.                                                      |
 | `PATCH /api/tasks/:key`                                | Change fields. Writes the matching updates.                                                                        |
 | `POST /api/tasks/:key/updates`                         | Add a comment. Body: `{"body": "..."}`.                                                                            |
-| `PUT/DELETE /api/tasks/:key/collaborators/:userId`     | Any user can add themselves to an open task. A leader or the owner adds others.                                    |
+| `PUT/DELETE /api/tasks/:key/collaborators/:userId`     | Any user can add themselves to an open task. Anyone who can edit the task adds others.                             |
 | `GET/POST /api/labels`                                 | List and create labels.                                                                                            |
 | `GET /api/inbox`                                       | Updates on tasks the caller owns, collaborates on, or is mentioned in, newest first. Returns `unread` and `items`. |
 | `POST /api/inbox/read`                                 | Marks the inbox read up to now.                                                                                    |
@@ -80,30 +78,15 @@ match every one given.
 | `limit`                   | Page size, 1 to 500. Default 100.                |
 | `cursor`                  | The `X-Next-Cursor` value of the previous page.  |
 
-Tasks are ordered by due date (tasks without one last), then priority
-descending, then last update descending, then id. The response is always a JSON
-array. When more tasks follow, the response has an `X-Next-Cursor` header; send
-its value as `cursor` with the same filters to get the next page. The header is
-absent on the last page. A `limit` outside 1 to 500 or an unreadable `cursor`
-gets 400.
+Tasks are ordered by due date (tasks without one last), then last update
+descending, then id. The response is always a JSON array. When more tasks
+follow, the response has an `X-Next-Cursor` header; send its value as `cursor`
+with the same filters to get the next page. The header is absent on the last
+page. A `limit` outside 1 to 500 or an unreadable `cursor` gets 400.
 
 ## Hooks
 
-`POST /hooks/github` and `POST /hooks/whatsapp` are not under `/api` and use
-their own signature checks.
-
-### WhatsApp
-
-`GET /hooks/whatsapp` answers Meta's subscription handshake when
-`hub.verify_token` equals `WHATSAPP_VERIFY_TOKEN`. `POST /hooks/whatsapp`
-verifies `X-Hub-Signature-256` against `WHATSAPP_APP_SECRET`. Both return 503
-when their setting is unset, and 401 or 403 on a bad signature or token.
-
-A text message from a number set through `PUT /api/me/whatsapp` that names a
-task key becomes a `whatsapp` update by that user on the first named task they
-may see. A message from an unknown number, without a key, or about a task the
-sender cannot see is dropped. Meta redelivers, so a message id is recorded once.
-Outbound notifications are not built yet.
+`POST /hooks/github` is not under `/api` and uses its own signature check.
 
 ### GitHub
 

@@ -12,7 +12,6 @@ import { taskRoutes } from "./tasks/routes";
 import { countTeams } from "./teams/queries";
 import { teamRoutes } from "./teams/routes";
 import { userRoutes } from "./users/routes";
-import { whatsappRoutes } from "./whatsapp/routes";
 
 export type { Env };
 
@@ -31,7 +30,6 @@ app.get("/api/health", async (c) =>
 
 app.route("/api/auth", authRoutes);
 app.route("/hooks", githubRoutes);
-app.route("/hooks", whatsappRoutes);
 
 const api = new Hono<Env>();
 api.use("*", requireUser);

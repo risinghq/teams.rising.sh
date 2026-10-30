@@ -67,12 +67,7 @@ teamRoutes.patch("/teams/:key", async (c) => {
   const team = await teamByKey(c, c.req.param("key"));
   await requireLeader(c.env.DB, c.get("user"), team.id);
   const input = await parseBody(c, patchTeamBody);
-  await updateTeam(
-    c.env.DB,
-    team.id,
-    input.name ?? team.name,
-    input.description ?? team.description,
-  );
+  await updateTeam(c.env.DB, team.id, input.name ?? team.name);
   const updated = (await findTeamWithCount(c.env.DB, team.key)) as Team;
   return c.json(updated);
 });

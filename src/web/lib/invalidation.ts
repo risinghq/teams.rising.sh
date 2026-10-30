@@ -41,8 +41,9 @@ export const invalidations = {
     ...(a.parentId ? [detailOfTaskId(a.parentId)] : []),
   ],
   comment: (a: { key: string }) => byKey(k.tasks.detail(a.key)),
-  joinTask: (a: { key: string }) => byKey(k.tasks.detail(a.key), k.tasks.lists),
-  leaveTask: (a: { key: string }) =>
+  addCollaborator: (a: { key: string }) =>
+    byKey(k.tasks.detail(a.key), k.tasks.lists),
+  removeCollaborator: (a: { key: string }) =>
     byKey(k.tasks.detail(a.key), k.tasks.lists),
   createProject: (a: { team: string }) => byKey(k.projects.ofTeam(a.team)),
   patchProject: (a: { team: string }) =>

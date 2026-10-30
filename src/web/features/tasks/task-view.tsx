@@ -1,17 +1,26 @@
 import { Link } from "@tanstack/react-router";
-import { ExternalLink, Lock, Maximize2, X } from "lucide-react";
+import {
+  CalendarDays,
+  ExternalLink,
+  Folder,
+  Lock,
+  Maximize2,
+  Tag,
+  Users,
+  X,
+} from "lucide-react";
+import type { ReactNode } from "react";
 import type { TaskDetail } from "@shared/types";
 import { today } from "@/lib/dates";
 import {
   LINK_STATE_LABEL,
-  PRIORITY_LABEL,
   STATUS_LABEL,
   STATUSES,
   type TaskStatus,
 } from "@/lib/domain";
 import { useProjects } from "@/features/projects/hooks";
 import { PersonAvatar } from "@/features/teams/person-avatar";
-import { useMe, useTeams, useUsers } from "@/features/teams/hooks";
+import { useTeams, useUsers } from "@/features/teams/hooks";
 import { Button, buttonVariants } from "@/ui/button";
 import { EmptyState } from "@/ui/empty-state";
 import { IconButton } from "@/ui/icon-button";
@@ -21,15 +30,10 @@ import { Select } from "@/ui/select";
 import { SkeletonRows } from "@/ui/skeleton";
 import { StatusDot } from "@/ui/status-dot";
 import { DueChip } from "./due-chip";
-import {
-  useJoinTask,
-  useLeaveTask,
-  usePatchTask,
-  useTask,
-  useTeamLabels,
-} from "./hooks";
+import { usePatchTask, useTask, useTeamLabels } from "./hooks";
 import { LinkedText } from "./linked-text";
 import { TaskActivity } from "./task-activity";
+import { TaskCollaborators } from "./task-collaborators";
 
 // A task's fields, subtasks, links and activity. `onClose` marks the side
 // panel, which adds a link to the task's own page; without it the view is that
@@ -60,19 +64,44 @@ export function TaskView({
   return <Detail task={q.data} onClose={onClose} />;
 }
 
+// One row of the field list. Every row has a glyph slot of the same width, so
+// the controls line up whatever the glyph.
+function Field({
+  label,
+  glyph,
+  children,
+}: {
+  label: string;
+  glyph: ReactNode;
+  children: ReactNode;
+}) {
+  return (
+    <>
+      <dt className="flex h-8 items-center text-muted-foreground">{label}</dt>
+      <dd className="flex min-w-0 items-start gap-2">
+        <span
+          aria-hidden
+          className="flex h-8 w-5 shrink-0 items-center justify-center text-muted-foreground"
+        >
+          {glyph}
+        </span>
+        <div className="flex min-h-8 min-w-0 flex-1 flex-wrap items-center gap-2">
+          {children}
+        </div>
+      </dd>
+    </>
+  );
+}
+
 function Detail({ task, onClose }: { task: TaskDetail; onClose?: () => void }) {
   const Title = onClose ? "h2" : "h1";
-  const me = useMe();
   const users = useUsers();
   const projects = useProjects(task.team);
   const teamId = useTeams().data?.find((t) => t.key === task.team)?.id;
   const labels = useTeamLabels(teamId);
   const patch = usePatchTask();
-  const join = useJoinTask();
-  const leave = useLeaveTask();
   const set = (p: Record<string, unknown>) =>
     patch.mutate({ key: task.key, parentId: task.parent_id, patch: p });
-  const joined = task.collaborators.some((c) => c.id === me.data?.id);
 
   return (
     <article className="flex flex-col">
@@ -108,10 +137,8 @@ function Detail({ task, onClose }: { task: TaskDetail; onClose?: () => void }) {
         )}
       </header>
 
-      <dl className="grid grid-cols-[6rem_1fr] items-center gap-x-3 gap-y-3 border-y px-6 py-4 text-xs">
-        <dt className="text-muted-foreground">Estado</dt>
-        <dd className="flex items-center gap-2">
-          <StatusDot status={task.status} />
+      <dl className="grid grid-cols-[6rem_1fr] gap-x-3 gap-y-2 border-y px-6 py-4 text-xs">
+        <Field label="Estado" glyph={<StatusDot status={task.status} />}>
           <Select
             aria-label="Estado"
             size="sm"
@@ -125,10 +152,8 @@ function Detail({ task, onClose }: { task: TaskDetail; onClose?: () => void }) {
               </option>
             ))}
           </Select>
-        </dd>
-        <dt className="text-muted-foreground">Responsable</dt>
-        <dd className="flex items-center gap-2">
-          <PersonAvatar person={task.owner} />
+        </Field>
+        <Field label="Responsable" glyph={<PersonAvatar person={task.owner} />}>
           <Select
             aria-label="Responsable"
             size="sm"
@@ -143,9 +168,11 @@ function Detail({ task, onClose }: { task: TaskDetail; onClose?: () => void }) {
               </option>
             ))}
           </Select>
-        </dd>
-        <dt className="text-muted-foreground">Entrega</dt>
-        <dd className="flex items-center gap-2">
+        </Field>
+        <Field label="Colaboran" glyph={<Users size={14} />}>
+          <TaskCollaborators task={task} />
+        </Field>
+        <Field label="Entrega" glyph={<CalendarDays size={14} />}>
           <Input
             type="date"
             size="sm"
@@ -155,25 +182,8 @@ function Detail({ task, onClose }: { task: TaskDetail; onClose?: () => void }) {
             onChange={(e) => set({ due_date: e.target.value || null })}
           />
           <DueChip task={task} today={today()} />
-        </dd>
-        <dt className="text-muted-foreground">Prioridad</dt>
-        <dd>
-          <Select
-            aria-label="Prioridad"
-            size="sm"
-            className="w-auto"
-            value={task.priority}
-            onChange={(e) => set({ priority: Number(e.target.value) })}
-          >
-            {PRIORITY_LABEL.map((p, i) => (
-              <option key={p} value={i}>
-                {p}
-              </option>
-            ))}
-          </Select>
-        </dd>
-        <dt className="text-muted-foreground">Proyecto</dt>
-        <dd>
+        </Field>
+        <Field label="Proyecto" glyph={<Folder size={14} />}>
           <Select
             aria-label="Proyecto"
             size="sm"
@@ -190,9 +200,8 @@ function Detail({ task, onClose }: { task: TaskDetail; onClose?: () => void }) {
                 </option>
               ))}
           </Select>
-        </dd>
-        <dt className="text-muted-foreground">Etiquetas</dt>
-        <dd className="flex flex-wrap gap-1">
+        </Field>
+        <Field label="Etiquetas" glyph={<Tag size={14} />}>
           {labels?.map((l) => {
             const on = task.labels.some((x) => x.id === l.id);
             return (
@@ -232,26 +241,7 @@ function Detail({ task, onClose }: { task: TaskDetail; onClose?: () => void }) {
               </Button>
             );
           })}
-        </dd>
-        <dt className="text-muted-foreground">Ayudan</dt>
-        <dd className="flex flex-wrap items-center gap-2">
-          {task.collaborators.map((c) => (
-            <span key={c.id} className="flex items-center gap-1">
-              <PersonAvatar person={c} /> {c.name}
-            </span>
-          ))}
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() =>
-              joined
-                ? leave.mutate({ key: task.key })
-                : join.mutate({ key: task.key })
-            }
-          >
-            {joined ? "Salir" : "Ayudar"}
-          </Button>
-        </dd>
+        </Field>
       </dl>
 
       {task.description && (

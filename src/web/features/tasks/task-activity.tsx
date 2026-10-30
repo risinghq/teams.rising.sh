@@ -4,8 +4,8 @@ import { relativeTime } from "@/lib/dates";
 import { STATUS_LABEL, type TaskStatus } from "@/lib/domain";
 import { PersonAvatar } from "@/features/teams/person-avatar";
 import { Button } from "@/ui/button";
-import { Textarea } from "@/ui/textarea";
 import { useComment } from "./hooks";
+import { MentionTextarea } from "./mention-textarea";
 
 function describe(u: Update): string {
   const m = u.meta as { from?: unknown; to?: unknown };
@@ -35,7 +35,7 @@ export function TaskActivity({
   };
   return (
     <section className="px-6 py-4">
-      <h3 className="mb-2 text-xs font-medium">Actividad</h3>
+      <h3 className="mb-4 text-xs font-semibold">Actividad</h3>
       <ul className="space-y-3">
         {updates.map((u) => (
           <li key={u.id} className="flex gap-2">
@@ -79,14 +79,12 @@ export function TaskActivity({
           submit();
         }}
       >
-        <Textarea
+        <MentionTextarea
           aria-label="Comentar"
           value={text}
-          onChange={(e) => setText(e.target.value)}
-          onKeyDown={(e) => {
-            if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) submit();
-          }}
-          placeholder="Escribe una actualización. Usa @nombre para avisar a alguien."
+          onChange={setText}
+          onSubmit={submit}
+          placeholder="Escribe una actualización. Escribe @ para avisar a alguien."
           rows={3}
         />
         <Button type="submit" className="self-end" disabled={comment.isPending}>

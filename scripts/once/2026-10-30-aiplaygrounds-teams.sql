@@ -1,3 +1,4 @@
+-- after: 0004_script_runs.sql
 -- AI PlayGrounds as described in its October 2026 deck: four verticals and
 -- three initiatives. People join through invites, so no memberships here.
 INSERT OR IGNORE INTO teams (id, key, name, description) VALUES
