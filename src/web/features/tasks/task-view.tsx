@@ -18,6 +18,7 @@ import {
   STATUSES,
   type TaskStatus,
 } from "@/lib/domain";
+import { useReadTaskOnOpen } from "@/features/inbox/hooks";
 import { useProjects } from "@/features/projects/hooks";
 import { PersonAvatar } from "@/features/teams/person-avatar";
 import { useTeams, useUsers } from "@/features/teams/hooks";
@@ -102,6 +103,7 @@ function Detail({ task, onClose }: { task: TaskDetail; onClose?: () => void }) {
   const patch = usePatchTask();
   const set = (p: Record<string, unknown>) =>
     patch.mutate({ key: task.key, parentId: task.parent_id, patch: p });
+  useReadTaskOnOpen(task.key);
 
   return (
     <article className="flex flex-col">

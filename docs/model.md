@@ -45,15 +45,18 @@ Org (one per deployment)
 ## Updates
 
 `task_updates` is the timeline. `kind` is `comment`, `status`, `owner`, `due`,
-`progress` or `link`. A change to status, owner or due date writes an update in
-the same batch as the change. Edits to the title, description, visibility,
-project and labels write none. `meta` holds JSON, for example
-`{"from":"todo","to":"done"}` for a status update. A comment's `meta` lists the
-ids of the users it mentions.
+`progress`, `link` or `collaborator`. A change to status, owner or due date, and
+adding or removing a collaborator, writes an update in the same batch as the
+change. Edits to the title, description, visibility, project and labels write
+none. `meta` holds JSON, for example `{"from":"todo","to":"done"}` for a status
+update or `{"added":"<user id>"}` for a collaborator. A comment's `meta` lists
+the ids of the users it mentions.
 
 The inbox is the updates by other people on tasks the caller owns or
-collaborates on, plus comments that mention the caller. An update is unread when
-it is newer than `users.inbox_read_at`.
+collaborates on, comments that mention the caller, and the owner or collaborator
+change that took the caller off a task. An update is unread when it is newer
+than both `users.inbox_read_at` (the last "read all") and the caller's
+`inbox_reads.read_at` for that task (the last time they opened it).
 
 ## Integrations
 

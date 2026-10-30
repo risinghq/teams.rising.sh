@@ -427,19 +427,36 @@ export async function insertComment(
   return updateId;
 }
 
-// False when the user does not exist.
+const collaboratorUpdate = (
+  db: D1Database,
+  taskId: string,
+  actorId: string,
+  meta: { added: string } | { removed: string },
+) =>
+  db
+    .prepare(
+      "INSERT INTO task_updates (id, task_id, author_id, kind, meta) VALUES (?, ?, ?, 'collaborator', ?)",
+    )
+    .bind(id(), taskId, actorId, JSON.stringify(meta));
+
+// Adds the user and records who added them. False when the user does not
+// exist.
 export async function addCollaborator(
   db: D1Database,
   taskId: string,
   userId: string,
+  actorId: string,
 ): Promise<boolean> {
+  if (await isCollaborator(db, taskId, userId)) return true;
   try {
-    await db
-      .prepare(
-        "INSERT OR IGNORE INTO task_collaborators (task_id, user_id) VALUES (?, ?)",
-      )
-      .bind(taskId, userId)
-      .run();
+    await db.batch([
+      db
+        .prepare(
+          "INSERT INTO task_collaborators (task_id, user_id) VALUES (?, ?)",
+        )
+        .bind(taskId, userId),
+      collaboratorUpdate(db, taskId, actorId, { added: userId }),
+    ]);
     return true;
   } catch {
     return false;
@@ -450,9 +467,15 @@ export async function removeCollaborator(
   db: D1Database,
   taskId: string,
   userId: string,
+  actorId: string,
 ): Promise<void> {
-  await db
-    .prepare("DELETE FROM task_collaborators WHERE task_id = ? AND user_id = ?")
-    .bind(taskId, userId)
-    .run();
+  if (!(await isCollaborator(db, taskId, userId))) return;
+  await db.batch([
+    db
+      .prepare(
+        "DELETE FROM task_collaborators WHERE task_id = ? AND user_id = ?",
+      )
+      .bind(taskId, userId),
+    collaboratorUpdate(db, taskId, actorId, { removed: userId }),
+  ]);
 }

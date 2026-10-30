@@ -204,6 +204,62 @@ test("a mention puts the comment in the inbox until it is read", async () => {
   expect(own).toEqual([]);
 });
 
+test("opening one task reads its inbox items and leaves the others", async () => {
+  const admin = await login(`admin-${run}@x.test`);
+  const bea = await login(`bea-${run}@x.test`, "Bea");
+  const team = key(13);
+  await call(admin, "POST", "/api/teams", { key: team, name: "Reads" });
+  const keys: string[] = [];
+  for (const title of ["one", "two"]) {
+    const task = await call(admin, "POST", "/api/tasks", { team, title });
+    keys.push(task.body.key);
+    await call(admin, "POST", `/api/tasks/${task.body.key}/updates`, {
+      body: `mira @bea-${run}`,
+    });
+  }
+  const before = await call(bea, "GET", "/api/inbox");
+  expect(before.body.unread).toBe(2);
+  expect(before.body.items[0].mentioned).toBe(true);
+  expect((await call(bea, "POST", `/api/inbox/read/${keys[0]}`)).status).toBe(
+    200,
+  );
+  const after = await call(bea, "GET", "/api/inbox");
+  expect(after.body.unread).toBe(1);
+  const unread = after.body.items
+    .filter((i: { unread: boolean }) => i.unread)
+    .map((i: { task_key: string }) => i.task_key);
+  expect(unread).toEqual([keys[1]]);
+});
+
+test("the inbox tells a person they were added, and an owner they were replaced", async () => {
+  const admin = await login(`admin-${run}@x.test`);
+  const cai = await login(`cai-${run}@x.test`, "Cai");
+  const dov = await login(`dov-${run}@x.test`, "Dov");
+  const team = key(14);
+  await call(admin, "POST", "/api/teams", { key: team, name: "Notice" });
+  const task = await call(admin, "POST", "/api/tasks", {
+    team,
+    title: "handover",
+    owner_id: dov.id,
+  });
+  const path = `/api/tasks/${task.body.key}`;
+  await call(admin, "PUT", `${path}/collaborators/${cai.id}`);
+  await call(admin, "PATCH", path, { owner_id: cai.id });
+
+  const kinds = async (who: Session) =>
+    (await call(who, "GET", "/api/inbox")).body.items
+      .filter((i: { task_key: string }) => i.task_key === task.body.key)
+      .map((i: { kind: string; meta: unknown }) => [i.kind, i.meta]);
+  expect(await kinds(cai)).toEqual([
+    ["owner", { from: dov.id, to: cai.id }],
+    ["collaborator", { added: cai.id }],
+  ]);
+  expect(await kinds(dov)).toContainEqual([
+    "owner",
+    { from: dov.id, to: cai.id },
+  ]);
+});
+
 test("the calendar merges dated tasks and events", async () => {
   const admin = await login(`admin-${run}@x.test`);
   const team = key(7);
