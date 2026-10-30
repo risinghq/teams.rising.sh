@@ -14,6 +14,15 @@ export function linkify(text: string): Segment[] {
   return segments;
 }
 
+// A URL whose path names an image file, which a comment shows inline.
+export function isImageUrl(url: string): boolean {
+  try {
+    return /\.(png|jpe?g|gif|webp|avif)$/i.test(new URL(url).pathname);
+  } catch {
+    return false;
+  }
+}
+
 // The first line of a description without its links, as a one-line summary.
 export const summaryOf = (description: string) =>
   description

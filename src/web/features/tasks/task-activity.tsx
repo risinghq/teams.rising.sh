@@ -6,6 +6,7 @@ import { PersonAvatar } from "@/features/teams/person-avatar";
 import { useMe, useNameOf } from "@/features/teams/hooks";
 import { Button } from "@/ui/button";
 import { useComment } from "./hooks";
+import { ImagePreviews, LinkedText } from "./linked-text";
 import { MentionTextarea } from "./mention-textarea";
 
 export function TaskActivity({
@@ -50,15 +51,16 @@ export function TaskActivity({
                   {relativeTime(u.created_at)}
                 </span>
               </p>
-              <p
-                className={
-                  u.kind === "comment"
-                    ? "whitespace-pre-wrap text-sm"
-                    : "text-muted-foreground"
-                }
-              >
-                {describeUpdate(u, nameOf, me)}
-              </p>
+              {u.kind === "comment" ? (
+                <p className="whitespace-pre-wrap break-words text-sm">
+                  <LinkedText text={u.body} />
+                  <ImagePreviews text={u.body} />
+                </p>
+              ) : (
+                <p className="text-muted-foreground">
+                  {describeUpdate(u, nameOf, me)}
+                </p>
+              )}
             </div>
           </li>
         ))}

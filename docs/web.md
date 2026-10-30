@@ -41,7 +41,7 @@ that is unknown or equal to the default.
 | Param     | Routes          | Meaning                                   |
 | --------- | --------------- | ----------------------------------------- |
 | `status`  | `/`, `/t/$team` | One status                                |
-| `due`     | `/`, `/t/$team` | `overdue` or `week`, both over open tasks |
+| `due`     | `/`             | `overdue` or `week`, both over open tasks |
 | `label`   | `/`, `/t/$team` | One label id                              |
 | `q`       | `/`, `/t/$team` | Text in the title or key                  |
 | `view`    | `/`, `/t/$team` | `board`; the list is the default          |
@@ -50,6 +50,14 @@ that is unknown or equal to the default.
 | `project` | `/t/$team`      | A project id                              |
 | `mode`    | `/calendar`     | `week`; the month is the default          |
 | `date`    | `/calendar`     | A day other than today                    |
+
+The filter bar holds only what the page does not already offer: search, owner
+(team page), status, label (when the team has labels) and the view. A list is
+grouped by due date, Mi trabajo's shortcut cards set and clear `due` and
+`status=blocked`, and a project card sets `project`.
+
+A comment or description shows its URLs as links and an image URL as a thumbnail
+under the text.
 
 A task row is a link to `/t/$team/$number`. A plain click opens the side panel
 on wide screens; a modified click, or a narrow screen, goes to the page.

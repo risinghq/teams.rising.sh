@@ -1,14 +1,5 @@
 import { Link } from "@tanstack/react-router";
-import {
-  CalendarDays,
-  ExternalLink,
-  Folder,
-  Lock,
-  Maximize2,
-  Tag,
-  Users,
-  X,
-} from "lucide-react";
+import { ExternalLink, Lock, Maximize2, X } from "lucide-react";
 import type { ReactNode } from "react";
 import type { TaskDetail } from "@shared/types";
 import { today } from "@/lib/dates";
@@ -27,12 +18,12 @@ import { EmptyState } from "@/ui/empty-state";
 import { IconButton } from "@/ui/icon-button";
 import { Input } from "@/ui/input";
 import { ProgressBar } from "@/ui/progress-bar";
-import { Select } from "@/ui/select";
 import { SkeletonRows } from "@/ui/skeleton";
 import { StatusDot } from "@/ui/status-dot";
 import { DueChip } from "./due-chip";
+import { FieldMenu } from "./field-menu";
 import { usePatchTask, useTask, useTeamLabels } from "./hooks";
-import { LinkedText } from "./linked-text";
+import { ImagePreviews, LinkedText } from "./linked-text";
 import { TaskActivity } from "./task-activity";
 import { TaskCollaborators } from "./task-collaborators";
 
@@ -65,30 +56,12 @@ export function TaskView({
   return <Detail task={q.data} onClose={onClose} />;
 }
 
-// One row of the field list. Every row has a glyph slot of the same width, so
-// the controls line up whatever the glyph.
-function Field({
-  label,
-  glyph,
-  children,
-}: {
-  label: string;
-  glyph: ReactNode;
-  children: ReactNode;
-}) {
+function Field({ label, children }: { label: string; children: ReactNode }) {
   return (
     <>
       <dt className="flex h-8 items-center text-muted-foreground">{label}</dt>
-      <dd className="flex min-w-0 items-start gap-2">
-        <span
-          aria-hidden
-          className="flex h-8 w-5 shrink-0 items-center justify-center text-muted-foreground"
-        >
-          {glyph}
-        </span>
-        <div className="flex min-h-8 min-w-0 flex-1 flex-wrap items-center gap-2">
-          {children}
-        </div>
+      <dd className="flex min-h-8 min-w-0 flex-wrap items-center gap-2">
+        {children}
       </dd>
     </>
   );
@@ -140,70 +113,68 @@ function Detail({ task, onClose }: { task: TaskDetail; onClose?: () => void }) {
       </header>
 
       <dl className="grid grid-cols-[6rem_1fr] gap-x-3 gap-y-2 border-y px-6 py-4 text-xs">
-        <Field label="Estado" glyph={<StatusDot status={task.status} />}>
-          <Select
-            aria-label="Estado"
-            size="sm"
-            className="w-auto"
+        <Field label="Estado">
+          <FieldMenu
+            label="Estado"
             value={task.status}
-            onChange={(e) => set({ status: e.target.value as TaskStatus })}
-          >
-            {STATUSES.map((s) => (
-              <option key={s} value={s}>
-                {STATUS_LABEL[s]}
-              </option>
-            ))}
-          </Select>
+            onChange={(v) => set({ status: v as TaskStatus })}
+            options={STATUSES.map((s) => ({
+              value: s,
+              label: STATUS_LABEL[s],
+              lead: <StatusDot status={s} />,
+            }))}
+          />
         </Field>
-        <Field label="Responsable" glyph={<PersonAvatar person={task.owner} />}>
-          <Select
-            aria-label="Responsable"
-            size="sm"
-            className="w-auto"
+        <Field label="Responsable">
+          <FieldMenu
+            label="Responsable"
             value={task.owner?.id ?? ""}
-            onChange={(e) => set({ owner_id: e.target.value || null })}
-          >
-            <option value="">Sin asignar</option>
-            {users.data?.map((u) => (
-              <option key={u.id} value={u.id}>
-                {u.name}
-              </option>
-            ))}
-          </Select>
+            onChange={(v) => set({ owner_id: v || null })}
+            options={[
+              {
+                value: "",
+                label: "Sin asignar",
+                lead: <PersonAvatar person={null} size={18} />,
+              },
+              ...(users.data ?? []).map((u) => ({
+                value: u.id,
+                label: u.name,
+                lead: <PersonAvatar person={u} size={18} />,
+              })),
+            ]}
+          />
         </Field>
-        <Field label="Colaboran" glyph={<Users size={14} />}>
+        <Field label="Colaboran">
           <TaskCollaborators task={task} />
         </Field>
-        <Field label="Entrega" glyph={<CalendarDays size={14} />}>
+        <Field label="Entrega">
           <Input
             type="date"
             size="sm"
-            className="w-auto"
+            appearance="bare"
+            className="-ml-2 w-auto px-2 hover:bg-accent"
             aria-label="Fecha de entrega"
             value={task.due_date ?? ""}
             onChange={(e) => set({ due_date: e.target.value || null })}
           />
           <DueChip task={task} today={today()} />
         </Field>
-        <Field label="Proyecto" glyph={<Folder size={14} />}>
-          <Select
-            aria-label="Proyecto"
-            size="sm"
-            className="w-auto"
+        <Field label="Proyecto">
+          <FieldMenu
+            label="Proyecto"
             value={task.project_id ?? ""}
-            onChange={(e) => set({ project_id: e.target.value || null })}
-          >
-            <option value="">Sin proyecto</option>
-            {projects.data
-              ?.filter((p) => p.status === "active" || p.id === task.project_id)
-              .map((p) => (
-                <option key={p.id} value={p.id}>
-                  {p.name}
-                </option>
-              ))}
-          </Select>
+            onChange={(v) => set({ project_id: v || null })}
+            options={[
+              { value: "", label: "Sin proyecto" },
+              ...(projects.data ?? [])
+                .filter(
+                  (p) => p.status === "active" || p.id === task.project_id,
+                )
+                .map((p) => ({ value: p.id, label: p.name })),
+            ]}
+          />
         </Field>
-        <Field label="Etiquetas" glyph={<Tag size={14} />}>
+        <Field label="Etiquetas">
           {labels?.map((l) => {
             const on = task.labels.some((x) => x.id === l.id);
             return (
@@ -249,6 +220,7 @@ function Detail({ task, onClose }: { task: TaskDetail; onClose?: () => void }) {
       {task.description && (
         <p className="whitespace-pre-wrap border-b px-6 py-4 text-sm">
           <LinkedText text={task.description} />
+          <ImagePreviews text={task.description} />
         </p>
       )}
 

@@ -24,15 +24,7 @@ export function ProjectList({
   ];
   if (ordered.length === 0 && !canCreate) return null;
   return (
-    <section aria-labelledby="projects" className="pb-8">
-      <div className="mb-3 flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
-        <h2 id="projects" className="text-xl font-semibold">
-          Proyectos y áreas
-        </h2>
-        <p className="text-xs text-muted-foreground">
-          Los proyectos terminan en una fecha. Las áreas siguen abiertas.
-        </p>
-      </div>
+    <section aria-label="Proyectos" className="pb-8">
       {/* A swipeable row on phones so the tasks stay in view; a grid above. */}
       <div className="-mx-4 grid snap-x scroll-px-4 auto-cols-[78%] grid-flow-col gap-3 overflow-x-auto px-4 pb-1 sm:mx-0 sm:auto-cols-auto sm:grid-flow-row sm:grid-cols-[repeat(auto-fill,minmax(220px,1fr))] sm:overflow-visible sm:px-0 sm:pb-0 [&>*]:snap-start">
         {ordered.map((p) => (

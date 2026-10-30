@@ -14,7 +14,7 @@ import {
   taskQuery,
   type TaskFilters,
 } from "../src/web/lib/tasks";
-import { linkify } from "../src/web/lib/text";
+import { isImageUrl, linkify } from "../src/web/lib/text";
 import { describeUpdate, groupInbox } from "../src/web/lib/updates";
 
 const task = (over: Partial<Task>): Task => ({
@@ -141,6 +141,13 @@ describe("linkify", () => {
       { text: ". Repo " },
       { text: "https://github.com/r", url: "https://github.com/r" },
     ]);
+  });
+  test("an image URL is one whose path ends in an image extension", () => {
+    expect(isImageUrl("https://i.imgur.com/a.GIF?w=2")).toBe(true);
+    expect(isImageUrl("https://x.com/photo.jpeg")).toBe(true);
+    expect(isImageUrl("https://x.com/a.png/page")).toBe(false);
+    expect(isImageUrl("https://docs.google.com/x?f=a.png")).toBe(false);
+    expect(isImageUrl("not a url.png")).toBe(false);
   });
   test("text without URLs is one segment", () => {
     expect(linkify("no links here")).toEqual([{ text: "no links here" }]);

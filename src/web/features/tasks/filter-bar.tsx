@@ -1,6 +1,6 @@
 import { Link } from "@tanstack/react-router";
 import { Columns3, LayoutList } from "lucide-react";
-import type { Label, Person, Project } from "@shared/types";
+import type { Label, Person } from "@shared/types";
 import { parseStatus, STATUS_LABEL, STATUSES } from "@/lib/domain";
 import { Select } from "@/ui/select";
 import { SegmentedControl } from "@/ui/segmented-control";
@@ -9,18 +9,15 @@ import type { TeamSearch } from "./search";
 
 type Patch = (patch: Partial<TeamSearch>) => void;
 
-const DUE_OPTIONS = [
-  { value: "overdue", label: "Atrasadas" },
-  { value: "week", label: "Esta semana" },
-] as const;
-
+// Only filters the page does not already offer: the list is grouped by due
+// date, the shortcut cards pick overdue and this week, and the project cards
+// pick a project.
 export function TaskFilters({
   search,
   onChange,
   onChangeText,
   labels,
   owners,
-  projects,
 }: {
   search: TeamSearch;
   onChange: Patch;
@@ -28,7 +25,6 @@ export function TaskFilters({
   onChangeText: Patch;
   labels: Label[] | undefined;
   owners?: Person[];
-  projects?: Project[];
 }) {
   return (
     <>
@@ -69,50 +65,18 @@ export function TaskFilters({
           </option>
         ))}
       </Select>
-      <Select
-        aria-label="Filtro de entrega"
-        size="sm"
-        className="w-auto"
-        value={search.due ?? ""}
-        onChange={(e) =>
-          onChange({
-            due: DUE_OPTIONS.find((o) => o.value === e.target.value)?.value,
-          })
-        }
-      >
-        <option value="">Entrega</option>
-        {DUE_OPTIONS.map((o) => (
-          <option key={o.value} value={o.value}>
-            {o.label}
-          </option>
-        ))}
-      </Select>
-      <Select
-        aria-label="Filtro de etiqueta"
-        size="sm"
-        className="w-auto"
-        value={search.label ?? ""}
-        onChange={(e) => onChange({ label: e.target.value })}
-      >
-        <option value="">Etiqueta</option>
-        {labels?.map((l) => (
-          <option key={l.id} value={l.id}>
-            {l.name}
-          </option>
-        ))}
-      </Select>
-      {projects && (
+      {(labels?.length || search.label) && (
         <Select
-          aria-label="Filtro de proyecto"
+          aria-label="Filtro de etiqueta"
           size="sm"
           className="w-auto"
-          value={search.project ?? ""}
-          onChange={(e) => onChange({ project: e.target.value })}
+          value={search.label ?? ""}
+          onChange={(e) => onChange({ label: e.target.value })}
         >
-          <option value="">Proyecto</option>
-          {projects.map((p) => (
-            <option key={p.id} value={p.id}>
-              {p.name}
+          <option value="">Etiqueta</option>
+          {labels?.map((l) => (
+            <option key={l.id} value={l.id}>
+              {l.name}
             </option>
           ))}
         </Select>
