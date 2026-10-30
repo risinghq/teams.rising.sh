@@ -44,7 +44,7 @@ export function MyWork() {
             {first ? `, ${first}` : ""}
           </h1>
           <QuickCreate />
-          <Shortcuts today={day} />
+          <Shortcuts today={day} search={search} />
         </header>
         <section aria-labelledby="my-work">
           <div className="flex flex-col gap-4 pb-2">

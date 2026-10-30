@@ -7,11 +7,12 @@ import { useInbox } from "@/features/inbox/hooks";
 import { useOverview } from "@/features/overview/hooks";
 import { useMe } from "@/features/teams/hooks";
 import { usePeekTasks } from "./hooks";
+import type { MyWorkSearch } from "./search";
 
 const WEEK_PEEK = 100;
 
 const CARD =
-  "flex flex-col items-start gap-1 rounded-xl p-4 transition-colors focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-ring";
+  "flex flex-col items-start gap-1 rounded-xl p-4 transition-colors focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-ring aria-[current=true]:ring-2 aria-[current=true]:ring-foreground/25";
 
 function Body({
   Icon,
@@ -33,7 +34,30 @@ function Body({
   );
 }
 
-export function Shortcuts({ today }: { today: string }) {
+type Shortcut = Pick<MyWorkSearch, "due" | "status">;
+
+// A card is the filter for its count: the first click applies it, a second
+// click on the same card clears it.
+export function Shortcuts({
+  today,
+  search,
+}: {
+  today: string;
+  search: MyWorkSearch;
+}) {
+  const toggle = (pick: Shortcut) => {
+    const on = search.due === pick.due && search.status === pick.status;
+    return {
+      to: "/" as const,
+      search: (prev: MyWorkSearch) => ({
+        ...prev,
+        due: undefined,
+        status: undefined,
+        ...(on ? {} : pick),
+      }),
+      "aria-current": on ? ("true" as const) : undefined,
+    };
+  };
   const me = useMe().data;
   const overview = useOverview().data;
   const unread = useInbox().data?.unread;
@@ -60,8 +84,7 @@ export function Shortcuts({ today }: { today: string }) {
   return (
     <nav aria-label="Atajos" className="grid grid-cols-2 gap-3 lg:grid-cols-4">
       <Link
-        to="/"
-        search={{ due: "overdue" }}
+        {...toggle({ due: "overdue" })}
         className={cn(CARD, "bg-destructive/10 hover:bg-destructive/15")}
       >
         <Body
@@ -72,8 +95,7 @@ export function Shortcuts({ today }: { today: string }) {
         />
       </Link>
       <Link
-        to="/"
-        search={{ due: "week" }}
+        {...toggle({ due: "week" })}
         className={cn(CARD, "bg-warn/10 hover:bg-warn/15")}
       >
         <Body
@@ -84,8 +106,7 @@ export function Shortcuts({ today }: { today: string }) {
         />
       </Link>
       <Link
-        to="/"
-        search={{ status: "blocked" }}
+        {...toggle({ status: "blocked" })}
         className={cn(CARD, "bg-primary/10 hover:bg-primary/15")}
       >
         <Body

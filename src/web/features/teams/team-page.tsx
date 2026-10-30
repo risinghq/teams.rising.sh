@@ -61,7 +61,6 @@ export function TeamPage({ team }: { team: string }) {
               onChangeText={replace}
               labels={labels}
               owners={users.data}
-              projects={projects.data}
             />
           }
         />

@@ -24,16 +24,19 @@ const due = z.enum(["overdue", "week"]).optional().catch(undefined);
 
 export const taskParam = text;
 
-const myWorkShape = {
+const sharedShape = {
   status,
-  due,
   label: text,
   q: text,
   view: board,
   task: text,
 };
 
-const teamShape = { ...myWorkShape, owner: text, project: text };
+// `due` belongs to Mi trabajo's shortcut cards; a team's list is grouped by
+// due date instead.
+const myWorkShape = { ...sharedShape, due };
+
+const teamShape = { ...sharedShape, owner: text, project: text };
 
 export type MyWorkSearch = z.infer<z.ZodObject<typeof myWorkShape>>;
 export type TeamSearch = z.infer<z.ZodObject<typeof teamShape>>;

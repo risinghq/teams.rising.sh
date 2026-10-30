@@ -11,11 +11,11 @@ export const fieldVariants = cva(
         sm: "h-8 px-2.5 py-1 md:text-xs",
         area: "min-h-20 px-3 py-2",
       },
-      // A field that sits inside a row, such as a quick-add line, and shows
-      // its edge only on focus.
+      // A field that sits inside a row, such as a quick-add line, which
+      // draws the edge or the focus tint itself.
       appearance: {
         boxed: "",
-        bare: "border-transparent bg-transparent",
+        bare: "border-0 bg-transparent",
         // Use an underline when the field is the page's primary control.
         underline:
           "rounded-none border-0 border-b border-input bg-transparent px-0 focus-visible:border-foreground focus-visible:ring-0",

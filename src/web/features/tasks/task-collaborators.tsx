@@ -1,11 +1,17 @@
-import { X } from "lucide-react";
+import { Plus, X } from "lucide-react";
 import type { TaskDetail } from "@shared/types";
 import { PersonAvatar } from "@/features/teams/person-avatar";
 import { useMe, useUsers } from "@/features/teams/hooks";
-import { Select } from "@/ui/select";
+import { Button } from "@/ui/button";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/ui/dropdown-menu";
 import { useAddCollaborator, useRemoveCollaborator } from "./hooks";
 
-// The people helping the owner: removable chips and a select that adds anyone
+// The people helping the owner: removable chips and a menu that adds anyone
 // else. The API refuses to add someone else when the caller cannot edit the
 // task, and the failure shows as a toast.
 export function TaskCollaborators({ task }: { task: TaskDetail }) {
@@ -41,24 +47,29 @@ export function TaskCollaborators({ task }: { task: TaskDetail }) {
         </span>
       ))}
       {candidates.length > 0 && (
-        <Select
-          aria-label="Agregar colaborador"
-          size="sm"
-          className="w-auto"
-          value=""
-          onChange={(e) =>
-            add.mutate({ key: task.key, userId: e.target.value })
-          }
-        >
-          <option value="" disabled>
-            Agregar…
-          </option>
-          {candidates.map((u) => (
-            <option key={u.id} value={u.id}>
-              {u.id === me?.id ? `${u.name} (tú)` : u.name}
-            </option>
-          ))}
-        </Select>
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button
+              variant="ghost"
+              size="sm"
+              aria-label="Agregar colaborador"
+              className="-ml-2 px-2 font-normal text-muted-foreground"
+            >
+              <Plus /> Agregar
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="start" className="min-w-48">
+            {candidates.map((u) => (
+              <DropdownMenuItem
+                key={u.id}
+                onSelect={() => add.mutate({ key: task.key, userId: u.id })}
+              >
+                <PersonAvatar person={u} size={18} />
+                {u.id === me?.id ? `${u.name} (tú)` : u.name}
+              </DropdownMenuItem>
+            ))}
+          </DropdownMenuContent>
+        </DropdownMenu>
       )}
     </div>
   );
