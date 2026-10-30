@@ -46,7 +46,15 @@ export function Shortcuts({ today }: { today: string }) {
     },
     WEEK_PEEK,
   ).data;
-  const mine = overview?.owners.find((o) => o.id === me?.id);
+  // An owner missing from the overview has no open work, but that reads as
+  // zero only once both the overview and the signed-in user have loaded.
+  const mine =
+    overview && me
+      ? (overview.owners.find((o) => o.id === me.id) ?? {
+          overdue: 0,
+          blocked: 0,
+        })
+      : undefined;
   const count = (n: number | undefined) => (n === undefined ? "–" : String(n));
 
   return (
@@ -59,7 +67,7 @@ export function Shortcuts({ today }: { today: string }) {
         <Body
           Icon={AlertTriangle}
           tone="text-destructive"
-          count={count(overview && (mine?.overdue ?? 0))}
+          count={count(mine?.overdue)}
           label="Atrasadas"
         />
       </Link>
@@ -83,7 +91,7 @@ export function Shortcuts({ today }: { today: string }) {
         <Body
           Icon={OctagonAlert}
           tone="text-primary"
-          count={count(overview && (mine?.blocked ?? 0))}
+          count={count(mine?.blocked)}
           label="Bloqueadas"
         />
       </Link>
