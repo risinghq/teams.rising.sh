@@ -1,8 +1,17 @@
-// Hues for team marks, spaced so neighbours in the sidebar rarely match.
-const MARK_HUES = [265, 200, 150, 35, 330, 95, 235, 10];
+import { useTeams } from "./hooks";
 
-// A colored square with the team's initial, so teams are told apart at a
-// glance. The color comes from the key, so it is stable everywhere.
+// Most team keys share an "AI" prefix, so the letter rarely tells teams apart
+// and the color has to. Stepping by the golden angle through the teams sorted
+// by key keeps every pair of hues far apart; a hash of the key does not.
+const GOLDEN_ANGLE = 137.508;
+const FIRST_HUE = 265;
+
+function hueOf(teamKey: string, keys: string[]) {
+  const index = keys.indexOf(teamKey);
+  return index < 0 ? FIRST_HUE : (FIRST_HUE + index * GOLDEN_ANGLE) % 360;
+}
+
+// A colored square with the team's initial, the same color everywhere.
 export function TeamMark({
   teamKey,
   size = 20,
@@ -10,8 +19,7 @@ export function TeamMark({
   teamKey: string;
   size?: number;
 }) {
-  const hash = [...teamKey].reduce((h, ch) => h * 31 + ch.charCodeAt(0), 7);
-  const hue = MARK_HUES[Math.abs(hash) % MARK_HUES.length];
+  const keys = (useTeams().data ?? []).map((t) => t.key).sort();
   return (
     <span
       aria-hidden
@@ -19,7 +27,7 @@ export function TeamMark({
         width: size,
         height: size,
         fontSize: size * 0.5,
-        background: `oklch(0.6 0.13 ${hue})`,
+        background: `oklch(0.6 0.13 ${hueOf(teamKey, keys)})`,
       }}
       className="inline-flex shrink-0 items-center justify-center rounded-[5px] font-semibold text-white"
     >
