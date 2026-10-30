@@ -342,6 +342,15 @@ export function Login({ error }: { error?: string }) {
         >
           Continuar con Google
         </a>
+        <p className="text-xs text-muted-foreground">
+          <Link to="/privacidad" className="hover:underline">
+            Privacidad
+          </Link>
+          {" · "}
+          <Link to="/terminos" className="hover:underline">
+            Términos
+          </Link>
+        </p>
       </div>
     </div>
   );
