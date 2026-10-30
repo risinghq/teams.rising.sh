@@ -1,8 +1,16 @@
 import { describe, expect, test } from "bun:test";
 import { QueryClient } from "@tanstack/react-query";
-import type { Me, Person, Task, TaskDetail, Update } from "@shared/types";
+import type {
+  CalEvent,
+  Me,
+  Person,
+  Task,
+  TaskDetail,
+  Update,
+} from "@shared/types";
 import {
   applyPatches,
+  eventRemoved,
   isPending,
   pendingComment,
   reaction,
@@ -164,4 +172,24 @@ test("a comment shows at once as pending, by me", async () => {
   expect(isPending(old!)).toBe(false);
   expect(isPending(mine!)).toBe(true);
   expect(mine).toMatchObject({ body: "hola", author_name: "Ana" });
+});
+
+test("a deleted event leaves the calendar and free/busy stays", async () => {
+  const client = cache();
+  const range = k.calendar.range("2026-11-01", "2026-11-30");
+  const event = (id: string) => ({ id, title: id }) as CalEvent;
+  client.setQueryData(range, { tasks: [], events: [event("e1"), event("e2")] });
+  const busy = k.freeBusy.day("2026-11-02", [ana.id]);
+  client.setQueryData(busy, { [ana.id]: { busy: [], google: false } });
+  await applyPatches(client, eventRemoved({ id: "e1" }));
+  await applyPatches(
+    client,
+    taskPatch({ key: "ENG-1", patch: { title: "x" } }, reader(client)),
+  );
+  expect(
+    client.getQueryData<{ events: CalEvent[] }>(range)!.events.map((e) => e.id),
+  ).toEqual(["e2"]);
+  expect(client.getQueryData(busy)).toEqual({
+    [ana.id]: { busy: [], google: false },
+  });
 });

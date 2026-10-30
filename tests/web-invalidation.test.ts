@@ -25,6 +25,7 @@ const cached = {
   "task ENG-2": k.tasks.detail("ENG-2"),
   "task ENG-3": k.tasks.detail("ENG-3"),
   calendar: k.calendar.range("2026-10-01", "2026-11-11"),
+  "free/busy": k.freeBusy.day("2026-11-02", ["u1"]),
   inbox: k.inbox,
   overview: k.overview,
 } as const;
@@ -145,6 +146,16 @@ const cases: Case[] = [
     write: "createLabel",
     run: () => invalidatedBy("createLabel", {}),
     want: ["labels"],
+  },
+  {
+    write: "createEvent",
+    run: () => invalidatedBy("createEvent", {}),
+    want: ["calendar", "free/busy"],
+  },
+  {
+    write: "deleteEvent",
+    run: () => invalidatedBy("deleteEvent", {}),
+    want: ["calendar", "free/busy"],
   },
   {
     write: "patchMe",

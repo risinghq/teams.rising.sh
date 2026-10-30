@@ -26,6 +26,11 @@ export const queryKeys = {
     all: ["calendar"] as const,
     range: (from: string, to: string) => ["calendar", from, to] as const,
   },
+  // Not under `calendar`: a patch to the calendar's tasks must not reach it.
+  freeBusy: {
+    all: ["freebusy"] as const,
+    day: (day: string, users: string[]) => ["freebusy", day, users] as const,
+  },
   inbox: ["inbox"] as const,
   overview: ["overview"] as const,
 };

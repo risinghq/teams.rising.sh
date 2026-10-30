@@ -2,20 +2,23 @@ import { Hono } from "hono";
 import {
   createEvent as createEventBody,
   dateRange,
+  freeBusyQuery,
   patchEvent as patchEventBody,
 } from "../../shared/schemas";
-import type { CalEvent } from "../../shared/types";
+import type { CalEvent, FreeBusy } from "../../shared/types";
 import type { Env } from "../env";
 import { HttpError, id, parseBody, parseQuery, type C } from "../http";
 import { calendarTasks, hydrate } from "../tasks/queries";
 import { isTeamLeader } from "../teams/queries";
-import { removeEvent, syncEvent } from "./gcal";
+import { googleBusy, removeEvent, syncEvent } from "./gcal";
 import {
   deleteEvent,
   findEvent,
   insertEvent,
   listEvents,
+  setAttendees,
   teamIdByKey,
+  teamsBusy,
   updateEvent,
 } from "./queries";
 
@@ -64,7 +67,8 @@ eventRoutes.post("/events", async (c) => {
     all_day: input.all_day ? 1 : 0,
     created_by: user.id,
   });
-  await syncEvent(c.env, user.id, await eventById(c, eventId));
+  await setAttendees(c.env.DB, eventId, input.attendees);
+  await syncEvent(c.env, user.id, await eventById(c, eventId), input.meet);
   return c.json(await eventById(c, eventId), 201);
 });
 
@@ -81,6 +85,7 @@ eventRoutes.patch("/events/:id", async (c) => {
     all_day:
       input.all_day === undefined ? event.all_day : input.all_day ? 1 : 0,
   });
+  if (input.attendees) await setAttendees(c.env.DB, event.id, input.attendees);
   await syncEvent(c.env, event.created_by, await eventById(c, event.id));
   return c.json(await eventById(c, event.id));
 });
@@ -91,6 +96,33 @@ eventRoutes.delete("/events/:id", async (c) => {
   await deleteEvent(c.env.DB, event.id);
   await removeEvent(c.env, event.created_by, event);
   return c.json({ ok: true });
+});
+
+// Busy intervals only, never titles: what Google shows a colleague by default.
+eventRoutes.get("/freebusy", async (c) => {
+  const { users, from, to } = parseQuery(c, freeBusyQuery);
+  const [google, teams] = await Promise.all([
+    Promise.all(users.map((u) => googleBusy(c.env, u, from, to))),
+    teamsBusy(c.env.DB, users, from, to),
+  ]);
+  const result: FreeBusy = {};
+  users.forEach((userId, i) => {
+    const own = teams
+      .filter((r) => r.user_id === userId)
+      .map((r) => ({
+        start: new Date(r.starts_at).toISOString(),
+        end: new Date(
+          r.ends_at
+            ? Date.parse(r.ends_at)
+            : Date.parse(r.starts_at) + 3600_000,
+        ).toISOString(),
+      }));
+    result[userId] = {
+      busy: [...(google[i] ?? []), ...own],
+      google: google[i] !== null,
+    };
+  });
+  return c.json(result);
 });
 
 eventRoutes.get("/calendar", async (c) => {

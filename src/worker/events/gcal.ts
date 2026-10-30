@@ -1,13 +1,14 @@
 import type { CalEvent } from "../../shared/types";
 import { refreshTokenOf } from "../auth/queries";
 import type { Env } from "../env";
-import { setGoogleEventId } from "./queries";
+import { emailsOf, setGoogleIds } from "./queries";
 
 type Bindings = Env["Bindings"];
 
 const TOKEN_URL = "https://oauth2.googleapis.com/token";
 const EVENTS_URL =
   "https://www.googleapis.com/calendar/v3/calendars/primary/events";
+const FREEBUSY_URL = "https://www.googleapis.com/calendar/v3/freeBusy";
 
 async function accessToken(env: Bindings, userId: string) {
   if (!env.GOOGLE_CLIENT_ID || !env.GOOGLE_CLIENT_SECRET) return null;
@@ -43,54 +44,115 @@ function when(event: CalEvent) {
   };
 }
 
+type Sent = { id: string; hangoutLink?: string };
+
+// `conferenceDataVersion=1` lets the body ask for a Meet, and `sendUpdates`
+// mails the attendees an invitation, a change or a cancellation.
+function eventUrl(googleId: string | null) {
+  const url = new URL(googleId ? `${EVENTS_URL}/${googleId}` : EVENTS_URL);
+  url.searchParams.set("conferenceDataVersion", "1");
+  url.searchParams.set("sendUpdates", "all");
+  return url.toString();
+}
+
+function eventBody(event: CalEvent, emails: string[], meet: boolean) {
+  return {
+    summary: event.title,
+    description: event.description,
+    ...when(event),
+    attendees: emails.map((email) => ({ email })),
+    // The request id makes a retried create return the same meeting.
+    ...(meet && {
+      conferenceData: {
+        createRequest: {
+          requestId: event.id,
+          conferenceSolutionKey: { type: "hangoutsMeet" },
+        },
+      },
+    }),
+  };
+}
+
 async function send(
   env: Bindings,
   userId: string,
-  method: "POST" | "PUT" | "DELETE",
+  method: "POST" | "PATCH" | "DELETE",
   googleId: string | null,
-  event?: CalEvent,
-): Promise<string | null> {
+  body?: object,
+): Promise<Sent | null> {
   const token = await accessToken(env, userId);
   if (!token) return null;
-  const res = await fetch(googleId ? `${EVENTS_URL}/${googleId}` : EVENTS_URL, {
+  const res = await fetch(eventUrl(googleId), {
     method,
     headers: {
       authorization: `Bearer ${token}`,
       "content-type": "application/json",
     },
-    body: event
-      ? JSON.stringify({
-          summary: event.title,
-          description: event.description,
-          ...when(event),
-        })
-      : undefined,
+    body: body ? JSON.stringify(body) : undefined,
   });
   if (!res.ok) return null;
-  return method === "DELETE"
-    ? googleId
-    : ((await res.json()) as { id: string }).id;
+  return method === "DELETE" ? null : ((await res.json()) as Sent);
 }
 
-// Mirrors the event to its creator's primary Google calendar. A failure is
+// Mirrors the event to its creator's primary Google calendar and invites its
+// attendees from there. `meet` asks Google for a Meet link once. A failure is
 // logged and leaves the event as it is: Teams stays the source of truth.
 export async function syncEvent(
   env: Bindings,
   userId: string,
   event: CalEvent,
+  meet = false,
 ) {
   try {
-    const googleId = await send(
+    const emails = await emailsOf(
+      env.DB,
+      event.attendees.map((a) => a.id),
+    );
+    const sent = await send(
       env,
       userId,
-      event.google_event_id ? "PUT" : "POST",
+      event.google_event_id ? "PATCH" : "POST",
       event.google_event_id,
-      event,
+      eventBody(event, emails, meet && !event.meet_url),
     );
-    if (googleId && googleId !== event.google_event_id)
-      await setGoogleEventId(env.DB, event.id, googleId);
+    if (sent)
+      await setGoogleIds(env.DB, event.id, sent.id, sent.hangoutLink ?? null);
   } catch (err) {
     console.error("google calendar sync failed", err);
+  }
+}
+
+// The person's busy intervals in their Google calendars, or null when they
+// have not connected Google or Google refuses.
+export async function googleBusy(
+  env: Bindings,
+  userId: string,
+  from: string,
+  to: string,
+): Promise<{ start: string; end: string }[] | null> {
+  try {
+    const token = await accessToken(env, userId);
+    if (!token) return null;
+    const res = await fetch(FREEBUSY_URL, {
+      method: "POST",
+      headers: {
+        authorization: `Bearer ${token}`,
+        "content-type": "application/json",
+      },
+      body: JSON.stringify({
+        timeMin: new Date(from).toISOString(),
+        timeMax: new Date(to).toISOString(),
+        items: [{ id: "primary" }],
+      }),
+    });
+    if (!res.ok) return null;
+    const data = (await res.json()) as {
+      calendars: Record<string, { busy: { start: string; end: string }[] }>;
+    };
+    return data.calendars.primary?.busy ?? [];
+  } catch (err) {
+    console.error("google free/busy failed", err);
+    return null;
   }
 }
 

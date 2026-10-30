@@ -83,7 +83,7 @@ on wide screens; a modified click, or a narrow screen, goes to the page.
 
 A write that changes something that already exists shows the change before the
 server answers: a task field, a board or calendar drag, a reaction, a comment, a
-collaborator, a project, a team, a member, the profile.
+collaborator, a project, a team, a member, the profile, a deleted event.
 `src/web/lib/optimistic.ts` holds one patch builder per write, and
 `useWrite(name, write, { optimistic })` applies it. A failure puts the cache
 back. Either way the write's queries refetch afterwards.
@@ -108,3 +108,13 @@ Feedback follows from that:
 `width="form"` keeps the column and narrows the content to a form's measure.
 `width="wide"` is the calendar's. The scrolling area reserves its scrollbar
 gutter, so a short page and a long one line up.
+
+## Calendar events
+
+"Nuevo evento" on `/calendar` opens a dialog that invites people and can add a
+Google Meet link. Its grid shows the creator and each guest from 8:00 to 20:00
+in half hours, busy cells shaded, from `GET /api/freebusy`. "Todos libres"
+offers the first starts at which everyone is free for the chosen length
+(`src/web/lib/slots.ts`). Clicking a cell or a suggestion sets the time. A
+person without Google is marked, since only their Teams events count. A timed
+event shows on its local day.

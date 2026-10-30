@@ -1,5 +1,6 @@
 import type { QueryClient, QueryFilters } from "@tanstack/react-query";
 import type {
+  CalEvent,
   Label,
   Me,
   Member,
@@ -97,6 +98,13 @@ export function taskPatch(
     })),
   ];
 }
+
+export const eventRemoved = (a: { id: string }) => [
+  patch<{ events: CalEvent[] }>({ queryKey: k.calendar.all }, (c) => ({
+    ...c,
+    events: c.events.filter((e) => e.id !== a.id),
+  })),
+];
 
 const onDetail = (key: string, change: (d: TaskDetail) => TaskDetail) => [
   patch<TaskDetail>({ queryKey: k.tasks.detail(key) }, change),
