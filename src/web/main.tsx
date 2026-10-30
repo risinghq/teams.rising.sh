@@ -38,7 +38,11 @@ const root = createRootRoute({ component: Outlet });
 const login = createRoute({
   getParentRoute: () => root,
   path: "/login",
-  component: Login,
+  validateSearch: (s: Record<string, unknown>): { error?: string } =>
+    typeof s.error === "string" ? { error: s.error } : {},
+  component: function LoginPage() {
+    return <Login error={login.useSearch().error} />;
+  },
 });
 const shell = createRoute({
   getParentRoute: () => root,

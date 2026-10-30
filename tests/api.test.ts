@@ -255,9 +255,9 @@ test("sign-in by Google is limited to the allow list", async () => {
     })}.sig`;
   };
   try {
-    for (const [email, status] of [
-      ["me@ok.test", 302],
-      ["me@bad.test", 403],
+    for (const [email, location] of [
+      ["me@ok.test", "/"],
+      ["me@bad.test", "/login?error=me%40bad.test+no+tiene+acceso"],
     ] as const) {
       globalThis.fetch = (async () =>
         Response.json({
@@ -269,8 +269,17 @@ test("sign-in by Google is limited to the allow list", async () => {
         { headers: { cookie: "oauth_state=s" } },
         googleEnv,
       );
-      expect(res.status).toBe(status);
+      expect(res.status).toBe(302);
+      expect(res.headers.get("location") ?? "").toStartWith(location);
     }
+    const canceled = await app.request(
+      "/api/auth/google/callback?error=access_denied&state=s",
+      { headers: { cookie: "oauth_state=s" } },
+      googleEnv,
+    );
+    expect(canceled.headers.get("location") ?? "").toStartWith(
+      "/login?error=se+cancel",
+    );
   } finally {
     globalThis.fetch = realFetch;
   }

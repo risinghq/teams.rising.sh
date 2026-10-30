@@ -141,8 +141,22 @@ authRoutes.get("/google", (c) => {
   return c.redirect(url.toString());
 });
 
+// The callback is a browser navigation, so a refusal goes back to the login
+// page with its message instead of rendering JSON.
 authRoutes.get("/google/callback", async (c) => {
+  try {
+    await completeGoogleSignIn(c);
+  } catch (err) {
+    if (!(err instanceof HttpError)) throw err;
+    return c.redirect(`/login?${new URLSearchParams({ error: err.message })}`);
+  }
+  return c.redirect("/");
+});
+
+async function completeGoogleSignIn(c: C): Promise<void> {
   const { GOOGLE_CLIENT_ID: clientId, GOOGLE_CLIENT_SECRET: secret } = c.env;
+  if (c.req.query("error"))
+    throw new HttpError(400, "se canceló el inicio de sesión con Google");
   const code = c.req.query("code");
   const state = c.req.query("state");
   if (!clientId || !secret)
@@ -175,7 +189,10 @@ authRoutes.get("/google/callback", async (c) => {
   };
   const claims = claimsOf(tokens.id_token, clientId);
   if (!allowed(claims.email, c.env))
-    throw new HttpError(403, "esta cuenta no tiene acceso");
+    throw new HttpError(
+      403,
+      `${claims.email} no tiene acceso; pide a un admin que la agregue`,
+    );
   const userId = await upsertUser(
     c,
     claims.email,
@@ -192,8 +209,7 @@ authRoutes.get("/google/callback", async (c) => {
       .run();
   }
   await startSession(c, userId);
-  return c.redirect("/");
-});
+}
 
 authRoutes.post("/dev", async (c) => {
   if (c.env.DEV_LOGIN !== "1") throw new HttpError(404, "no encontrado");

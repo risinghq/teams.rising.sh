@@ -323,7 +323,7 @@ export function Overview() {
   );
 }
 
-export function Login() {
+export function Login({ error }: { error?: string }) {
   return (
     <div className="flex h-full items-center justify-center p-6">
       <div className="flex w-full max-w-sm flex-col items-center gap-4 rounded-lg border p-8 text-center">
@@ -331,6 +331,11 @@ export function Login() {
         <p className="text-xs text-muted-foreground">
           Mira qué está pendiente, quién lo tiene y cuánto falta.
         </p>
+        {error && (
+          <p role="alert" className="text-xs text-destructive">
+            {error}
+          </p>
+        )}
         <a
           href="/api/auth/google"
           className="inline-flex h-9 w-full items-center justify-center rounded-md bg-primary text-sm font-medium text-primary-foreground hover:opacity-90"
