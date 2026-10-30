@@ -14,6 +14,7 @@ import {
 import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
 import { ApiError } from "./api";
+import { Privacy, Terms } from "./legal";
 import { Calendar, Inbox, Login, Overview } from "./pages";
 import { NewTeam, TeamSettings } from "./settings";
 import { Shell } from "./shell";
@@ -43,6 +44,16 @@ const login = createRoute({
   component: function LoginPage() {
     return <Login error={login.useSearch().error} />;
   },
+});
+const privacy = createRoute({
+  getParentRoute: () => root,
+  path: "/privacidad",
+  component: Privacy,
+});
+const terms = createRoute({
+  getParentRoute: () => root,
+  path: "/terminos",
+  component: Terms,
 });
 const shell = createRoute({
   getParentRoute: () => root,
@@ -112,6 +123,8 @@ const task = createRoute({
 const router = createRouter({
   routeTree: root.addChildren([
     login,
+    privacy,
+    terms,
     shell.addChildren([
       home,
       inbox,
