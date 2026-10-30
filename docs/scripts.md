@@ -28,7 +28,9 @@ applies them.
 - Write it so a second run changes nothing: `INSERT OR IGNORE`, and `UPDATE`
   with a `WHERE` that matches the target rows. A remote run that fails partway
   leaves its earlier statements applied, and the fix is to run it again.
-- Never put a secret or a personal email in a script; the repository is the
-  record.
+- Never put a secret in a script; the repository is the record. A real email
+  belongs in a script only if `ALLOWED_EMAILS` in `wrangler.jsonc` already lists
+  it. A fictional person uses the reserved `example.test` domain, which no
+  Google account has.
 - `tests/once-scripts.test.ts` applies every script twice to a migrated
   database. A script that fails there fails the check.
