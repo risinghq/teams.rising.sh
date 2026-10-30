@@ -9,6 +9,13 @@ import { useCallback, useMemo } from "react";
 import type { Task } from "@shared/types";
 import { api, type TaskQuery } from "@/api";
 import { useWrite } from "@/hooks/use-write";
+import {
+  collaboratorAdded,
+  collaboratorRemoved,
+  pendingComment,
+  reaction,
+  taskPatch,
+} from "@/lib/optimistic";
 import { queryKeys } from "@/lib/query-keys";
 
 export const TASK_PAGE_SIZE = 50;
@@ -79,8 +86,10 @@ export function useTeamLabels(teamId: string | undefined) {
 }
 
 export const useCreateTask = () =>
-  useWrite("createTask", (body: Record<string, unknown>) =>
-    api.createTask(body),
+  useWrite(
+    "createTask",
+    (body: Record<string, unknown>) => api.createTask(body),
+    { inline: true },
   );
 export const usePatchTask = () =>
   useWrite(
@@ -93,24 +102,34 @@ export const usePatchTask = () =>
       parentId: string | null;
       patch: Record<string, unknown>;
     }) => api.patchTask(key, patch),
+    { optimistic: taskPatch },
   );
 export const useComment = () =>
-  useWrite("comment", ({ key, body }: { key: string; body: string }) =>
-    api.comment(key, body),
+  useWrite(
+    "comment",
+    ({ key, body }: { key: string; body: string }) => api.comment(key, body),
+    { optimistic: pendingComment, inline: true },
   );
 type ReactArgs = { key: string; updateId: string; emoji: string; on: boolean };
 export const useReact = () =>
-  useWrite("react", ({ key, updateId, emoji, on }: ReactArgs) =>
-    api.react(key, updateId, emoji, on),
+  useWrite(
+    "react",
+    ({ key, updateId, emoji, on }: ReactArgs) =>
+      api.react(key, updateId, emoji, on),
+    { optimistic: reaction },
   );
 type CollaboratorArgs = { key: string; userId: string };
 export const useAddCollaborator = () =>
-  useWrite("addCollaborator", ({ key, userId }: CollaboratorArgs) =>
-    api.addCollaborator(key, userId),
+  useWrite(
+    "addCollaborator",
+    ({ key, userId }: CollaboratorArgs) => api.addCollaborator(key, userId),
+    { optimistic: collaboratorAdded },
   );
 export const useRemoveCollaborator = () =>
-  useWrite("removeCollaborator", ({ key, userId }: CollaboratorArgs) =>
-    api.removeCollaborator(key, userId),
+  useWrite(
+    "removeCollaborator",
+    ({ key, userId }: CollaboratorArgs) => api.removeCollaborator(key, userId),
+    { optimistic: collaboratorRemoved },
   );
 
 const wide = () => window.matchMedia("(min-width: 768px)").matches;

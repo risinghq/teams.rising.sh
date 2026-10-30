@@ -78,3 +78,33 @@ on wide screens; a modified click, or a narrow screen, goes to the page.
   `GET /api/teams/:key/projects`.
 - `src/web/lib/invalidation.ts` lists the queries each write makes stale. A task
   write refetches every page of every loaded list and the project counts.
+
+## Writes and feedback
+
+A write that changes something that already exists shows the change before the
+server answers: a task field, a board or calendar drag, a reaction, a comment, a
+collaborator, a project, a team, a member, the profile.
+`src/web/lib/optimistic.ts` holds one patch builder per write, and
+`useWrite(name, write, { optimistic })` applies it. A failure puts the cache
+back. Either way the write's queries refetch afterwards.
+
+A write that creates something waits for the server, because the server assigns
+the key, number or id that a link needs. A comment is the exception. It shows at
+once as "Enviando…" without reactions, and the box clears; a failure removes it
+and puts the text back.
+
+Feedback follows from that:
+
+- A success shows in the data and gets no message. Quick create keeps a "KEY
+  creada · Abrir" line under the box until the next task.
+- A create form (`inline: true`) shows its failure next to its button with
+  `FormError` and keeps what was typed.
+- A one-click change undoes itself, and a toast says why. The toast stays until
+  it is closed, so it can be read.
+
+## Layout
+
+`Page` gives every screen one column, so the title stays put between screens.
+`width="form"` keeps the column and narrows the content to a form's measure.
+`width="wide"` is the calendar's. The scrolling area reserves its scrollbar
+gutter, so a short page and a long one line up.

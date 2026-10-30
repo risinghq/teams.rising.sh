@@ -3,10 +3,12 @@ import { UPLOAD_TYPES } from "@shared/schemas";
 import type { Update } from "@shared/types";
 import { useUpload } from "@/features/files/image-picker";
 import { relativeTime } from "@/lib/dates";
+import { isPending } from "@/lib/optimistic";
 import { describeUpdate } from "@/lib/updates";
 import { PersonAvatar } from "@/features/teams/person-avatar";
 import { useMe, useNameOf } from "@/features/teams/hooks";
 import { Button } from "@/ui/button";
+import { FormError } from "@/ui/form-error";
 import { useComment } from "./hooks";
 import { ImagePreviews, LinkedText } from "./linked-text";
 import { MentionTextarea } from "./mention-textarea";
@@ -27,7 +29,13 @@ export function TaskActivity({
   const submit = () => {
     const body = text.trim();
     if (!body) return;
-    comment.mutate({ key: taskKey, body }, { onSuccess: () => setText("") });
+    // The comment shows in the list at once, so the box clears at once. A
+    // failure puts the text back for another try.
+    setText("");
+    comment.mutate(
+      { key: taskKey, body },
+      { onError: () => setText((t) => t || body) },
+    );
   };
   // A pasted or dropped image becomes a link on its own line. Comments render
   // only absolute image links as previews, so the link carries the origin.
@@ -65,11 +73,13 @@ export function TaskActivity({
                   {u.author_name ?? "Sistema"}
                 </span>
                 <span className="text-muted-foreground">
-                  {relativeTime(u.created_at)}
+                  {isPending(u) ? "Enviando…" : relativeTime(u.created_at)}
                 </span>
-                <span className="-my-1 ml-auto">
-                  <ReactionMenu taskKey={taskKey} update={u} />
-                </span>
+                {!isPending(u) && (
+                  <span className="-my-1 ml-auto">
+                    <ReactionMenu taskKey={taskKey} update={u} />
+                  </span>
+                )}
               </div>
               {u.kind === "comment" ? (
                 <p className="whitespace-pre-wrap break-words text-sm">
@@ -108,15 +118,13 @@ export function TaskActivity({
           rows={3}
         />
         <div className="flex items-center justify-end gap-3">
+          <FormError error={comment.error} className="mr-auto" />
           {upload.isPending && (
             <span className="text-xs text-muted-foreground">
               Subiendo imagen…
             </span>
           )}
-          <Button
-            type="submit"
-            disabled={comment.isPending || upload.isPending}
-          >
+          <Button type="submit" disabled={upload.isPending}>
             Comentar
           </Button>
         </div>

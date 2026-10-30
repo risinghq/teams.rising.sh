@@ -3,9 +3,12 @@ import {
   Bell,
   CalendarDays,
   CheckSquare,
+  ChevronsUpDown,
   LayoutDashboard,
+  LogOut,
   Plus,
   Search,
+  UserRound,
 } from "lucide-react";
 import { api } from "@/api";
 import { useInbox } from "@/features/inbox/hooks";
@@ -13,6 +16,13 @@ import { useMe, useTeams } from "@/features/teams/hooks";
 import { PersonAvatar } from "@/features/teams/person-avatar";
 import { TeamMark } from "@/features/teams/team-mark";
 import { Button } from "@/ui/button";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/ui/dropdown-menu";
 
 const NAV_LINK =
   "flex items-center gap-3 rounded-lg px-3 py-2 text-sm text-muted-foreground transition-colors hover:bg-muted/50 hover:text-foreground focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-ring";
@@ -109,28 +119,50 @@ export function SidebarContent({
         ))}
       </nav>
       {me.data && (
-        <div className="flex items-center gap-1 border-t pt-4">
-          <Link
-            to="/perfil"
-            onClick={onNavigate}
-            aria-label="Perfil"
-            className="flex min-w-0 flex-1 items-center gap-3 rounded-lg px-3 py-1 text-xs hover:bg-muted/50 focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-ring"
-            activeProps={NAV_LINK_ON}
-          >
-            <PersonAvatar person={me.data} size={28} />
-            <span className="min-w-0 flex-1 truncate">{me.data.name}</span>
-          </Link>
-          <Button
-            variant="link"
-            size="xs"
-            className="text-muted-foreground"
-            onClick={async () => {
-              await api.logout();
-              window.location.assign("/login");
-            }}
-          >
-            Cerrar sesión
-          </Button>
+        <div className="border-t pt-3">
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button
+                variant="ghost"
+                size="auto"
+                aria-label={`Cuenta: ${me.data.name}`}
+                className="w-full justify-start gap-3 rounded-lg px-3 py-2 text-left font-normal"
+              >
+                <PersonAvatar person={me.data} size={28} />
+                <span className="flex min-w-0 flex-1 flex-col">
+                  <span className="truncate text-sm">{me.data.name}</span>
+                  {me.data.email !== me.data.name && (
+                    <span className="truncate text-xs text-muted-foreground">
+                      {me.data.email}
+                    </span>
+                  )}
+                </span>
+                <ChevronsUpDown className="size-4 shrink-0 text-muted-foreground" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent
+              side="top"
+              align="start"
+              className="w-(--radix-dropdown-menu-trigger-width)"
+            >
+              <DropdownMenuItem asChild>
+                <Link to="/perfil" onClick={onNavigate}>
+                  <UserRound />
+                  Perfil
+                </Link>
+              </DropdownMenuItem>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem
+                onSelect={async () => {
+                  await api.logout();
+                  window.location.assign("/login");
+                }}
+              >
+                <LogOut />
+                Cerrar sesión
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
         </div>
       )}
     </>

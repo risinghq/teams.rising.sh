@@ -46,6 +46,7 @@ export function ProjectList({
         <div className="mt-3 rounded-xl bg-surface shadow-card">
           <ProjectForm
             pending={create.isPending}
+            error={create.error}
             onCancel={() => setAdding(false)}
             onSave={(body) =>
               create.mutate(

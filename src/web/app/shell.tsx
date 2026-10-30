@@ -55,7 +55,9 @@ export function Shell() {
           </IconButton>
           <span className="font-semibold">Teams</span>
         </div>
-        <main className="min-h-0 flex-1 overflow-y-auto">
+        {/* The gutter keeps a page's column in place whether or not it is
+            long enough to scroll. */}
+        <main className="min-h-0 flex-1 overflow-y-auto [scrollbar-gutter:stable]">
           <Outlet />
         </main>
       </div>
