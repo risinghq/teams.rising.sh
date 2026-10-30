@@ -1,10 +1,6 @@
-export type TaskStatus =
-  | "backlog"
-  | "todo"
-  | "in_progress"
-  | "blocked"
-  | "done"
-  | "canceled";
+import type { TaskStatus } from "./types";
+
+export type { TaskStatus };
 
 export type ProgressInput = { status: TaskStatus };
 

@@ -1,7 +1,16 @@
-import { afterAll, afterEach, beforeAll, expect, test } from "bun:test";
-import { readdirSync, readFileSync } from "node:fs";
-import { Miniflare } from "miniflare";
+import {
+  afterAll,
+  afterEach,
+  beforeAll,
+  expect,
+  test,
+  setDefaultTimeout,
+} from "bun:test";
+import type { Miniflare } from "miniflare";
 import app from "../src/worker/index";
+import { HOST_TIMEOUT, migratedDb } from "./support";
+
+setDefaultTimeout(HOST_TIMEOUT);
 
 let mf: Miniflare;
 let DB: D1Database;
@@ -9,20 +18,7 @@ let env: Record<string, unknown>;
 const realFetch = globalThis.fetch;
 
 beforeAll(async () => {
-  mf = new Miniflare({
-    modules: true,
-    script: "export default { fetch() { return new Response('') } }",
-    d1Databases: { DB: "gcal" },
-  });
-  DB = await mf.getD1Database("DB");
-  const dir = new URL("../migrations/", import.meta.url);
-  for (const file of readdirSync(dir).sort()) {
-    const sql = readFileSync(new URL(file, dir), "utf8");
-    for (const statement of sql.split(/;\s*\n/)) {
-      const clean = statement.replace(/^--.*$/gm, "").trim();
-      if (clean) await DB.prepare(clean).run();
-    }
-  }
+  ({ mf, DB } = await migratedDb("gcal"));
   env = {
     DB,
     ASSETS: { fetch: () => new Response("asset") },

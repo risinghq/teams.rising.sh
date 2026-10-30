@@ -1,12 +1,18 @@
 import { Hono } from "hono";
-import { authRoutes, requireUser } from "./auth";
+import { authRoutes, requireUser } from "./auth/routes";
 import type { Env } from "./env";
-import { githubRoutes } from "./github";
+import { eventRoutes } from "./events/routes";
+import { githubRoutes } from "./github/routes";
 import { HttpError } from "./http";
-import { miscRoutes } from "./misc";
-import { taskRoutes } from "./tasks";
-import { teamRoutes } from "./teams";
-import { whatsappRoutes } from "./whatsapp";
+import { inboxRoutes } from "./inbox/routes";
+import { labelRoutes } from "./labels/routes";
+import { overviewRoutes } from "./overview/routes";
+import { projectRoutes } from "./projects/routes";
+import { taskRoutes } from "./tasks/routes";
+import { countTeams } from "./teams/queries";
+import { teamRoutes } from "./teams/routes";
+import { userRoutes } from "./users/routes";
+import { whatsappRoutes } from "./whatsapp/routes";
 
 export type { Env };
 
@@ -19,14 +25,9 @@ app.onError((err, c) => {
   return c.json({ error: "internal error" }, 500);
 });
 
-app.get("/api/health", async (c) => {
-  const row = await c.env.DB.prepare(
-    "SELECT COUNT(*) AS teams FROM teams",
-  ).first<{
-    teams: number;
-  }>();
-  return c.json({ ok: true, teams: row?.teams ?? 0 });
-});
+app.get("/api/health", async (c) =>
+  c.json({ ok: true, teams: await countTeams(c.env.DB) }),
+);
 
 app.route("/api/auth", authRoutes);
 app.route("/hooks", githubRoutes);
@@ -34,9 +35,18 @@ app.route("/hooks", whatsappRoutes);
 
 const api = new Hono<Env>();
 api.use("*", requireUser);
-api.route("/", teamRoutes);
-api.route("/", taskRoutes);
-api.route("/", miscRoutes);
+for (const routes of [
+  userRoutes,
+  teamRoutes,
+  projectRoutes,
+  labelRoutes,
+  taskRoutes,
+  eventRoutes,
+  inboxRoutes,
+  overviewRoutes,
+]) {
+  api.route("/", routes);
+}
 app.route("/api", api);
 
 app.notFound((c) =>
