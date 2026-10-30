@@ -133,6 +133,10 @@ export const patchTask = z.object({
 
 export const comment = z.object({ body: text("body") });
 
+// A fixed set keeps a reaction one click away and needs no emoji picker.
+export const REACTIONS = ["👍", "❤️", "🎉", "😄", "👀", "🙏"] as const;
+export const reaction = z.enum(REACTIONS, { error: "reacción desconocida" });
+
 export const createEvent = z.object({
   team: z.string({ error: "team debe ser texto o null" }).nullish(),
   title: text("title", 300),

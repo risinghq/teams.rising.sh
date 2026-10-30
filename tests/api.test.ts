@@ -204,6 +204,42 @@ test("a mention puts the comment in the inbox until it is read", async () => {
   expect(own).toEqual([]);
 });
 
+test("a reaction toggles per person and shows who reacted", async () => {
+  const admin = await login(`admin-${run}@x.test`);
+  const bea = await login(`bea-${run}@x.test`, "Bea");
+  const team = key(15);
+  await call(admin, "POST", "/api/teams", { key: team, name: "React" });
+  const task = await call(admin, "POST", "/api/tasks", { team, title: "wave" });
+  const path = `/api/tasks/${task.body.key}`;
+  const posted = await call(admin, "POST", `${path}/updates`, { body: "hi" });
+  const thumbs = `${path}/updates/${posted.body.id}/reactions/${encodeURIComponent("👍")}`;
+
+  for (const who of [admin, bea, bea]) {
+    expect((await call(who, "PUT", thumbs)).status).toBe(200);
+  }
+  const reactionsFor = async (who: Session) =>
+    (await call(who, "GET", path)).body.updates.find(
+      (u: { id: string }) => u.id === posted.body.id,
+    ).reactions;
+  expect(await reactionsFor(bea)).toEqual([
+    { emoji: "👍", names: [`admin-${run}@x.test`, "Bea"], mine: true },
+  ]);
+
+  await call(admin, "DELETE", thumbs);
+  expect(await reactionsFor(admin)).toEqual([
+    { emoji: "👍", names: ["Bea"], mine: false },
+  ]);
+
+  const unknown = `${path}/updates/${posted.body.id}/reactions/x`;
+  expect((await call(bea, "PUT", unknown)).status).toBe(400);
+  const elsewhere = await call(admin, "POST", "/api/tasks", {
+    team,
+    title: "other",
+  });
+  const foreign = `/api/tasks/${elsewhere.body.key}/updates/${posted.body.id}/reactions/${encodeURIComponent("👍")}`;
+  expect((await call(bea, "PUT", foreign)).status).toBe(404);
+});
+
 test("opening one task reads its inbox items and leaves the others", async () => {
   const admin = await login(`admin-${run}@x.test`);
   const bea = await login(`bea-${run}@x.test`, "Bea");

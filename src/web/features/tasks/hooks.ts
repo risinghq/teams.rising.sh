@@ -98,6 +98,11 @@ export const useComment = () =>
   useWrite("comment", ({ key, body }: { key: string; body: string }) =>
     api.comment(key, body),
   );
+type ReactArgs = { key: string; updateId: string; emoji: string; on: boolean };
+export const useReact = () =>
+  useWrite("react", ({ key, updateId, emoji, on }: ReactArgs) =>
+    api.react(key, updateId, emoji, on),
+  );
 type CollaboratorArgs = { key: string; userId: string };
 export const useAddCollaborator = () =>
   useWrite("addCollaborator", ({ key, userId }: CollaboratorArgs) =>

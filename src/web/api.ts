@@ -90,6 +90,11 @@ export const api = {
     request<Task>("PATCH", `/api/tasks/${key}`, body),
   comment: (key: string, body: string) =>
     request<{ id: string }>("POST", `/api/tasks/${key}/updates`, { body }),
+  react: (key: string, updateId: string, emoji: string, on: boolean) =>
+    request(
+      on ? "PUT" : "DELETE",
+      `/api/tasks/${key}/updates/${updateId}/reactions/${encodeURIComponent(emoji)}`,
+    ),
   addCollaborator: (key: string, userId: string) =>
     request("PUT", `/api/tasks/${key}/collaborators/${userId}`),
   removeCollaborator: (key: string, userId: string) =>

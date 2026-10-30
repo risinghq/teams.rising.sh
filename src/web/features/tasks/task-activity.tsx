@@ -8,6 +8,7 @@ import { Button } from "@/ui/button";
 import { useComment } from "./hooks";
 import { ImagePreviews, LinkedText } from "./linked-text";
 import { MentionTextarea } from "./mention-textarea";
+import { ReactionList, ReactionMenu } from "./reactions";
 
 export function TaskActivity({
   taskKey,
@@ -30,7 +31,7 @@ export function TaskActivity({
       <h3 className="mb-4 text-xs font-semibold">Actividad</h3>
       <ul className="space-y-3">
         {updates.map((u) => (
-          <li key={u.id} className="flex gap-2">
+          <li key={u.id} className="group flex gap-2">
             <PersonAvatar
               person={
                 u.author_id
@@ -42,15 +43,18 @@ export function TaskActivity({
                   : null
               }
             />
-            <div className="min-w-0 text-xs">
-              <p>
+            <div className="min-w-0 flex-1 text-xs">
+              <div className="flex items-center gap-1">
                 <span className="font-medium">
                   {u.author_name ?? "Sistema"}
-                </span>{" "}
+                </span>
                 <span className="text-muted-foreground">
                   {relativeTime(u.created_at)}
                 </span>
-              </p>
+                <span className="-my-1 ml-auto">
+                  <ReactionMenu taskKey={taskKey} update={u} />
+                </span>
+              </div>
               {u.kind === "comment" ? (
                 <p className="whitespace-pre-wrap break-words text-sm">
                   <LinkedText text={u.body} />
@@ -61,6 +65,7 @@ export function TaskActivity({
                   {describeUpdate(u, nameOf, me)}
                 </p>
               )}
+              <ReactionList taskKey={taskKey} update={u} />
             </div>
           </li>
         ))}

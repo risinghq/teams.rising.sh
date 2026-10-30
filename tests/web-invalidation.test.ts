@@ -97,6 +97,11 @@ const cases: Case[] = [
     want: ["task ENG-1"],
   },
   {
+    write: "react",
+    run: () => invalidatedBy("react", { key: "ENG-1" }),
+    want: ["task ENG-1"],
+  },
+  {
     write: "addCollaborator",
     run: () => invalidatedBy("addCollaborator", { key: "ENG-1" }),
     want: ["task list", "my tasks", "task peek", "task ENG-1"],
