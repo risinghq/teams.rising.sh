@@ -10,9 +10,15 @@ let DB: D1Database;
 
 beforeAll(async () => {
   ({ mf, DB } = await migratedDb("once"));
-  await DB.prepare(
-    "INSERT INTO teams (id, key, name, description) VALUES ('t-ais', 'AIS', 'AI for Science', 'A testing group!')",
-  ).run();
+  // Production state before the scripts: one team and one signed-in user.
+  await DB.batch([
+    DB.prepare(
+      "INSERT INTO teams (id, key, name, description) VALUES ('t-ais', 'AIS', 'AI for Science', 'A testing group!')",
+    ),
+    DB.prepare(
+      "INSERT INTO users (id, email, name, is_admin) VALUES ('u-signed-in', 'dadch1404@gmail.com', 'David', 1)",
+    ),
+  ]);
 });
 
 afterAll(() => mf.dispose());
@@ -58,4 +64,26 @@ test("the AI PlayGrounds script keeps the existing team and adds the rest", asyn
   expect(ais?.description).toStartWith(
     "Cómo la IA aporta al trabajo científico",
   );
+});
+
+test("the demo script gives the signed-in user work and adds no second David", async () => {
+  await apply("2026-10-30-demo-people-and-work.sql");
+  const users = await DB.prepare(
+    "SELECT email, is_admin FROM users WHERE email LIKE '%@gmail.com' ORDER BY email",
+  ).all<{ email: string; is_admin: number }>();
+  expect(users.results).toEqual([
+    { email: "dadch1404@gmail.com", is_admin: 1 },
+    { email: "pedro.rojas.f24@gmail.com", is_admin: 1 },
+  ]);
+  const david = await DB.prepare(
+    `SELECT
+       (SELECT COUNT(*) FROM team_members WHERE user_id = 'u-signed-in') AS teams,
+       (SELECT COUNT(*) FROM tasks WHERE owner_id = 'u-signed-in'
+          AND status NOT IN ('done', 'canceled')) AS open`,
+  ).first<{ teams: number; open: number }>();
+  expect(david).toEqual({ teams: 4, open: 6 });
+  const fictional = await DB.prepare(
+    "SELECT COUNT(*) AS n FROM users WHERE email LIKE '%@example.test'",
+  ).first<{ n: number }>();
+  expect(fictional?.n).toBe(8);
 });
