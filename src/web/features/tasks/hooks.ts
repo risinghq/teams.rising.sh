@@ -98,10 +98,15 @@ export const useComment = () =>
   useWrite("comment", ({ key, body }: { key: string; body: string }) =>
     api.comment(key, body),
   );
-export const useJoinTask = () =>
-  useWrite("joinTask", ({ key }: { key: string }) => api.join(key));
-export const useLeaveTask = () =>
-  useWrite("leaveTask", ({ key }: { key: string }) => api.leave(key));
+type CollaboratorArgs = { key: string; userId: string };
+export const useAddCollaborator = () =>
+  useWrite("addCollaborator", ({ key, userId }: CollaboratorArgs) =>
+    api.addCollaborator(key, userId),
+  );
+export const useRemoveCollaborator = () =>
+  useWrite("removeCollaborator", ({ key, userId }: CollaboratorArgs) =>
+    api.removeCollaborator(key, userId),
+  );
 
 const wide = () => window.matchMedia("(min-width: 768px)").matches;
 

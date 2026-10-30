@@ -50,7 +50,8 @@ async function canEdit(c: C, task: TaskRow): Promise<boolean> {
 }
 
 const mentionNames = (text: string) =>
-  [...text.matchAll(/@([\w.-]+)/g)].map((m) => (m[1] ?? "").toLowerCase());
+  // A handle ends on a word character, so "@lucia." at a sentence end is lucia.
+  [...text.matchAll(/@([\w.-]*\w)/g)].map((m) => (m[1] ?? "").toLowerCase());
 
 const collaboratorTarget = (c: C, userId: string) =>
   userId === "me" ? c.get("user").id : userId;
@@ -143,7 +144,7 @@ taskRoutes.put("/tasks/:key/collaborators/:userId", async (c) => {
   if (!joinsSelf && !(await canEdit(c, task)))
     throw new HttpError(
       403,
-      "solo el responsable o un líder puede agregar a otras personas",
+      "solo el responsable, un colaborador o un líder puede agregar a otras personas",
     );
   if (!(await addCollaborator(c.env.DB, task.id, target)))
     throw new HttpError(404, "usuario no encontrado");

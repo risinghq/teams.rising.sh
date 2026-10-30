@@ -1,55 +1,74 @@
 import { afterAll, beforeAll, expect, test, setDefaultTimeout } from "bun:test";
 import { readdirSync, readFileSync } from "node:fs";
 import type { Miniflare } from "miniflare";
-import { HOST_TIMEOUT, migratedDb } from "./support";
+import {
+  applyMigrations,
+  emptyDb,
+  HOST_TIMEOUT,
+  migrationFiles,
+  sqlStatements,
+} from "./support";
 
 setDefaultTimeout(HOST_TIMEOUT);
 
 let mf: Miniflare;
 let DB: D1Database;
 
+const dir = new URL("../scripts/once/", import.meta.url);
+
+const scripts = readdirSync(dir)
+  .filter((f) => f.endsWith(".sql"))
+  .sort()
+  .map((file) => {
+    const sql = readFileSync(new URL(file, dir), "utf8");
+    return { file, sql, after: /^-- after: (\S+)$/m.exec(sql)?.[1] };
+  });
+
 beforeAll(async () => {
-  ({ mf, DB } = await migratedDb("once"));
-  // Production state before the scripts: one team and one signed-in user.
-  await DB.batch([
-    DB.prepare(
-      "INSERT INTO teams (id, key, name, description) VALUES ('t-ais', 'AIS', 'AI for Science', 'A testing group!')",
-    ),
-    DB.prepare(
-      "INSERT INTO users (id, email, name, is_admin) VALUES ('u-signed-in', 'dadch1404@gmail.com', 'David', 1)",
-    ),
-  ]);
+  ({ mf, DB } = await emptyDb("once"));
 });
 
 afterAll(() => mf.dispose());
 
-const dir = new URL("../scripts/once/", import.meta.url);
+const run = (sql: string) =>
+  DB.batch(sqlStatements(sql).map((s) => DB.prepare(s)));
 
-async function apply(file: string) {
-  const sql = readFileSync(new URL(file, dir), "utf8");
-  const statements = sql
-    .split(/;\s*\n/)
-    .map((s) => s.replace(/^--.*$/gm, "").trim())
-    .filter(Boolean);
-  await DB.batch(statements.map((s) => DB.prepare(s)));
-}
+test("every one-time script names a migration that exists", () => {
+  const migrations = migrationFiles();
+  for (const { file, after } of scripts)
+    expect({ file, after: migrations.includes(after ?? "") }).toEqual({
+      file,
+      after: true,
+    });
+});
 
-// The runner refuses a second run, but a run that fails halfway on --remote
-// leaves its first statements applied, so every script must survive a rerun.
-test("every one-time script applies twice on a migrated database", async () => {
-  for (const file of readdirSync(dir)
-    .filter((f) => f.endsWith(".sql"))
-    .sort()) {
-    await apply(file);
-    await apply(file);
+// Production runs each script between the migrations around it, and later
+// migrations then run on its rows. The runner refuses a second run, but a run
+// that fails halfway on --remote leaves its first statements applied, so every
+// script must survive a rerun.
+test("scripts apply twice in production order and later migrations run on their rows", async () => {
+  const pending = migrationFiles();
+  const migrateThrough = (last: string) =>
+    applyMigrations(DB, pending.splice(0, pending.indexOf(last) + 1));
+  await migrateThrough(scripts[0]!.after!);
+  // Production state before the scripts: one team and one signed-in user.
+  await run(`
+    INSERT INTO teams (id, key, name) VALUES ('t-ais', 'AIS', 'AI for Science');
+    INSERT INTO users (id, email, name, is_admin) VALUES ('u-signed-in', 'dadch1404@gmail.com', 'David', 1);
+  `);
+  for (const { sql, after } of scripts) {
+    await migrateThrough(after!);
+    await run(sql);
+    await run(sql);
   }
+  await applyMigrations(DB, pending);
 });
 
 test("the AI PlayGrounds script keeps the existing team and adds the rest", async () => {
-  await apply("2026-10-30-aiplaygrounds-teams.sql");
   const { results } = await DB.prepare(
-    "SELECT id, key, description FROM teams ORDER BY key",
-  ).all<{ id: string; key: string; description: string }>();
+    "SELECT id, key FROM teams ORDER BY key",
+  ).all<{ id: string; key: string }>();
+  expect(results).toContainEqual({ id: "t-ais", key: "AIS" });
   expect(results.map((t) => t.key)).toEqual([
     "ACAD",
     "AIF",
@@ -59,15 +78,9 @@ test("the AI PlayGrounds script keeps the existing team and adds the rest", asyn
     "COM",
     "LABS",
   ]);
-  const ais = results.find((t) => t.key === "AIS");
-  expect(ais?.id).toBe("t-ais");
-  expect(ais?.description).toStartWith(
-    "Cómo la IA aporta al trabajo científico",
-  );
 });
 
 test("the demo script gives the signed-in user work and adds no second David", async () => {
-  await apply("2026-10-30-demo-people-and-work.sql");
   const users = await DB.prepare(
     "SELECT email, is_admin FROM users WHERE email LIKE '%@gmail.com' ORDER BY email",
   ).all<{ email: string; is_admin: number }>();

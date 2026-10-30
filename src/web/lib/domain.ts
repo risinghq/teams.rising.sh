@@ -20,7 +20,6 @@ export const STATUS_LABEL: Record<TaskStatus, string> = {
 };
 
 // Indexed by the task's `priority`, 0 to 3.
-export const PRIORITY_LABEL = ["Sin prioridad", "Baja", "Media", "Urgente"];
 
 // The status a form value or URL parameter names, or undefined when it names none.
 export const parseStatus = (value: unknown): TaskStatus | undefined =>

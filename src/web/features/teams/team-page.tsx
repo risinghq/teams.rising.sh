@@ -35,7 +35,6 @@ export function TeamPage({ team }: { team: string }) {
         <PageHeader
           title={teamRow?.name ?? team}
           icon={<TeamMark teamKey={team} size={32} />}
-          description={teamRow?.description}
           action={
             role === "leader" && (
               <Tooltip>

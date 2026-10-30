@@ -56,10 +56,7 @@ export function Privacy() {
           Lo que escribes en Teams: tareas, comentarios, proyectos, eventos y
           etiquetas.
         </li>
-        <li>
-          Si lo configura tu equipo: el número de WhatsApp y los mensajes que
-          envías al número de Teams, y las referencias a tareas en GitHub.
-        </li>
+        <li>Si lo configura tu equipo: las referencias a tareas en GitHub.</li>
       </ul>
       <h2>Google Calendar</h2>
       <p>

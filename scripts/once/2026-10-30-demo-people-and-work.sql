@@ -1,3 +1,4 @@
+-- after: 0004_script_runs.sql
 -- Fills the disposable environment so every screen has something to show:
 -- David and Pedro as admins and leaders, eight fictional people, and the work
 -- of each team. Fictional people use the reserved example.test domain, which

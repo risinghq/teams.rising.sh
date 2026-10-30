@@ -19,20 +19,3 @@ export async function teamsOf(db: D1Database, userId: string) {
     .all<Me["teams"][number]>();
   return results;
 }
-
-// False when another user already holds the number.
-export async function setWhatsappNumber(
-  db: D1Database,
-  userId: string,
-  number: string | null,
-): Promise<boolean> {
-  try {
-    await db
-      .prepare("UPDATE users SET whatsapp_number = ? WHERE id = ?")
-      .bind(number, userId)
-      .run();
-    return true;
-  } catch {
-    return false;
-  }
-}

@@ -150,7 +150,6 @@ test("a patch writes timeline rows for status, owner and due only", async () => 
     due_date: "2026-11-01",
     owner_id: null,
     title: "renamed",
-    priority: 2,
   });
   const detail = await call(admin, "GET", path);
   const kinds = detail.body.updates.map((u: { kind: string }) => u.kind).sort();
@@ -192,7 +191,7 @@ test("a mention puts the comment in the inbox until it is read", async () => {
   });
   const path = `/api/tasks/${task.body.key}`;
   await call(admin, "POST", `${path}/updates`, {
-    body: `hello @ana-${run}`,
+    body: `hello @ana-${run}.`,
   });
   const inbox = await call(ana, "GET", "/api/inbox");
   expect(inbox.body.unread).toBe(1);
@@ -374,7 +373,6 @@ test("paging returns every task once and sets the cursor only when more remain",
       team,
       title: `task ${i}`,
       due_date,
-      priority: i % 2,
     });
   }
   const everything = await call(admin, "GET", `/api/tasks?team=${team}`);
@@ -520,13 +518,6 @@ test("a malformed body gets a 400 in Spanish that names the field", async () => 
       "title no puede superar 300 caracteres",
     ],
     [
-      "priority out of range",
-      "POST",
-      "/api/tasks",
-      { team, title: "t", priority: 9 },
-      "priority debe ser un entero de 0 a 3",
-    ],
-    [
       "status unknown",
       "POST",
       "/api/tasks",
@@ -567,13 +558,6 @@ test("a malformed body gets a 400 in Spanish that names the field", async () => 
       "/api/events",
       { title: "e", starts_at: "nope" },
       "starts_at debe ser una fecha y hora válida",
-    ],
-    [
-      "whatsapp number",
-      "PUT",
-      "/api/me/whatsapp",
-      { number: "12" },
-      "number debe tener de 8 a 15 dígitos, con código de país",
     ],
   ];
   const results = [];

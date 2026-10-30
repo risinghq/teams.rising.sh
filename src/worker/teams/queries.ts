@@ -4,7 +4,7 @@ export type TeamRow = Omit<Team, "members">;
 
 export function findTeam(db: D1Database, key: string) {
   return db
-    .prepare("SELECT id, key, name, description FROM teams WHERE key = ?")
+    .prepare("SELECT id, key, name FROM teams WHERE key = ?")
     .bind(key.toUpperCase())
     .first<TeamRow>();
 }
@@ -12,7 +12,7 @@ export function findTeam(db: D1Database, key: string) {
 export function findTeamWithCount(db: D1Database, key: string) {
   return db
     .prepare(
-      `SELECT t.id, t.key, t.name, t.description,
+      `SELECT t.id, t.key, t.name,
          (SELECT COUNT(*) FROM team_members m WHERE m.team_id = t.id) AS members
        FROM teams t WHERE t.key = ?`,
     )
@@ -23,7 +23,7 @@ export function findTeamWithCount(db: D1Database, key: string) {
 export async function listTeams(db: D1Database): Promise<Team[]> {
   const { results } = await db
     .prepare(
-      `SELECT t.id, t.key, t.name, t.description,
+      `SELECT t.id, t.key, t.name,
          (SELECT COUNT(*) FROM team_members m WHERE m.team_id = t.id) AS members
        FROM teams t ORDER BY t.name`,
     )
@@ -49,16 +49,14 @@ export async function listMembers(
 // False when the key is taken or a leader does not exist.
 export async function insertTeam(
   db: D1Database,
-  team: { id: string; key: string; name: string; description: string },
+  team: { id: string; key: string; name: string },
   leaders: string[],
 ): Promise<boolean> {
   try {
     await db.batch([
       db
-        .prepare(
-          "INSERT INTO teams (id, key, name, description) VALUES (?, ?, ?, ?)",
-        )
-        .bind(team.id, team.key, team.name, team.description),
+        .prepare("INSERT INTO teams (id, key, name) VALUES (?, ?, ?)")
+        .bind(team.id, team.key, team.name),
       ...leaders.map((userId) =>
         db
           .prepare(
@@ -77,11 +75,10 @@ export async function updateTeam(
   db: D1Database,
   teamId: string,
   name: string,
-  description: string,
 ): Promise<void> {
   await db
-    .prepare("UPDATE teams SET name = ?, description = ? WHERE id = ?")
-    .bind(name, description, teamId)
+    .prepare("UPDATE teams SET name = ? WHERE id = ?")
+    .bind(name, teamId)
     .run();
 }
 

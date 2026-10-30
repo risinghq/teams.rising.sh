@@ -57,8 +57,7 @@ on wide screens; a modified click, or a narrow screen, goes to the page.
 ## Data
 
 - `src/web/api.ts` is the HTTP client. It has no labels and no business rules.
-- `src/web/lib/domain.ts` owns the Spanish labels for status, priority and
-  roles.
+- `src/web/lib/domain.ts` owns the Spanish labels for status and roles.
 - `src/web/lib/tasks.ts` `taskQuery` turns a list's filters into the
   `GET /api/tasks` query. `due=overdue` means open and due before today;
   `due=week` means open and due from today to seven days ahead.

@@ -16,7 +16,6 @@ export function NewTeam() {
   const navigate = useNavigate();
   const [key, setKey] = useState("");
   const [name, setName] = useState("");
-  const [description, setDescription] = useState("");
   const create = useCreateTeam();
   if (me && !me.is_admin)
     return (
@@ -45,7 +44,7 @@ export function NewTeam() {
           e.preventDefault();
           if (!valid || !me) return;
           create.mutate(
-            { key, name: name.trim(), description, leaders: [me.id] },
+            { key, name: name.trim(), leaders: [me.id] },
             {
               onSuccess: () =>
                 void navigate({
@@ -82,15 +81,6 @@ export function NewTeam() {
           <p id="team-key-hint" className="text-xs text-muted-foreground">
             {`De 2 a 6 letras o números. Numera las tareas, como en ${key || "AIS"}-12, y las ramas la usan para enlazarse a una tarea.`}
           </p>
-        </div>
-        <div className="flex flex-col gap-2">
-          <Label htmlFor="team-description">Descripción</Label>
-          <Textarea
-            id="team-description"
-            value={description}
-            onChange={(e) => setDescription(e.target.value)}
-            rows={3}
-          />
         </div>
         <div className="flex justify-end">
           <Button type="submit" disabled={!valid || create.isPending}>

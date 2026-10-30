@@ -1,5 +1,4 @@
-// GitHub and WhatsApp sign a webhook body the same way: HMAC-SHA256 as hex in
-// `sha256=<hex>`.
+// GitHub signs a webhook body with HMAC-SHA256 as hex in `sha256=<hex>`.
 const hex = (buf: ArrayBuffer) =>
   [...new Uint8Array(buf)].map((b) => b.toString(16).padStart(2, "0")).join("");
 

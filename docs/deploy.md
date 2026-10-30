@@ -16,8 +16,6 @@ them.
 | `GOOGLE_CLIENT_ID`      | OAuth client id from Google Cloud Console.                                        |
 | `GOOGLE_CLIENT_SECRET`  | OAuth client secret.                                                              |
 | `GITHUB_WEBHOOK_SECRET` | Shared secret of the GitHub webhook at `/hooks/github`.                           |
-| `WHATSAPP_APP_SECRET`   | Meta app secret that signs WhatsApp webhook posts.                                |
-| `WHATSAPP_VERIFY_TOKEN` | Token Meta sends in the subscription handshake. Choose any random string.         |
 | `ALLOWED_DOMAINS`       | Comma-separated email domains allowed to sign in.                                 |
 | `ALLOWED_EMAILS`        | Comma-separated emails allowed to sign in. Use it for addresses outside a domain. |
 
@@ -28,8 +26,6 @@ When neither allow-list is set, nobody can sign in. `DEV_LOGIN=1` enables
 wrangler secret put GOOGLE_CLIENT_ID
 wrangler secret put GOOGLE_CLIENT_SECRET
 wrangler secret put GITHUB_WEBHOOK_SECRET
-wrangler secret put WHATSAPP_APP_SECRET
-wrangler secret put WHATSAPP_VERIFY_TOKEN
 ```
 
 ## Google OAuth client

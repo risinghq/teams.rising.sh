@@ -97,13 +97,13 @@ const cases: Case[] = [
     want: ["task ENG-1"],
   },
   {
-    write: "joinTask",
-    run: () => invalidatedBy("joinTask", { key: "ENG-1" }),
+    write: "addCollaborator",
+    run: () => invalidatedBy("addCollaborator", { key: "ENG-1" }),
     want: ["task list", "my tasks", "task peek", "task ENG-1"],
   },
   {
-    write: "leaveTask",
-    run: () => invalidatedBy("leaveTask", { key: "ENG-1" }),
+    write: "removeCollaborator",
+    run: () => invalidatedBy("removeCollaborator", { key: "ENG-1" }),
     want: ["task list", "my tasks", "task peek", "task ENG-1"],
   },
   {
