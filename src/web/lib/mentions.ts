@@ -1,9 +1,9 @@
 import type { User } from "@shared/types";
 
-// The server resolves `@handle` to the user whose email local part is the
-// handle, so the picker inserts that part.
-export const mentionHandle = (u: Pick<User, "email">) =>
-  u.email.split("@")[0] ?? "";
+// A person's chosen username, or the local part of their email until they
+// pick one. The server resolves `@handle` by the same rule.
+export const mentionHandle = (u: Pick<User, "email" | "username">) =>
+  u.username ?? u.email.split("@")[0] ?? "";
 
 // The `@word` the caret is in, if any. An `@` counts only at the start of the
 // text or after a space, so an email address typed in full opens nothing.

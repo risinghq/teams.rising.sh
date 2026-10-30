@@ -109,11 +109,17 @@ export function SidebarContent({
         ))}
       </nav>
       {me.data && (
-        <div className="flex items-center gap-3 border-t px-3 pt-4">
-          <PersonAvatar person={me.data} size={28} />
-          <span className="min-w-0 flex-1 truncate text-xs">
-            {me.data.name}
-          </span>
+        <div className="flex items-center gap-1 border-t pt-4">
+          <Link
+            to="/perfil"
+            onClick={onNavigate}
+            aria-label="Perfil"
+            className="flex min-w-0 flex-1 items-center gap-3 rounded-lg px-3 py-1 text-xs hover:bg-muted/50 focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-ring"
+            activeProps={NAV_LINK_ON}
+          >
+            <PersonAvatar person={me.data} size={28} />
+            <span className="min-w-0 flex-1 truncate">{me.data.name}</span>
+          </Link>
           <Button
             variant="link"
             size="xs"

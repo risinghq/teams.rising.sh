@@ -77,7 +77,11 @@ export type Me = {
   id: string;
   email: string;
   name: string;
+  username: string | null;
   avatar_url: string | null;
+  // A number stays unverified until its owner confirms it from WhatsApp.
+  whatsapp_number: string | null;
+  whatsapp_verified: boolean;
   is_admin: boolean;
   teams: { key: string; name: string; role: "leader" | "member" }[];
 };
@@ -86,6 +90,7 @@ export type Team = {
   id: string;
   key: string;
   name: string;
+  image_url: string | null;
   members: number;
 };
 
@@ -113,7 +118,11 @@ export type ProjectBase = {
 
 export type Project = ProjectBase & ProjectCounts;
 
-export type User = Person & { email: string; kind: string };
+export type User = Person & {
+  email: string;
+  username: string | null;
+  kind: string;
+};
 
 export type CalEvent = {
   id: string;

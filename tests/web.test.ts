@@ -198,10 +198,15 @@ describe("searchPalette", () => {
 });
 
 describe("mentions", () => {
-  const person = (name: string, email: string): User => ({
+  const person = (
+    name: string,
+    email: string,
+    username: string | null = null,
+  ): User => ({
     id: email,
     name,
     email,
+    username,
     avatar_url: null,
     kind: "person",
   });
@@ -235,6 +240,11 @@ describe("mentions", () => {
     expect(
       insertMention("hola @pe y más", 5, 8, mentionHandle(people[2]!)),
     ).toEqual({ text: "hola @pedro.rojas.f24  y más", caret: 22 });
+  });
+  test("a chosen username replaces the email handle", () => {
+    expect(mentionHandle(person("Pedro Rojas", "pedro@x.test", "pedro"))).toBe(
+      "pedro",
+    );
   });
 });
 

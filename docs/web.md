@@ -25,6 +25,7 @@ and paging are the server's.
 | `/t/$team/$number`  | One task as a page                                      |
 | `/t/$team/settings` | Team settings                                           |
 | `/teams/new`        | New team                                                |
+| `/perfil`           | Perfil: picture, name, username, WhatsApp number        |
 | `/login`            | Sign in                                                 |
 | `/privacidad`       | Privacy                                                 |
 | `/terminos`         | Terms                                                   |
@@ -57,7 +58,9 @@ grouped by due date, Mi trabajo's shortcut cards set and clear `due` and
 `status=blocked`, and a project card sets `project`.
 
 A comment or description shows its URLs as links and an image URL as a thumbnail
-under the text.
+under the text. An image pasted or dropped into the comment box is uploaded and
+its full URL added to the text on its own line, since only absolute URLs become
+links.
 
 A task row is a link to `/t/$team/$number`. A plain click opens the side panel
 on wide screens; a modified click, or a narrow screen, goes to the page.

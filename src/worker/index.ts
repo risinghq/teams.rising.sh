@@ -2,6 +2,7 @@ import { Hono } from "hono";
 import { authRoutes, requireUser } from "./auth/routes";
 import type { Env } from "./env";
 import { eventRoutes } from "./events/routes";
+import { fileRoutes } from "./files/routes";
 import { githubRoutes } from "./github/routes";
 import { HttpError } from "./http";
 import { inboxRoutes } from "./inbox/routes";
@@ -42,6 +43,7 @@ for (const routes of [
   eventRoutes,
   inboxRoutes,
   overviewRoutes,
+  fileRoutes,
 ]) {
   api.route("/", routes);
 }

@@ -18,12 +18,38 @@ request without one gets 401.
 | `GET /api/auth/google`          | Redirects to Google sign-in.                                                                                |
 | `GET /api/auth/google/callback` | Creates the user and session, sets the `session` cookie (HttpOnly, Secure, SameSite=Lax), redirects to `/`. |
 | `POST /api/auth/logout`         | Deletes the session.                                                                                        |
-| `GET /api/me`                   | The user, their teams with roles, and `is_admin`.                                                           |
+| `GET /api/me`                   | The user, their profile, their teams with roles, and `is_admin`.                                            |
 | `POST /api/auth/dev`            | Signs in by email without Google. Exists only when `DEV_LOGIN=1`, for tests and local runs. Otherwise 404.  |
 
 Sign-in is limited to the Google Workspace domain or email list in the
 `ALLOWED_EMAILS` and `ALLOWED_DOMAINS` settings. The first user to sign in
-becomes an admin.
+becomes an admin. Sign-in takes the name and picture from Google only for a new
+user, or a picture for a user with none; after that the profile owns them.
+
+## Profile
+
+`PATCH /api/me` changes the caller's `name`, `username`, `avatar_url` and
+`whatsapp_number`, and returns the same shape as `GET /api/me`. A field left out
+keeps its value; `null` clears it.
+
+- `username` is lowercased and must match `[a-z0-9][a-z0-9._-]{1,29}`. It is the
+  handle for mentions. It may not equal another user's username or the part of
+  their email before the `@`. A taken handle gets 409.
+- `whatsapp_number` drops spaces, parentheses and hyphens and must then be `+`
+  and 8 to 15 digits. A number held by another user gets 409. A new number is
+  unverified: `whatsapp_verified` turns false until it is confirmed, and no
+  confirmation flow exists yet.
+- `avatar_url`, and a team's `image_url`, take a `/api/files/...` path or an
+  `https://` address.
+
+## Files
+
+| Route                 | Behavior                                                                                                                                                                                             |
+| --------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `POST /api/files`     | The body is the raw image, with its type in `content-type`. PNG, JPEG, GIF, WebP and AVIF only (415 otherwise; SVG can carry script). At most 5 MB (413). Returns 201 `{"url": "/api/files/<key>"}`. |
+| `GET /api/files/:key` | The stored image, cached as immutable. Needs a session like every other route.                                                                                                                       |
+
+Files live in the R2 bucket `teams-files`, bound as `FILES`.
 
 ## Resources
 
@@ -31,7 +57,7 @@ becomes an admin.
 | --------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `GET /api/users`                                          | All users, for pickers.                                                                                                                                                                                          |
 | `GET/POST /api/teams`                                     | List teams with member counts. Admin creates. Create and patch return the team with its `members` count.                                                                                                         |
-| `GET/PATCH /api/teams/:key`                               | Team with members and roles. Leader or admin patches.                                                                                                                                                            |
+| `GET/PATCH /api/teams/:key`                               | Team with members and roles. Leader or admin patches `name` and `image_url`.                                                                                                                                     |
 | `PUT/DELETE /api/teams/:key/members/:userId`              | Leader or admin sets role or removes.                                                                                                                                                                            |
 | `GET/POST /api/teams/:key/projects`                       | List and create projects. The list adds `open`, `progress` and `next_due` to each project (see Project counts).                                                                                                  |
 | `PATCH /api/projects/:id`                                 | Update a project.                                                                                                                                                                                                |
