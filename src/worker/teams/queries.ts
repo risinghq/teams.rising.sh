@@ -4,7 +4,7 @@ export type TeamRow = Omit<Team, "members">;
 
 export function findTeam(db: D1Database, key: string) {
   return db
-    .prepare("SELECT id, key, name FROM teams WHERE key = ?")
+    .prepare("SELECT id, key, name, image_url FROM teams WHERE key = ?")
     .bind(key.toUpperCase())
     .first<TeamRow>();
 }
@@ -12,7 +12,7 @@ export function findTeam(db: D1Database, key: string) {
 export function findTeamWithCount(db: D1Database, key: string) {
   return db
     .prepare(
-      `SELECT t.id, t.key, t.name,
+      `SELECT t.id, t.key, t.name, t.image_url,
          (SELECT COUNT(*) FROM team_members m WHERE m.team_id = t.id) AS members
        FROM teams t WHERE t.key = ?`,
     )
@@ -23,7 +23,7 @@ export function findTeamWithCount(db: D1Database, key: string) {
 export async function listTeams(db: D1Database): Promise<Team[]> {
   const { results } = await db
     .prepare(
-      `SELECT t.id, t.key, t.name,
+      `SELECT t.id, t.key, t.name, t.image_url,
          (SELECT COUNT(*) FROM team_members m WHERE m.team_id = t.id) AS members
        FROM teams t ORDER BY t.name`,
     )
@@ -74,11 +74,11 @@ export async function insertTeam(
 export async function updateTeam(
   db: D1Database,
   teamId: string,
-  name: string,
+  fields: { name: string; image_url: string | null },
 ): Promise<void> {
   await db
-    .prepare("UPDATE teams SET name = ? WHERE id = ?")
-    .bind(name, teamId)
+    .prepare("UPDATE teams SET name = ?, image_url = ? WHERE id = ?")
+    .bind(fields.name, fields.image_url, teamId)
     .run();
 }
 

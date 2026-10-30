@@ -10,6 +10,7 @@ import type {
   Update,
 } from "../../shared/types";
 import { visible } from "../access";
+import { EMAIL_LOCAL_PART } from "../users/queries";
 import type { SessionUser } from "../env";
 import { id } from "../http";
 import { after, cursorOf, ORDER_BY } from "./page";
@@ -343,7 +344,8 @@ export async function mentionedUserIds(
   const { results } = await db
     .prepare(
       `SELECT id FROM users WHERE EXISTS (
-         SELECT 1 FROM json_each(?) j WHERE lower(users.email) LIKE j.value || '@%'
+         SELECT 1 FROM json_each(?) j WHERE users.username = j.value
+           OR ${EMAIL_LOCAL_PART} = j.value
            OR lower(replace(users.name, ' ', '')) = j.value)`,
     )
     .bind(JSON.stringify(names))

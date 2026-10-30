@@ -11,7 +11,8 @@ function hueOf(teamKey: string, keys: string[]) {
   return index < 0 ? FIRST_HUE : (FIRST_HUE + index * GOLDEN_ANGLE) % 360;
 }
 
-// A colored square with the team's initial, the same color everywhere.
+// The team's picture, or a colored square with its initial, the same color
+// everywhere.
 export function TeamMark({
   teamKey,
   size = 20,
@@ -19,7 +20,18 @@ export function TeamMark({
   teamKey: string;
   size?: number;
 }) {
-  const keys = (useTeams().data ?? []).map((t) => t.key).sort();
+  const teams = useTeams().data ?? [];
+  const image = teams.find((t) => t.key === teamKey)?.image_url;
+  if (image)
+    return (
+      <img
+        src={image}
+        alt=""
+        style={{ width: size, height: size }}
+        className="shrink-0 rounded-[5px] object-cover"
+      />
+    );
+  const keys = teams.map((t) => t.key).sort();
   return (
     <span
       aria-hidden

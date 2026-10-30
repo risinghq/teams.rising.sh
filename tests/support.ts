@@ -30,6 +30,7 @@ export async function emptyDb(name: string) {
     modules: true,
     script: "export default { fetch() { return new Response('') } }",
     d1Databases: { DB: name },
+    r2Buckets: ["FILES"],
   });
   return { mf, DB: await mf.getD1Database("DB") };
 }

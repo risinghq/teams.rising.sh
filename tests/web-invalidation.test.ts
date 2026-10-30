@@ -146,6 +146,11 @@ const cases: Case[] = [
     run: () => invalidatedBy("createLabel", {}),
     want: ["labels"],
   },
+  {
+    write: "patchMe",
+    run: () => invalidatedBy("patchMe", {}),
+    want: Object.keys(cached) as Cached[],
+  },
 ];
 
 describe("what a write invalidates", () => {

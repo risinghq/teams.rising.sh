@@ -14,7 +14,12 @@ beforeAll(async () => {
   const started = await migratedDb("test");
   mf = started.mf;
   const DB = started.DB;
-  env = { DB, ASSETS: { fetch: () => new Response("asset") }, DEV_LOGIN: "1" };
+  env = {
+    DB,
+    FILES: await mf.getR2Bucket("FILES"),
+    ASSETS: { fetch: () => new Response("asset") },
+    DEV_LOGIN: "1",
+  };
 });
 
 afterAll(() => mf.dispose());
@@ -202,6 +207,104 @@ test("a mention puts the comment in the inbox until it is read", async () => {
     (i: { task_key: string }) => i.task_key === task.body.key,
   );
   expect(own).toEqual([]);
+});
+
+test("a profile picks the handle that mentions, and sign-in keeps the profile", async () => {
+  const admin = await login(`admin-${run}@x.test`);
+  const cleo = await login(`cleo-${run}@x.test`, "Cleo");
+  const dan = await login(`dan-${run}@x.test`, "Dan");
+  const handle = `cq${run}`;
+
+  const saved = await call(cleo, "PATCH", "/api/me", {
+    name: "Cleo Quispe",
+    username: handle.toUpperCase(),
+  });
+  expect(saved.body).toMatchObject({ name: "Cleo Quispe", username: handle });
+  await login(`cleo-${run}@x.test`, "Name From Google");
+  expect((await call(cleo, "GET", "/api/me")).body.name).toBe("Cleo Quispe");
+
+  for (const taken of [handle, `cleo-${run}`]) {
+    const res = await call(dan, "PATCH", "/api/me", { username: taken });
+    expect([res.status, res.body.error]).toEqual([
+      409,
+      "ese nombre de usuario ya lo usa otra persona",
+    ]);
+  }
+
+  const team = key(16);
+  await call(admin, "POST", "/api/teams", { key: team, name: "Handles" });
+  const task = await call(admin, "POST", "/api/tasks", { team, title: "hi" });
+  await call(admin, "POST", `/api/tasks/${task.body.key}/updates`, {
+    body: `look @${handle}`,
+  });
+  expect((await call(cleo, "GET", "/api/inbox")).body.unread).toBe(1);
+});
+
+test("a WhatsApp number is stored unverified and belongs to one person", async () => {
+  const eva = await login(`eva-${run}@x.test`, "Eva");
+  const fer = await login(`fer-${run}@x.test`, "Fer");
+  const number = "+51 987 654 321";
+  const saved = await call(eva, "PATCH", "/api/me", {
+    whatsapp_number: number,
+  });
+  expect(saved.body).toMatchObject({
+    whatsapp_number: number.replaceAll(" ", ""),
+    whatsapp_verified: false,
+  });
+  expect(
+    (await call(fer, "PATCH", "/api/me", { whatsapp_number: number })).status,
+  ).toBe(409);
+  const bad = await call(fer, "PATCH", "/api/me", { whatsapp_number: "987" });
+  expect(bad.status).toBe(400);
+});
+
+test("an uploaded image is served back, and only images are accepted", async () => {
+  const admin = await login(`admin-${run}@x.test`);
+  const upload = (who: Session | null, type: string, body: string) =>
+    app.request(
+      "/api/files",
+      {
+        method: "POST",
+        headers: {
+          ...(who ? { cookie: who.cookie } : {}),
+          "content-type": type,
+        },
+        body,
+      },
+      env,
+    );
+  const gif = "GIF89a-not-really";
+
+  const res = await upload(admin, "image/gif", gif);
+  expect(res.status).toBe(201);
+  const { url } = (await res.json()) as { url: string };
+  expect(url).toMatch(/^\/api\/files\/[\w-]+\.gif$/);
+  const served = await app.request(
+    url,
+    { headers: { cookie: admin.cookie } },
+    env,
+  );
+  expect(served.headers.get("content-type")).toBe("image/gif");
+  expect(served.headers.get("x-content-type-options")).toBe("nosniff");
+  expect(await served.text()).toBe(gif);
+
+  expect((await upload(admin, "image/svg+xml", gif)).status).toBe(415);
+  expect((await upload(null, "image/gif", gif)).status).toBe(401);
+
+  const team = key(17);
+  await call(admin, "POST", "/api/teams", { key: team, name: "Pics" });
+  const patched = await call(admin, "PATCH", `/api/teams/${team}`, {
+    image_url: url,
+  });
+  expect(patched.body.image_url).toBe(url);
+  const listed = (await call(admin, "GET", "/api/teams")).body.find(
+    (t: { key: string }) => t.key === team,
+  );
+  expect(listed).toMatchObject({ name: "Pics", image_url: url });
+  const unsafe = await call(admin, "PATCH", `/api/teams/${team}`, {
+    image_url: "javascript:alert(1)",
+  });
+  expect(unsafe.status).toBe(400);
 });
 
 test("a reaction toggles per person and shows who reacted", async () => {

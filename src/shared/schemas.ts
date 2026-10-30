@@ -70,9 +70,59 @@ export const createTeam = z.object({
   leaders: ids("leaders").default([]),
 });
 
+// An uploaded file or an image elsewhere on the web.
+const imageUrl = (field: string) =>
+  z
+    .string(wrong(field, "texto"))
+    .regex(
+      /^(\/api\/files\/[\w.-]+|https:\/\/\S+)$/,
+      `${field} debe ser un archivo subido o una dirección https`,
+    )
+    .nullable();
+
 export const patchTeam = z.object({
   name: text("name", 100).optional(),
+  image_url: imageUrl("image_url").optional(),
 });
+
+export const patchMe = z.object({
+  name: text("name", 100).optional(),
+  username: z
+    .string(wrong("username", "texto"))
+    .trim()
+    .toLowerCase()
+    .regex(
+      /^[a-z0-9][a-z0-9._-]{1,29}$/,
+      "username debe tener de 2 a 30 letras, números, puntos, guiones o guiones bajos",
+    )
+    .nullable()
+    .optional(),
+  avatar_url: imageUrl("avatar_url").optional(),
+  whatsapp_number: z
+    .string(wrong("whatsapp_number", "texto"))
+    .transform((s) => s.replace(/[\s()-]/g, ""))
+    .pipe(
+      z
+        .string()
+        .regex(
+          /^\+[1-9]\d{7,14}$/,
+          "whatsapp_number debe incluir el código de país, como +51 987 654 321",
+        ),
+    )
+    .nullable()
+    .optional(),
+});
+export type PatchMe = z.infer<typeof patchMe>;
+
+// Images a browser shows inline. SVG is left out: it can carry script.
+export const UPLOAD_TYPES = {
+  "image/png": "png",
+  "image/jpeg": "jpg",
+  "image/gif": "gif",
+  "image/webp": "webp",
+  "image/avif": "avif",
+} as const;
+export const UPLOAD_MAX_BYTES = 5 * 1024 * 1024;
 
 export const setMember = z.object({
   role: oneOf("role", ["leader", "member"]).default("member"),

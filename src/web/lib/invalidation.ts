@@ -57,6 +57,8 @@ export const invalidations = {
   removeMember: (a: { team: string }) =>
     byKey(k.teams.detail(a.team), k.teams.list, k.me),
   createLabel: (_: unknown) => byKey(k.labels),
+  // A person's name and picture show on almost every screen.
+  patchMe: (_: unknown) => [{}],
 } satisfies Record<string, (args: never) => readonly InvalidateQueryFilters[]>;
 
 export type WriteName = keyof typeof invalidations;

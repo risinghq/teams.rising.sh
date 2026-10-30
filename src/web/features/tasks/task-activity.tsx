@@ -1,5 +1,7 @@
 import { useState } from "react";
+import { UPLOAD_TYPES } from "@shared/schemas";
 import type { Update } from "@shared/types";
+import { useUpload } from "@/features/files/image-picker";
 import { relativeTime } from "@/lib/dates";
 import { describeUpdate } from "@/lib/updates";
 import { PersonAvatar } from "@/features/teams/person-avatar";
@@ -21,10 +23,24 @@ export function TaskActivity({
   const comment = useComment();
   const nameOf = useNameOf();
   const me = useMe().data?.id;
+  const upload = useUpload();
   const submit = () => {
     const body = text.trim();
     if (!body) return;
     comment.mutate({ key: taskKey, body }, { onSuccess: () => setText("") });
+  };
+  // A pasted or dropped image becomes a link on its own line. Comments render
+  // only absolute image links as previews, so the link carries the origin.
+  const attach = (files: FileList) => {
+    const images = [...files].filter((f) => f.type in UPLOAD_TYPES);
+    for (const file of images)
+      upload.mutate(file, {
+        onSuccess: ({ url }) =>
+          setText((t) =>
+            `${t.trimEnd()}\n${location.origin}${url}\n`.trimStart(),
+          ),
+      });
+    return images.length > 0;
   };
   return (
     <section className="px-6 py-4">
@@ -82,12 +98,28 @@ export function TaskActivity({
           value={text}
           onChange={setText}
           onSubmit={submit}
-          placeholder="Escribe una actualización. Escribe @ para avisar a alguien."
+          onPaste={(e) => {
+            if (attach(e.clipboardData.files)) e.preventDefault();
+          }}
+          onDrop={(e) => {
+            if (attach(e.dataTransfer.files)) e.preventDefault();
+          }}
+          placeholder="Escribe una actualización. Escribe @ para avisar a alguien. Pega o suelta una imagen para adjuntarla."
           rows={3}
         />
-        <Button type="submit" className="self-end" disabled={comment.isPending}>
-          Comentar
-        </Button>
+        <div className="flex items-center justify-end gap-3">
+          {upload.isPending && (
+            <span className="text-xs text-muted-foreground">
+              Subiendo imagen…
+            </span>
+          )}
+          <Button
+            type="submit"
+            disabled={comment.isPending || upload.isPending}
+          >
+            Comentar
+          </Button>
+        </div>
       </form>
     </section>
   );

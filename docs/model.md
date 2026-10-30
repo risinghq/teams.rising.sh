@@ -14,6 +14,12 @@ Org (one per deployment)
   `member`. A team has one or more leaders.
 - `users.is_admin` marks an org admin. An admin can create teams and set
   leaders.
+- A user's profile is `name`, `username`, `avatar_url` and `whatsapp_number`.
+  `username` is unique and is the mention handle; without one, the handle is the
+  part of the email before the `@`. `whatsapp_verified_at` is set when the
+  number is confirmed and cleared when it changes.
+- `teams.image_url` is the team's picture. A GIF stays animated. Without one the
+  team shows its colored initial.
 - A leader edits anything in their team. A member edits tasks they own or
   collaborate on, and comments on any task they can see.
 

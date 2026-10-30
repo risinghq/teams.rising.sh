@@ -93,6 +93,14 @@ const overview = createRoute({
     "OverviewPage",
   ),
 });
+const profile = createRoute({
+  getParentRoute: () => shell,
+  path: "/perfil",
+  component: lazyRouteComponent(
+    () => import("@/features/profile/profile-page"),
+    "ProfilePage",
+  ),
+});
 const TeamScreen = lazyRouteComponent(
   () => import("@/features/teams/team-page"),
   "TeamPage",
@@ -147,6 +155,7 @@ export const router = createRouter({
       inbox,
       calendar,
       overview,
+      profile,
       newTeam,
       team,
       settings,

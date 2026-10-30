@@ -18,6 +18,7 @@
       "migrations_dir": "migrations",
     },
   ],
+  "r2_buckets": [{ "binding": "FILES", "bucket_name": "teams-files" }],
   "routes": [{ "pattern": "teams.rising.sh", "custom_domain": true }],
   "vars": {
     "ALLOWED_DOMAINS": "rising.sh",

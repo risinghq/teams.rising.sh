@@ -59,8 +59,26 @@ async function tasksPage(query: TaskQuery, cursor?: string): Promise<TaskPage> {
   return { items: data, next: headers.get("X-Next-Cursor") };
 }
 
+// The body is the file itself; the server reads its type from content-type.
+async function upload(file: Blob): Promise<{ url: string }> {
+  const res = await fetch("/api/files", {
+    method: "POST",
+    headers: { "content-type": file.type },
+    body: file,
+  });
+  const data = (await res.json().catch(() => null)) as {
+    url?: string;
+    error?: string;
+  } | null;
+  if (!res.ok) throw new ApiError(res.status, data?.error ?? res.statusText);
+  return { url: data?.url ?? "" };
+}
+
 export const api = {
   me: () => request<Me>("GET", "/api/me"),
+  patchMe: (body: Record<string, unknown>) =>
+    request<Me>("PATCH", "/api/me", body),
+  upload,
   users: () => request<User[]>("GET", "/api/users"),
   teams: () => request<Team[]>("GET", "/api/teams"),
   team: (key: string) => request<TeamDetail>("GET", `/api/teams/${key}`),

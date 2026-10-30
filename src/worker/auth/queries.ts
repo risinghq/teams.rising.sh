@@ -1,10 +1,11 @@
 import type { SessionUser } from "../env";
+import { PROFILE_COLUMNS } from "../users/queries";
 
 export function userBySession(db: D1Database, session: string) {
   return db
     .prepare(
-      `SELECT u.id, u.email, u.name, u.avatar_url, u.is_admin FROM sessions s
-       JOIN users u ON u.id = s.user_id WHERE s.id = ? AND s.expires_at > ?`,
+      `SELECT ${PROFILE_COLUMNS} FROM sessions s
+       JOIN users ON users.id = s.user_id WHERE s.id = ? AND s.expires_at > ?`,
     )
     .bind(session, new Date().toISOString())
     .first<SessionUser>();
@@ -29,7 +30,8 @@ export async function deleteSession(
   await db.prepare("DELETE FROM sessions WHERE id = ?").bind(sessionId).run();
 }
 
-// The first human to sign in becomes an admin.
+// The first human to sign in becomes an admin. The profile owns name and
+// picture after the first sign-in; a later one only fills a missing picture.
 export async function upsertUser(
   db: D1Database,
   newId: string,
@@ -43,8 +45,10 @@ export async function upsertUser(
     .first<{ id: string }>();
   if (existing) {
     await db
-      .prepare("UPDATE users SET name = ?, avatar_url = ? WHERE id = ?")
-      .bind(name, avatar, existing.id)
+      .prepare(
+        "UPDATE users SET avatar_url = COALESCE(avatar_url, ?) WHERE id = ?",
+      )
+      .bind(avatar, existing.id)
       .run();
     return existing.id;
   }
