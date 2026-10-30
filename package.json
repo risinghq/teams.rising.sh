@@ -13,6 +13,7 @@
     "db:migrate:local": "wrangler d1 migrations apply teams --local",
     "db:seed:local": "wrangler d1 execute teams --local --file seeds/dev.sql",
     "db:migrate:remote": "wrangler d1 migrations apply teams --remote",
+    "once": "bun scripts/once.ts",
     "deploy": "bun run build && wrangler deploy"
   },
   "dependencies": {

@@ -1,5 +1,10 @@
 {
   "extends": "../tsconfig.json",
   "compilerOptions": { "types": ["bun", "@cloudflare/workers-types"] },
-  "include": ["./**/*.ts", "../src/shared/**/*.ts", "../src/worker/**/*.ts"]
+  "include": [
+    "./**/*.ts",
+    "../scripts/**/*.ts",
+    "../src/shared/**/*.ts",
+    "../src/worker/**/*.ts"
+  ]
 }
