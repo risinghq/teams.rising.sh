@@ -2,7 +2,7 @@ import clsx from "clsx";
 import { Lock } from "lucide-react";
 import type { ReactNode } from "react";
 import { STATUS_LABEL, type Person, type Task, type TaskStatus } from "./api";
-import { parseDay } from "./lib";
+import { day, linkify, parseDay } from "./lib";
 
 const STATUS_COLOR: Record<TaskStatus, string> = {
   backlog: "var(--muted-foreground)",
@@ -64,7 +64,7 @@ export function Avatar({
   if (!person)
     return (
       <span
-        title="Unassigned"
+        title="Sin asignar"
         style={{ width: size, height: size }}
         className="inline-block shrink-0 rounded-full border border-dashed"
       />
@@ -102,7 +102,7 @@ export function DueChip({ task, today }: { task: Task; today: string }) {
     task.due_date < today &&
     task.status !== "done" &&
     task.status !== "canceled";
-  const label = parseDay(task.due_date).toLocaleDateString(undefined, {
+  const label = day(parseDay(task.due_date), {
     month: "short",
     day: "numeric",
   });
@@ -163,25 +163,38 @@ export function TaskRow({
       {task.visibility === "private" && (
         <Lock
           size={12}
-          aria-label="Private"
+          aria-label="Privada"
           className="shrink-0 text-muted-foreground"
         />
       )}
       {task.subtask_count > 0 && <ProgressBar value={task.progress} />}
       <span className="hidden gap-1 sm:flex">
         {task.labels.map((l) => (
-          <span
-            key={l.id}
-            className="rounded-full border px-1.5 text-xs"
-            style={{ borderColor: l.color }}
-          >
-            {l.name}
-          </span>
+          <LabelChip key={l.id} label={l} />
         ))}
       </span>
       <DueChip task={task} today={today} />
       <Avatar person={task.owner} />
     </button>
+  );
+}
+
+// Free text with its URLs as links, such as a paper or a spreadsheet.
+export function LinkedText({ text }: { text: string }) {
+  return linkify(text).map((s, i) =>
+    s.url ? (
+      <a
+        key={i}
+        href={s.url}
+        target="_blank"
+        rel="noreferrer"
+        className="break-all text-primary underline-offset-2 hover:underline"
+      >
+        {s.text}
+      </a>
+    ) : (
+      s.text
+    ),
   );
 }
 
@@ -218,23 +231,91 @@ export function Empty({
 
 export function Header({
   title,
+  icon,
+  subtitle,
   children,
 }: {
   title: string;
+  icon?: ReactNode;
+  subtitle?: string;
   children?: ReactNode;
 }) {
   return (
     <header className="flex min-h-12 flex-wrap items-center gap-3 border-b px-4 py-2">
-      <h1 className="text-sm font-semibold">{title}</h1>
-      <div className="ml-auto flex flex-wrap items-center gap-2">
+      <div className="flex min-w-0 items-center gap-2.5">
+        {icon}
+        <div className="min-w-0">
+          <h1 className="text-sm font-semibold">{title}</h1>
+          {subtitle && (
+            <p className="truncate text-xs text-muted-foreground">{subtitle}</p>
+          )}
+        </div>
+      </div>
+      {/* One scrolling row on phones so filters don't push the list down. */}
+      <div className="ml-auto flex max-w-full items-center gap-2 overflow-x-auto p-0.5 sm:flex-wrap [&>*]:shrink-0">
         {children}
       </div>
     </header>
   );
 }
 
-export const field = "h-8 rounded-md border bg-background px-2 text-xs";
+export const field =
+  "h-8 rounded-md border bg-background px-2 text-xs transition-colors hover:border-foreground/30";
 export const button =
-  "inline-flex h-8 items-center gap-1.5 rounded-md border px-3 text-xs font-medium hover:bg-muted";
+  "press inline-flex h-8 items-center gap-1.5 rounded-md border bg-surface px-3 text-xs font-medium hover:bg-muted";
 export const primaryButton =
-  "inline-flex h-8 items-center gap-1.5 rounded-md bg-primary px-3 text-xs font-medium text-primary-foreground hover:opacity-90";
+  "press inline-flex h-8 items-center gap-1.5 rounded-md bg-primary px-3 text-xs font-medium text-primary-foreground hover:bg-[color-mix(in_oklch,var(--primary)_88%,black)] disabled:opacity-50";
+
+// Hues for team marks, spaced so neighbours in the sidebar rarely match.
+const MARK_HUES = [265, 200, 150, 35, 330, 95, 235, 10];
+
+// A colored square with the team's initial, so teams are told apart at a
+// glance. The color comes from the key, so it is stable everywhere.
+export function TeamMark({
+  teamKey,
+  size = 20,
+}: {
+  teamKey: string;
+  size?: number;
+}) {
+  const hash = [...teamKey].reduce((h, ch) => h * 31 + ch.charCodeAt(0), 7);
+  const hue = MARK_HUES[Math.abs(hash) % MARK_HUES.length];
+  return (
+    <span
+      aria-hidden
+      style={{
+        width: size,
+        height: size,
+        fontSize: size * 0.5,
+        background: `oklch(0.6 0.13 ${hue})`,
+      }}
+      className="inline-flex shrink-0 items-center justify-center rounded-[5px] font-semibold text-white"
+    >
+      {teamKey[0]}
+    </span>
+  );
+}
+
+// A label as a tinted pill with a dot in its color. The tint keeps the text
+// readable whatever color the label has.
+export function LabelChip({
+  label,
+}: {
+  label: { name: string; color: string };
+}) {
+  return (
+    <span
+      className="inline-flex h-5 shrink-0 items-center gap-1 rounded-full px-2 text-xs"
+      style={{
+        background: `color-mix(in oklch, ${label.color} 14%, transparent)`,
+      }}
+    >
+      <span
+        aria-hidden
+        className="size-1.5 rounded-full"
+        style={{ background: label.color }}
+      />
+      {label.name}
+    </span>
+  );
+}

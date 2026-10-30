@@ -1,4 +1,5 @@
 import { Link } from "@tanstack/react-router";
+import clsx from "clsx";
 import { ExternalLink, Lock, X } from "lucide-react";
 import { useState } from "react";
 import {
@@ -12,9 +13,12 @@ import {
 } from "./api";
 import {
   today,
+  useLabels,
   useMe,
   usePatchTask,
+  useProjects,
   useTask,
+  useTeams,
   useUsers,
   useWrite,
 } from "./data";
@@ -25,6 +29,7 @@ import {
   DueChip,
   Empty,
   field,
+  LinkedText,
   primaryButton,
   ProgressBar,
   Skeleton,
@@ -41,13 +46,22 @@ export function TaskView({
   const q = useTask(taskKey);
   if (q.isPending) return <Skeleton rows={4} />;
   if (q.isError)
-    return <Empty title="Task not found">It may be private or deleted.</Empty>;
+    return (
+      <Empty title="Tarea no encontrada">
+        Puede ser privada o haber sido borrada.
+      </Empty>
+    );
   return <Detail task={q.data} onClose={onClose} />;
 }
 
 function Detail({ task, onClose }: { task: TaskDetail; onClose?: () => void }) {
   const me = useMe();
   const users = useUsers();
+  const projects = useProjects(task.team);
+  const teamId = useTeams().data?.find((t) => t.key === task.team)?.id;
+  const labels = useLabels().data?.filter(
+    (l) => l.team_id === null || l.team_id === teamId,
+  );
   const patch = usePatchTask();
   const join = useWrite(() => api.join(task.key));
   const leave = useWrite(() => api.leave(task.key));
@@ -62,7 +76,7 @@ function Detail({ task, onClose }: { task: TaskDetail; onClose?: () => void }) {
           <p className="flex items-center gap-1 text-xs text-muted-foreground">
             {task.key}
             {task.visibility === "private" && (
-              <Lock size={12} aria-label="Private" />
+              <Lock size={12} aria-label="Privada" />
             )}
           </p>
           <h2 className="text-base font-semibold">{task.title}</h2>
@@ -70,7 +84,7 @@ function Detail({ task, onClose }: { task: TaskDetail; onClose?: () => void }) {
         {onClose && (
           <button
             type="button"
-            aria-label="Close"
+            aria-label="Cerrar"
             onClick={onClose}
             className="rounded-md p-1 hover:bg-muted"
           >
@@ -80,11 +94,11 @@ function Detail({ task, onClose }: { task: TaskDetail; onClose?: () => void }) {
       </header>
 
       <dl className="grid grid-cols-[6rem_1fr] items-center gap-x-3 gap-y-2 border-b px-4 py-3 text-xs">
-        <dt className="text-muted-foreground">Status</dt>
+        <dt className="text-muted-foreground">Estado</dt>
         <dd className="flex items-center gap-2">
           <StatusDot status={task.status} />
           <select
-            aria-label="Status"
+            aria-label="Estado"
             className={field}
             value={task.status}
             onChange={(e) => set({ status: e.target.value as TaskStatus })}
@@ -96,16 +110,16 @@ function Detail({ task, onClose }: { task: TaskDetail; onClose?: () => void }) {
             ))}
           </select>
         </dd>
-        <dt className="text-muted-foreground">Owner</dt>
+        <dt className="text-muted-foreground">Responsable</dt>
         <dd className="flex items-center gap-2">
           <Avatar person={task.owner} />
           <select
-            aria-label="Owner"
+            aria-label="Responsable"
             className={field}
             value={task.owner?.id ?? ""}
             onChange={(e) => set({ owner_id: e.target.value || null })}
           >
-            <option value="">Unassigned</option>
+            <option value="">Sin asignar</option>
             {users.data?.map((u) => (
               <option key={u.id} value={u.id}>
                 {u.name}
@@ -113,21 +127,21 @@ function Detail({ task, onClose }: { task: TaskDetail; onClose?: () => void }) {
             ))}
           </select>
         </dd>
-        <dt className="text-muted-foreground">Due</dt>
+        <dt className="text-muted-foreground">Entrega</dt>
         <dd className="flex items-center gap-2">
           <input
             type="date"
-            aria-label="Due date"
+            aria-label="Fecha de entrega"
             className={field}
             value={task.due_date ?? ""}
             onChange={(e) => set({ due_date: e.target.value || null })}
           />
           <DueChip task={task} today={today()} />
         </dd>
-        <dt className="text-muted-foreground">Priority</dt>
+        <dt className="text-muted-foreground">Prioridad</dt>
         <dd>
           <select
-            aria-label="Priority"
+            aria-label="Prioridad"
             className={field}
             value={task.priority}
             onChange={(e) => set({ priority: Number(e.target.value) })}
@@ -139,7 +153,67 @@ function Detail({ task, onClose }: { task: TaskDetail; onClose?: () => void }) {
             ))}
           </select>
         </dd>
-        <dt className="text-muted-foreground">Helping</dt>
+        <dt className="text-muted-foreground">Proyecto</dt>
+        <dd>
+          <select
+            aria-label="Proyecto"
+            className={field}
+            value={task.project_id ?? ""}
+            onChange={(e) => set({ project_id: e.target.value || null })}
+          >
+            <option value="">Sin proyecto</option>
+            {projects.data
+              ?.filter((p) => p.status === "active" || p.id === task.project_id)
+              .map((p) => (
+                <option key={p.id} value={p.id}>
+                  {p.name}
+                </option>
+              ))}
+          </select>
+        </dd>
+        <dt className="text-muted-foreground">Etiquetas</dt>
+        <dd className="flex flex-wrap gap-1">
+          {labels?.map((l) => {
+            const on = task.labels.some((x) => x.id === l.id);
+            return (
+              <button
+                key={l.id}
+                type="button"
+                aria-pressed={on}
+                onClick={() =>
+                  set({
+                    labels: on
+                      ? task.labels
+                          .filter((x) => x.id !== l.id)
+                          .map((x) => x.id)
+                      : [...task.labels.map((x) => x.id), l.id],
+                  })
+                }
+                className={clsx(
+                  "press inline-flex h-8 items-center gap-1.5 rounded-full border px-3",
+                  on
+                    ? "border-transparent"
+                    : "border-dashed text-muted-foreground hover:text-foreground",
+                )}
+                style={
+                  on
+                    ? {
+                        background: `color-mix(in oklch, ${l.color} 16%, transparent)`,
+                      }
+                    : undefined
+                }
+              >
+                <span
+                  aria-hidden
+                  className="size-1.5 rounded-full"
+                  style={{ background: l.color }}
+                />
+                {l.name}
+              </button>
+            );
+          })}
+        </dd>
+        <dt className="text-muted-foreground">Ayudan</dt>
         <dd className="flex flex-wrap items-center gap-2">
           {task.collaborators.map((c) => (
             <span key={c.id} className="flex items-center gap-1">
@@ -153,21 +227,21 @@ function Detail({ task, onClose }: { task: TaskDetail; onClose?: () => void }) {
               joined ? leave.mutate(undefined) : join.mutate(undefined)
             }
           >
-            {joined ? "Leave" : "Help out"}
+            {joined ? "Salir" : "Ayudar"}
           </button>
         </dd>
       </dl>
 
       {task.description && (
         <p className="whitespace-pre-wrap border-b px-4 py-3 text-sm">
-          {task.description}
+          <LinkedText text={task.description} />
         </p>
       )}
 
       {task.subtasks.length > 0 && (
         <section className="border-b px-4 py-3">
           <h3 className="mb-2 flex items-center gap-2 text-xs font-medium">
-            Subtasks <ProgressBar value={task.progress} />
+            Subtareas <ProgressBar value={task.progress} />
           </h3>
           <ul className="space-y-1">
             {task.subtasks.map((s) => (
@@ -191,7 +265,7 @@ function Detail({ task, onClose }: { task: TaskDetail; onClose?: () => void }) {
 
       {task.links.length > 0 && (
         <section className="border-b px-4 py-3">
-          <h3 className="mb-2 text-xs font-medium">Linked work</h3>
+          <h3 className="mb-2 text-xs font-medium">Trabajo enlazado</h3>
           <ul className="space-y-1">
             {task.links.map((l) => (
               <li key={l.id}>
@@ -204,7 +278,7 @@ function Detail({ task, onClose }: { task: TaskDetail; onClose?: () => void }) {
                   <ExternalLink size={12} />{" "}
                   {l.title || `${l.repo}#${l.external_id}`}
                   <span className="text-xs text-muted-foreground">
-                    {l.state}
+                    {LINK_STATE[l.state] ?? l.state}
                   </span>
                 </a>
               </li>
@@ -218,14 +292,21 @@ function Detail({ task, onClose }: { task: TaskDetail; onClose?: () => void }) {
   );
 }
 
+const LINK_STATE: Record<string, string> = {
+  open: "abierto",
+  closed: "cerrado",
+  merged: "fusionado",
+};
+
 function describe(u: Update): string {
   const m = u.meta as { from?: unknown; to?: unknown };
   const name = (v: unknown) =>
-    v === null || v === undefined || v === "" ? "none" : String(v);
+    v === null || v === undefined || v === "" ? "ninguno" : String(v);
+  const status = (v: unknown) => STATUS_LABEL[v as TaskStatus] ?? name(v);
   if (u.kind === "status")
-    return `changed status from ${name(m.from)} to ${name(m.to)}`;
-  if (u.kind === "owner") return "changed the owner";
-  if (u.kind === "due") return `changed the due date to ${name(m.to)}`;
+    return `cambió el estado de ${status(m.from)} a ${status(m.to)}`;
+  if (u.kind === "owner") return "cambió el responsable";
+  if (u.kind === "due") return `cambió la fecha de entrega a ${name(m.to)}`;
   return u.body;
 }
 
@@ -245,7 +326,7 @@ function Activity({
   };
   return (
     <section className="px-4 py-3">
-      <h3 className="mb-2 text-xs font-medium">Activity</h3>
+      <h3 className="mb-2 text-xs font-medium">Actividad</h3>
       <ul className="space-y-3">
         {updates.map((u) => (
           <li key={u.id} className="flex gap-2">
@@ -262,7 +343,9 @@ function Activity({
             />
             <div className="min-w-0 text-xs">
               <p>
-                <span className="font-medium">{u.author_name ?? "System"}</span>{" "}
+                <span className="font-medium">
+                  {u.author_name ?? "Sistema"}
+                </span>{" "}
                 <span className="text-muted-foreground">
                   {relativeTime(u.created_at)}
                 </span>
@@ -288,13 +371,13 @@ function Activity({
         }}
       >
         <textarea
-          aria-label="Comment"
+          aria-label="Comentar"
           value={text}
           onChange={(e) => setText(e.target.value)}
           onKeyDown={(e) => {
             if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) submit();
           }}
-          placeholder="Write an update. Use @name to notify someone."
+          placeholder="Escribe una actualización. Usa @nombre para avisar a alguien."
           rows={3}
           className="rounded-md border bg-background p-2 text-sm"
         />
@@ -303,7 +386,7 @@ function Activity({
           className={`${primaryButton} self-end`}
           disabled={comment.isPending}
         >
-          Comment
+          Comentar
         </button>
       </form>
     </section>
