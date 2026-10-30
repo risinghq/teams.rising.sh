@@ -1,5 +1,6 @@
 import type {
   CalEvent,
+  FreeBusy,
   InboxItem,
   Label,
   Me,
@@ -124,6 +125,12 @@ export const api = {
     ),
   createEvent: (body: Record<string, unknown>) =>
     request<CalEvent>("POST", "/api/events", body),
+  deleteEvent: (id: string) => request("DELETE", `/api/events/${id}`),
+  freeBusy: (users: string[], from: string, to: string) =>
+    request<FreeBusy>(
+      "GET",
+      `/api/freebusy?${new URLSearchParams({ users: users.join(","), from, to })}`,
+    ),
   inbox: () =>
     request<{ unread: number; items: InboxItem[] }>("GET", "/api/inbox"),
   readInbox: () => request("POST", "/api/inbox/read"),

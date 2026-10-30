@@ -133,8 +133,17 @@ export type CalEvent = {
   ends_at: string | null;
   all_day: number;
   google_event_id: string | null;
+  meet_url: string | null;
   created_by: string;
+  attendees: Person[];
 };
+
+// Busy intervals by person id. Without Google (`google: false`) only the
+// person's Teams events count, so a free slot may not be free.
+export type FreeBusy = Record<
+  string,
+  { busy: { start: string; end: string }[]; google: boolean }
+>;
 
 export type InboxItem = {
   id: string;

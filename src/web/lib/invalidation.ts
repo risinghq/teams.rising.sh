@@ -57,6 +57,8 @@ export const invalidations = {
   removeMember: (a: { team: string }) =>
     byKey(k.teams.detail(a.team), k.teams.list, k.me),
   createLabel: (_: unknown) => byKey(k.labels),
+  createEvent: (_: unknown) => byKey(k.calendar.all, k.freeBusy.all),
+  deleteEvent: (_: unknown) => byKey(k.calendar.all, k.freeBusy.all),
   // A person's name and picture show on almost every screen.
   patchMe: (_: unknown) => [{}],
 } satisfies Record<string, (args: never) => readonly InvalidateQueryFilters[]>;

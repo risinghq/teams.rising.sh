@@ -196,7 +196,27 @@ export const createEvent = z.object({
   all_day: z
     .boolean({ error: "all_day debe ser verdadero o falso" })
     .default(false),
+  attendees: ids("attendees").max(50).default([]),
+  meet: z.boolean({ error: "meet debe ser verdadero o falso" }).default(false),
 });
+
+// Free/busy for up to 20 people over at most 14 days.
+export const freeBusyQuery = z
+  .object({
+    users: z
+      .string({ error: "users debe ser una lista de ids" })
+      .transform((value) => value.split(",").filter(Boolean))
+      .pipe(z.array(z.string()).min(1).max(20)),
+    from: timestamp("from"),
+    to: timestamp("to"),
+  })
+  .refine(
+    ({ from, to }) => {
+      const span = Date.parse(to) - Date.parse(from);
+      return span > 0 && span <= 14 * 86400_000;
+    },
+    { error: "el rango debe ir hacia adelante y durar 14 días o menos" },
+  );
 
 export const patchEvent = z.object({
   title: text("title", 300).optional(),
@@ -206,6 +226,7 @@ export const patchEvent = z.object({
   all_day: z
     .boolean({ error: "all_day debe ser verdadero o falso" })
     .optional(),
+  attendees: ids("attendees").max(50).optional(),
 });
 
 export const devLogin = z.object({

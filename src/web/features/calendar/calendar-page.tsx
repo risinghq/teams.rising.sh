@@ -1,11 +1,12 @@
 import { Link } from "@tanstack/react-router";
-import { ChevronLeft, ChevronRight } from "lucide-react";
+import { ChevronLeft, ChevronRight, Plus } from "lucide-react";
 import { useState } from "react";
 import type { CalEvent } from "@shared/types";
 import { cn } from "@/lib/cn";
 import {
   addDays,
   day,
+  iso,
   monthGrid,
   parseDay,
   stepMonth,
@@ -18,11 +19,13 @@ import { usePatchTask } from "@/features/tasks/hooks";
 import { TaskLink } from "@/features/tasks/task-link";
 import { TaskRow } from "@/features/tasks/task-row";
 import { WithPanel } from "@/features/tasks/with-panel";
-import { buttonVariants } from "@/ui/button";
+import { Button, buttonVariants } from "@/ui/button";
 import { EmptyState } from "@/ui/empty-state";
 import { GroupHeading, Page, PageHeader } from "@/ui/page-header";
 import { SegmentedControl } from "@/ui/segmented-control";
 import { StatusDot } from "@/ui/status-dot";
+import { EventChip } from "./event-chip";
+import { EventDialog } from "./event-dialog";
 import { useCalendar } from "./hooks";
 import { parseCalendarSearch, type CalendarSearch } from "./search";
 
@@ -33,15 +36,26 @@ const parse = (raw: Record<string, unknown>) =>
 
 const NAV_BUTTON = buttonVariants({ variant: "outline", size: "icon" });
 
+// A timed event belongs to its local day: 21:00 in Lima is already tomorrow in
+// UTC. An all-day event is stored at UTC midnight of its own day.
+const eventDay = (e: CalEvent) =>
+  e.all_day ? e.starts_at.slice(0, 10) : iso(new Date(e.starts_at));
+
 export function CalendarPage() {
   const { search } = useSearchParams(parse);
   const now = today();
   const mode = search.mode ?? "month";
   const anchor = search.date ?? now;
   const days = mode === "month" ? monthGrid(anchor) : weekGrid(anchor);
-  const q = useCalendar(days[0] as string, days[days.length - 1] as string);
+  // One day past the grid: the range is cut on UTC days, and an evening event
+  // of the last local day is already the next day in UTC.
+  const q = useCalendar(
+    days[0] as string,
+    addDays(days[days.length - 1] as string, 1),
+  );
   const patch = usePatchTask();
   const [over, setOver] = useState<string | null>(null);
+  const [creating, setCreating] = useState(false);
 
   // Build range-changing links explicitly because `parse` drops defaults.
   const go =
@@ -56,7 +70,7 @@ export function CalendarPage() {
   const tasksOn = (d: string) =>
     (q.data?.tasks ?? []).filter((x) => x.due_date === d);
   const eventsOn = (d: string): CalEvent[] =>
-    (q.data?.events ?? []).filter((e) => e.starts_at.slice(0, 10) === d);
+    (q.data?.events ?? []).filter((e) => eventDay(e) === d);
   const busy = days.filter((d) => tasksOn(d).length + eventsOn(d).length > 0);
 
   return (
@@ -89,6 +103,9 @@ export function CalendarPage() {
               >
                 <ChevronRight />
               </Link>
+              <Button size="sm" onClick={() => setCreating(true)}>
+                <Plus /> Nuevo evento
+              </Button>
             </>
           }
           controls={
@@ -161,11 +178,11 @@ export function CalendarPage() {
                   </span>
                   <ul className="mt-1 space-y-1">
                     {eventsOn(d).map((e) => (
-                      <li
-                        key={e.id}
-                        className="truncate rounded-md bg-primary/15 px-1.5 py-0.5 text-xs"
-                      >
-                        {e.title}
+                      <li key={e.id}>
+                        <EventChip
+                          event={e}
+                          className="rounded-md bg-primary/15 px-1.5 py-0.5 text-xs"
+                        />
                       </li>
                     ))}
                     {tasksOn(d).map((task) => (
@@ -219,9 +236,11 @@ export function CalendarPage() {
                   })}
                 </GroupHeading>
                 {eventsOn(d).map((e) => (
-                  <p key={e.id} className="px-3 py-2.5 text-sm">
-                    {e.title}
-                  </p>
+                  <EventChip
+                    key={e.id}
+                    event={e}
+                    className="px-3 py-2.5 text-sm"
+                  />
                 ))}
                 {tasksOn(d).map((task) => (
                   <TaskRow
@@ -236,6 +255,7 @@ export function CalendarPage() {
           )}
         </div>
       </Page>
+      <EventDialog open={creating} onOpenChange={setCreating} date={anchor} />
     </WithPanel>
   );
 }
