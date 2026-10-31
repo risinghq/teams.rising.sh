@@ -23,7 +23,7 @@ import { Formula } from "./formula";
 // bulleted list and a checklist. They act on the selection and put it back,
 // so typing goes on where it was. Code and equations become blocks when the
 // selection spans lines.
-export function FormatBar({
+function FormatBar({
   target,
   value,
   onChange,
