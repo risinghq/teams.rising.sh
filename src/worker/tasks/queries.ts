@@ -36,7 +36,7 @@ export type TaskRow = {
   updated_at: string;
 };
 
-export const taskSelect = (t = "t") =>
+const taskSelect = (t = "t") =>
   `SELECT ${t}.*, tm.key AS team_key, o.name AS owner_name, o.avatar_url AS owner_avatar
    FROM tasks ${t} JOIN teams tm ON tm.id = ${t}.team_id LEFT JOIN users o ON o.id = ${t}.owner_id`;
 
