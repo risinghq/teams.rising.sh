@@ -1,6 +1,13 @@
-import { Link } from "@tanstack/react-router";
-import { ExternalLink, Lock, Maximize2, X } from "lucide-react";
-import type { ReactNode } from "react";
+import { Link, useNavigate } from "@tanstack/react-router";
+import {
+  ExternalLink,
+  Lock,
+  Maximize2,
+  MoreHorizontal,
+  Trash2,
+  X,
+} from "lucide-react";
+import { type ReactNode, useState } from "react";
 import type { TaskDetail } from "@shared/types";
 import { today } from "@/lib/dates";
 import {
@@ -14,6 +21,13 @@ import { useProjects } from "@/features/projects/hooks";
 import { PersonAvatar } from "@/features/teams/person-avatar";
 import { useTeams, useUsers } from "@/features/teams/hooks";
 import { Button, buttonVariants } from "@/ui/button";
+import { ConfirmDialog } from "@/ui/confirm-dialog";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/ui/dropdown-menu";
 import { EmptyState } from "@/ui/empty-state";
 import { IconButton } from "@/ui/icon-button";
 import { Input } from "@/ui/input";
@@ -22,8 +36,11 @@ import { SkeletonRows } from "@/ui/skeleton";
 import { StatusDot } from "@/ui/status-dot";
 import { DueChip } from "./due-chip";
 import { FieldMenu } from "./field-menu";
-import { usePatchTask, useTask, useTeamLabels } from "./hooks";
-import { ImagePreviews, LinkedText } from "./linked-text";
+import { useDeleteTask, usePatchTask, useTask, useTeamLabels } from "./hooks";
+import { TaskDescription } from "./task-description";
+import { LabelChip } from "./label-chip";
+import { NewLabel } from "./new-label";
+import { NewTask } from "./new-task";
 import { TaskActivity } from "./task-activity";
 import { TaskCollaborators } from "./task-collaborators";
 
@@ -77,6 +94,9 @@ function Detail({ task, onClose }: { task: TaskDetail; onClose?: () => void }) {
   const set = (p: Record<string, unknown>) =>
     patch.mutate({ key: task.key, parentId: task.parent_id, patch: p });
   useReadTaskOnOpen(task.key);
+  // The server says what the caller may do, so nothing here is offered only
+  // to fail.
+  const canEdit = task.can_edit;
 
   return (
     <article className="flex flex-col">
@@ -90,6 +110,7 @@ function Detail({ task, onClose }: { task: TaskDetail; onClose?: () => void }) {
           </p>
           <Title className="mt-1 text-xl font-semibold">{task.title}</Title>
         </div>
+        {task.can_delete && <TaskMenu task={task} onClose={onClose} />}
         {onClose && (
           <>
             <Button
@@ -116,6 +137,7 @@ function Detail({ task, onClose }: { task: TaskDetail; onClose?: () => void }) {
         <Field label="Estado">
           <FieldMenu
             label="Estado"
+            readOnly={!canEdit}
             value={task.status}
             onChange={(v) => set({ status: v as TaskStatus })}
             options={STATUSES.map((s) => ({
@@ -128,6 +150,7 @@ function Detail({ task, onClose }: { task: TaskDetail; onClose?: () => void }) {
         <Field label="Responsable">
           <FieldMenu
             label="Responsable"
+            readOnly={!canEdit}
             value={task.owner?.id ?? ""}
             onChange={(v) => set({ owner_id: v || null })}
             options={[
@@ -145,23 +168,32 @@ function Detail({ task, onClose }: { task: TaskDetail; onClose?: () => void }) {
           />
         </Field>
         <Field label="Colaboran">
-          <TaskCollaborators task={task} />
+          <TaskCollaborators task={task} canEdit={canEdit} />
         </Field>
         <Field label="Entrega">
-          <Input
-            type="date"
-            size="sm"
-            appearance="bare"
-            className="-ml-2 w-auto px-2 hover:bg-accent"
-            aria-label="Fecha de entrega"
-            value={task.due_date ?? ""}
-            onChange={(e) => set({ due_date: e.target.value || null })}
-          />
-          <DueChip task={task} today={today()} />
+          {canEdit ? (
+            <>
+              <Input
+                type="date"
+                size="sm"
+                appearance="bare"
+                className="-ml-2 w-auto px-2 hover:bg-accent"
+                aria-label="Fecha de entrega"
+                value={task.due_date ?? ""}
+                onChange={(e) => set({ due_date: e.target.value || null })}
+              />
+              <DueChip task={task} today={today()} />
+            </>
+          ) : task.due_date ? (
+            <DueChip task={task} today={today()} />
+          ) : (
+            <span className="text-muted-foreground">Sin fecha</span>
+          )}
         </Field>
         <Field label="Proyecto">
           <FieldMenu
             label="Proyecto"
+            readOnly={!canEdit}
             value={task.project_id ?? ""}
             onChange={(v) => set({ project_id: v || null })}
             options={[
@@ -175,59 +207,80 @@ function Detail({ task, onClose }: { task: TaskDetail; onClose?: () => void }) {
           />
         </Field>
         <Field label="Etiquetas">
-          {labels?.map((l) => {
-            const on = task.labels.some((x) => x.id === l.id);
-            return (
-              <Button
-                key={l.id}
-                variant="outline"
-                size="sm"
-                aria-pressed={on}
-                onClick={() =>
-                  set({
-                    labels: on
-                      ? task.labels
-                          .filter((x) => x.id !== l.id)
-                          .map((x) => x.id)
-                      : [...task.labels.map((x) => x.id), l.id],
-                  })
-                }
-                className={
-                  on
-                    ? "rounded-full border-transparent"
-                    : "rounded-full border-dashed text-muted-foreground"
-                }
-                style={
-                  on
-                    ? {
-                        background: `color-mix(in oklch, ${l.color} 16%, transparent)`,
-                      }
-                    : undefined
-                }
-              >
-                <span
-                  aria-hidden
-                  className="size-1.5 rounded-full"
-                  style={{ background: l.color }}
-                />
-                {l.name}
-              </Button>
-            );
-          })}
+          {!canEdit &&
+            (task.labels.length > 0 ? (
+              task.labels.map((l) => <LabelChip key={l.id} label={l} />)
+            ) : (
+              <span className="text-muted-foreground">Sin etiquetas</span>
+            ))}
+          {canEdit &&
+            labels?.map((l) => {
+              const on = task.labels.some((x) => x.id === l.id);
+              return (
+                <Button
+                  key={l.id}
+                  variant="outline"
+                  size="sm"
+                  aria-pressed={on}
+                  onClick={() =>
+                    set({
+                      labels: on
+                        ? task.labels
+                            .filter((x) => x.id !== l.id)
+                            .map((x) => x.id)
+                        : [...task.labels.map((x) => x.id), l.id],
+                    })
+                  }
+                  className={
+                    on
+                      ? "rounded-full border-transparent"
+                      : "rounded-full border-dashed text-muted-foreground"
+                  }
+                  style={
+                    on
+                      ? {
+                          background: `color-mix(in oklch, ${l.color} 16%, transparent)`,
+                        }
+                      : undefined
+                  }
+                >
+                  <span
+                    aria-hidden
+                    className="size-1.5 rounded-full"
+                    style={{ background: l.color }}
+                  />
+                  {l.name}
+                </Button>
+              );
+            })}
+          {canEdit && teamId && (
+            <NewLabel
+              teamId={teamId}
+              labels={labels ?? []}
+              onPick={(id) => {
+                const ids = task.labels.map((x) => x.id);
+                if (!ids.includes(id)) set({ labels: [...ids, id] });
+              }}
+            />
+          )}
         </Field>
       </dl>
 
-      {task.description && (
-        <p className="whitespace-pre-wrap border-b px-6 py-4 text-sm">
-          <LinkedText text={task.description} />
-          <ImagePreviews text={task.description} />
-        </p>
-      )}
+      <TaskDescription
+        // A new task resets a draft left open on the previous one.
+        key={task.key}
+        text={task.description}
+        canEdit={canEdit}
+        onSave={(description) => set({ description })}
+      />
 
-      {task.subtasks.length > 0 && (
+      {/* Subtasks go one level deep: progress counts a task's own subtasks,
+          so a subtask gets none of its own. */}
+      {(task.subtasks.length > 0 || (!task.parent_id && canEdit)) && (
         <section className="border-b px-6 py-4">
           <h3 className="mb-3 flex items-center gap-2 text-xs font-semibold">
-            Subtareas <ProgressBar value={task.progress} />
+            Subtareas
+            {task.subtasks.length > 0 && <ProgressBar value={task.progress} />}
           </h3>
           <ul className="space-y-1">
             {task.subtasks.map((s) => (
@@ -246,6 +299,14 @@ function Detail({ task, onClose }: { task: TaskDetail; onClose?: () => void }) {
               </li>
             ))}
           </ul>
+          {!task.parent_id && canEdit && (
+            <NewTask
+              team={task.team}
+              project={task.project_id}
+              parent={task.key}
+              className="-mx-3 mt-1 mb-0"
+            />
+          )}
         </section>
       )}
 
@@ -273,7 +334,65 @@ function Detail({ task, onClose }: { task: TaskDetail; onClose?: () => void }) {
         </section>
       )}
 
-      <TaskActivity taskKey={task.key} updates={task.updates} />
+      <TaskActivity
+        taskKey={task.key}
+        team={task.team}
+        updates={task.updates}
+      />
     </article>
+  );
+}
+
+// More for the task. Deleting asks first and says what goes with it.
+function TaskMenu({
+  task,
+  onClose,
+}: {
+  task: TaskDetail;
+  onClose?: () => void;
+}) {
+  const remove = useDeleteTask();
+  const navigate = useNavigate();
+  const [asking, setAsking] = useState(false);
+  const subtasks = task.subtasks.length;
+  return (
+    <>
+      <DropdownMenu>
+        <DropdownMenuTrigger asChild>
+          <Button
+            variant="ghost"
+            size="icon-xs"
+            aria-label="Más acciones de la tarea"
+          >
+            <MoreHorizontal />
+          </Button>
+        </DropdownMenuTrigger>
+        <DropdownMenuContent align="end">
+          <DropdownMenuItem
+            onSelect={() => setAsking(true)}
+            className="text-destructive focus:text-destructive"
+          >
+            <Trash2 /> Borrar tarea
+          </DropdownMenuItem>
+        </DropdownMenuContent>
+      </DropdownMenu>
+      <ConfirmDialog
+        open={asking}
+        onOpenChange={setAsking}
+        title={`¿Borrar ${task.key}?`}
+        confirm="Borrar tarea"
+        onConfirm={() => {
+          remove.mutate({ key: task.key, parentId: task.parent_id });
+          // The lists drop the task at once, so the view leaves at once too.
+          if (onClose) onClose();
+          else void navigate({ to: "/t/$team", params: { team: task.team } });
+        }}
+      >
+        Se borra “{task.title}” con sus comentarios
+        {subtasks > 0 &&
+          ` y ${subtasks === 1 ? "su subtarea" : `sus ${subtasks} subtareas`}`}
+        . No se puede deshacer.
+      </ConfirmDialog>
+    </>
   );
 }

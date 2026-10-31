@@ -93,6 +93,7 @@ export const api = {
     request("DELETE", `/api/teams/${key}/members/${userId}`),
   createLabel: (body: Record<string, unknown>) =>
     request<{ id: string }>("POST", "/api/labels", body),
+  deleteLabel: (id: string) => request("DELETE", `/api/labels/${id}`),
   projects: (team: string) =>
     request<Project[]>("GET", `/api/teams/${team}/projects`),
   createProject: (team: string, body: Record<string, unknown>) =>
@@ -107,8 +108,13 @@ export const api = {
     request<Task>("POST", "/api/tasks", body),
   patchTask: (key: string, body: Record<string, unknown>) =>
     request<Task>("PATCH", `/api/tasks/${key}`, body),
+  deleteTask: (key: string) => request("DELETE", `/api/tasks/${key}`),
   comment: (key: string, body: string) =>
     request<{ id: string }>("POST", `/api/tasks/${key}/updates`, { body }),
+  editComment: (key: string, updateId: string, body: string) =>
+    request("PATCH", `/api/tasks/${key}/updates/${updateId}`, { body }),
+  deleteComment: (key: string, updateId: string) =>
+    request("DELETE", `/api/tasks/${key}/updates/${updateId}`),
   react: (key: string, updateId: string, emoji: string, on: boolean) =>
     request(
       on ? "PUT" : "DELETE",

@@ -61,6 +61,20 @@ const cases: Case[] = [
     ],
   },
   {
+    write: "createTask of a subtask",
+    run: () => invalidatedBy("createTask", { parent: "ENG-2" }),
+    want: [
+      "task list",
+      "my tasks",
+      "task peek",
+      "projects ENG",
+      "projects OPS",
+      "task ENG-2",
+      "calendar",
+      "overview",
+    ],
+  },
+  {
     write: "patchTask",
     run: () => invalidatedBy("patchTask", { key: "ENG-1", parentId: null }),
     want: [
@@ -93,9 +107,48 @@ const cases: Case[] = [
     ],
   },
   {
+    write: "deleteTask",
+    run: () => invalidatedBy("deleteTask", { parentId: null }),
+    want: [
+      "task list",
+      "my tasks",
+      "task peek",
+      "projects ENG",
+      "projects OPS",
+      "calendar",
+      "inbox",
+      "overview",
+    ],
+  },
+  {
+    write: "deleteTask of a subtask",
+    run: () => invalidatedBy("deleteTask", { parentId: "id-ENG-2" }),
+    want: [
+      "task list",
+      "my tasks",
+      "task peek",
+      "projects ENG",
+      "projects OPS",
+      "task ENG-2",
+      "calendar",
+      "inbox",
+      "overview",
+    ],
+  },
+  {
     write: "comment",
     run: () => invalidatedBy("comment", { key: "ENG-1" }),
     want: ["task ENG-1"],
+  },
+  {
+    write: "editComment",
+    run: () => invalidatedBy("editComment", { key: "ENG-1" }),
+    want: ["task ENG-1"],
+  },
+  {
+    write: "deleteComment",
+    run: () => invalidatedBy("deleteComment", { key: "ENG-1" }),
+    want: ["task ENG-1", "inbox"],
   },
   {
     write: "react",
@@ -146,6 +199,20 @@ const cases: Case[] = [
     write: "createLabel",
     run: () => invalidatedBy("createLabel", {}),
     want: ["labels"],
+  },
+  {
+    write: "deleteLabel",
+    run: () => invalidatedBy("deleteLabel", {}),
+    want: [
+      "labels",
+      "task list",
+      "my tasks",
+      "task peek",
+      "task ENG-1",
+      "task ENG-2",
+      "task ENG-3",
+      "calendar",
+    ],
   },
   {
     write: "createEvent",

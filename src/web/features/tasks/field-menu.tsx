@@ -22,6 +22,7 @@ export function FieldMenu({
   onChange,
   chevron = "hover",
   align = "start",
+  readOnly = false,
   className,
 }: {
   label: string;
@@ -32,9 +33,18 @@ export function FieldMenu({
   // fields.
   chevron?: "hover" | "always";
   align?: "start" | "end";
+  // Shows the value only, for someone who cannot change it.
+  readOnly?: boolean;
   className?: string;
 }) {
   const current = options.find((o) => o.value === value);
+  if (readOnly)
+    return (
+      <span className={cn("flex min-w-0 items-center gap-2", className)}>
+        {current?.lead}
+        <span className="truncate">{current?.label}</span>
+      </span>
+    );
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
