@@ -531,6 +531,53 @@ export async function insertComment(
   return updateId;
 }
 
+// The author of a comment on the task, or undefined when the task has no such
+// comment. Timeline rows are not comments: they record what happened.
+export async function commentAuthor(
+  db: D1Database,
+  taskId: string,
+  updateId: string,
+): Promise<string | null | undefined> {
+  const row = await db
+    .prepare(
+      "SELECT author_id FROM task_updates WHERE id = ? AND task_id = ? AND kind = 'comment'",
+    )
+    .bind(updateId, taskId)
+    .first<{ author_id: string | null }>();
+  return row ? row.author_id : undefined;
+}
+
+export async function editComment(
+  db: D1Database,
+  updateId: string,
+  body: string,
+  mentions: string[],
+): Promise<void> {
+  await db
+    .prepare("UPDATE task_updates SET body = ?, meta = ? WHERE id = ?")
+    .bind(body, JSON.stringify({ mentions }), updateId)
+    .run();
+}
+
+// Its reactions go with it.
+export async function deleteComment(
+  db: D1Database,
+  updateId: string,
+): Promise<void> {
+  await db
+    .prepare("DELETE FROM task_updates WHERE id = ?")
+    .bind(updateId)
+    .run();
+}
+
+// Subtasks, comments, reactions, links, labels and collaborators go with it.
+export async function deleteTask(
+  db: D1Database,
+  taskId: string,
+): Promise<void> {
+  await db.prepare("DELETE FROM tasks WHERE id = ?").bind(taskId).run();
+}
+
 const collaboratorUpdate = (
   db: D1Database,
   taskId: string,

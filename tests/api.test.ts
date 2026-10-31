@@ -843,3 +843,143 @@ test("a task refers only to people, and to projects, labels and parents of its t
   ]);
   expect((await patch({ owner_id: null, project_id: null })).status).toBe(200);
 });
+
+test("a comment is edited by its author and deleted by its author or a leader", async () => {
+  const admin = await login(`admin-${run}@x.test`);
+  const lead = await login(`clead-${run}@x.test`);
+  const writer = await login(`writer-${run}@x.test`);
+  const peer = await login(`peer-${run}@x.test`);
+  const team = key(19);
+  await call(admin, "POST", "/api/teams", { key: team, name: "Talk" });
+  for (const [who, role] of [
+    [lead, "leader"],
+    [writer, "member"],
+    [peer, "member"],
+  ] as const)
+    await call(admin, "PUT", `/api/teams/${team}/members/${who.id}`, { role });
+  const task = await call(writer, "POST", "/api/tasks", { team, title: "t" });
+  const path = `/api/tasks/${task.body.key}`;
+  const say = async (body: string) =>
+    (await call(writer, "POST", `${path}/updates`, { body })).body.id as string;
+  const first = await say("- [ ] leer el paper");
+  const second = await say("otro");
+
+  expect(
+    (await call(peer, "PATCH", `${path}/updates/${first}`, { body: "x" }))
+      .status,
+  ).toBe(403);
+  expect(
+    (
+      await call(writer, "PATCH", `${path}/updates/${first}`, {
+        body: "- [x] leer el paper",
+      })
+    ).status,
+  ).toBe(200);
+  expect((await call(peer, "DELETE", `${path}/updates/${first}`)).status).toBe(
+    403,
+  );
+  expect((await call(lead, "DELETE", `${path}/updates/${first}`)).status).toBe(
+    200,
+  );
+  expect(
+    (await call(writer, "DELETE", `${path}/updates/${second}`)).status,
+  ).toBe(200);
+
+  await call(writer, "PATCH", path, { status: "done" });
+  const detail = await call(writer, "GET", path);
+  const timeline = detail.body.updates[0];
+  expect(timeline.kind).toBe("status");
+  expect(
+    (await call(lead, "DELETE", `${path}/updates/${timeline.id}`)).status,
+  ).toBe(404);
+});
+
+test("deleting a task takes its subtasks and is not for collaborators", async () => {
+  const admin = await login(`admin-${run}@x.test`);
+  const owner = await login(`downer-${run}@x.test`);
+  const helper = await login(`dhelper-${run}@x.test`);
+  const team = key(20);
+  await call(admin, "POST", "/api/teams", { key: team, name: "Gone" });
+  await call(admin, "PUT", `/api/teams/${team}/members/${owner.id}`, {
+    role: "member",
+  });
+  const parent = await call(owner, "POST", "/api/tasks", { team, title: "p" });
+  const child = await call(owner, "POST", "/api/tasks", {
+    team,
+    title: "c",
+    parent: parent.body.key,
+  });
+  const path = `/api/tasks/${parent.body.key}`;
+  await call(owner, "PUT", `${path}/collaborators/${helper.id}`);
+  await call(helper, "POST", `${path}/updates`, { body: "hola" });
+
+  expect((await call(helper, "DELETE", path)).status).toBe(403);
+  expect((await call(owner, "DELETE", path)).status).toBe(200);
+  expect((await call(owner, "GET", path)).status).toBe(404);
+  expect(
+    (await call(owner, "GET", `/api/tasks/${child.body.key}`)).status,
+  ).toBe(404);
+});
+
+test("a team's leader deletes its labels and only an admin a shared one", async () => {
+  const admin = await login(`admin-${run}@x.test`);
+  const lead = await login(`llead-${run}@x.test`);
+  const member = await login(`lmember-${run}@x.test`);
+  const team = key(21);
+  const made = await call(admin, "POST", "/api/teams", {
+    key: team,
+    name: "Tags",
+  });
+  const teamId = made.body.id as string;
+  for (const [who, role] of [
+    [lead, "leader"],
+    [member, "member"],
+  ] as const)
+    await call(admin, "PUT", `/api/teams/${team}/members/${who.id}`, { role });
+  const own = await call(lead, "POST", "/api/labels", {
+    team_id: teamId,
+    name: `tag-${run}`,
+  });
+  const shared = await call(admin, "POST", "/api/labels", {
+    name: `shared-${run}`,
+  });
+  const task = await call(member, "POST", "/api/tasks", {
+    team,
+    title: "t",
+    labels: [own.body.id],
+  });
+
+  const remove = (who: Session, labelId: string) =>
+    call(who, "DELETE", `/api/labels/${labelId}`);
+  expect((await remove(member, own.body.id)).status).toBe(403);
+  expect((await remove(lead, own.body.id)).status).toBe(200);
+  expect(
+    (await call(member, "GET", `/api/tasks/${task.body.key}`)).body.labels,
+  ).toEqual([]);
+  expect((await remove(lead, shared.body.id)).status).toBe(403);
+  expect((await remove(admin, shared.body.id)).status).toBe(200);
+  expect((await remove(admin, shared.body.id)).status).toBe(404);
+});
+
+test("a task's detail says what the caller may do with it", async () => {
+  const admin = await login(`admin-${run}@x.test`);
+  const owner = await login(`cowner-${run}@x.test`);
+  const helper = await login(`chelper-${run}@x.test`);
+  const passer = await login(`cpasser-${run}@x.test`);
+  const team = key(22);
+  await call(admin, "POST", "/api/teams", { key: team, name: "Can" });
+  await call(admin, "PUT", `/api/teams/${team}/members/${owner.id}`, {
+    role: "member",
+  });
+  const task = await call(owner, "POST", "/api/tasks", { team, title: "t" });
+  const path = `/api/tasks/${task.body.key}`;
+  await call(owner, "PUT", `${path}/collaborators/${helper.id}`);
+  const can = async (who: Session) => {
+    const { can_edit, can_delete } = (await call(who, "GET", path)).body;
+    return { can_edit, can_delete };
+  };
+  expect(await can(owner)).toEqual({ can_edit: true, can_delete: true });
+  expect(await can(helper)).toEqual({ can_edit: true, can_delete: false });
+  expect(await can(passer)).toEqual({ can_edit: false, can_delete: false });
+  expect(await can(admin)).toEqual({ can_edit: true, can_delete: true });
+});

@@ -40,6 +40,8 @@ export function SearchBox({
       type="search"
       size="sm"
       aria-label={label}
+      autoComplete="off"
+      spellCheck={false}
       placeholder="Buscar"
       value={draft}
       onChange={(e) => setDraft(e.target.value)}

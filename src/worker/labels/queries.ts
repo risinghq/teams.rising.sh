@@ -29,3 +29,15 @@ export async function insertLabel(
     return false;
   }
 }
+
+export function labelById(db: D1Database, id: string) {
+  return db
+    .prepare("SELECT id, team_id, name, color FROM labels WHERE id = ?")
+    .bind(id)
+    .first<LabelRow>();
+}
+
+// Tasks lose the label with it.
+export async function deleteLabel(db: D1Database, id: string): Promise<void> {
+  await db.prepare("DELETE FROM labels WHERE id = ?").bind(id).run();
+}

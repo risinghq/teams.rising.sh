@@ -1,3 +1,4 @@
+import { Monitor, Moon, Sun } from "lucide-react";
 import type { Me } from "@shared/types";
 import { useState } from "react";
 import { api } from "@/api";
@@ -8,10 +9,12 @@ import { PersonAvatar } from "@/features/teams/person-avatar";
 import { useWrite } from "@/hooks/use-write";
 import { mentionHandle } from "@/lib/mentions";
 import { mePatch } from "@/lib/optimistic";
+import { setThemePick, useTheme } from "@/lib/theme";
 import { Button } from "@/ui/button";
 import { Input } from "@/ui/input";
 import { Label } from "@/ui/label";
 import { Page, PageHeader } from "@/ui/page-header";
+import { SegmentedControl } from "@/ui/segmented-control";
 import { SkeletonRows } from "@/ui/skeleton";
 
 const usePatchMe = () =>
@@ -25,7 +28,36 @@ export function ProfilePage() {
     <Page width="form">
       <PageHeader title="Perfil" />
       {me ? <ProfileForm me={me} /> : <SkeletonRows rows={4} />}
+      <Appearance />
     </Page>
+  );
+}
+
+const THEMES = [
+  { value: "system", label: "Como el sistema", Icon: Monitor },
+  { value: "light", label: "Claro", Icon: Sun },
+  { value: "dark", label: "Oscuro", Icon: Moon },
+] as const;
+
+// The theme for this browser. It applies at once; there is nothing to save.
+function Appearance() {
+  const { pick } = useTheme();
+  return (
+    <Section title="Apariencia">
+      <div className="flex flex-col gap-2 px-4 pt-2 pb-4">
+        <SegmentedControl
+          legend="Tema"
+          value={pick}
+          onValueChange={setThemePick}
+          options={THEMES}
+          className="w-full sm:w-fit"
+        />
+        <p className="text-xs text-muted-foreground">
+          "Como el sistema" cambia solo cuando tu computadora pasa a modo claro
+          u oscuro. Se guarda en este navegador.
+        </p>
+      </div>
+    </Section>
   );
 }
 
@@ -82,6 +114,7 @@ function ProfileForm({ me }: { me: Me }) {
             <Label htmlFor="profile-name">Nombre</Label>
             <Input
               id="profile-name"
+              autoComplete="name"
               value={name}
               onChange={(e) => setName(e.target.value)}
             />
@@ -90,6 +123,8 @@ function ProfileForm({ me }: { me: Me }) {
             <Label htmlFor="profile-username">Usuario</Label>
             <Input
               id="profile-username"
+              autoComplete="off"
+              spellCheck={false}
               value={username}
               placeholder={emailHandle}
               onChange={(e) => setUsername(e.target.value)}
@@ -108,6 +143,7 @@ function ProfileForm({ me }: { me: Me }) {
             <Input
               id="profile-whatsapp"
               type="tel"
+              autoComplete="tel"
               value={phone}
               placeholder="+51 987 654 321"
               onChange={(e) => setPhone(e.target.value)}

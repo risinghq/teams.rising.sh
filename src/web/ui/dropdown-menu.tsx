@@ -123,7 +123,11 @@ function DropdownMenuRadioItem({
 }: React.ComponentProps<typeof DropdownMenuPrimitive.RadioItem>) {
   return (
     <DropdownMenuPrimitive.RadioItem
-      className={cn(ITEM_CLASS, "pr-4 pl-8", className)}
+      className={cn(
+        ITEM_CLASS,
+        "gap-2 pr-4 pl-8 [&>svg]:size-4 [&>svg]:shrink-0",
+        className,
+      )}
       {...props}
     >
       <span className="absolute left-2 flex h-3.5 w-3.5 items-center justify-center">

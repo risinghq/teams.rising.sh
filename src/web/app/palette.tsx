@@ -2,6 +2,7 @@ import { Link, useNavigate } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
 import { useDebounced } from "@/hooks/use-debounced";
 import { cn } from "@/lib/cn";
+import { finePointer } from "@/lib/device";
 import { searchPalette, type PaletteItem } from "@/lib/palette";
 import { usePeekTasks } from "@/features/tasks/hooks";
 import { useTeams } from "@/features/teams/hooks";
@@ -109,7 +110,9 @@ function PaletteBody({ onClose }: { onClose: () => void }) {
       <Input
         aria-label="Buscar"
         appearance="bare"
-        autoFocus
+        autoFocus={finePointer()}
+        autoComplete="off"
+        spellCheck={false}
         value={q}
         onChange={(e) => {
           setQ(e.target.value);
