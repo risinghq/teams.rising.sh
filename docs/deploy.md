@@ -2,7 +2,8 @@
 
 A push to `main` runs `.github/workflows/deploy.yml`. It checks, applies the D1
 migrations to the remote database, then runs `wrangler deploy`. A pull request
-runs `bun run check` and `bun run build`.
+runs `bun run check` (format, types, import layers, dead code, tests) and
+`bun run build`.
 
 ## Settings
 

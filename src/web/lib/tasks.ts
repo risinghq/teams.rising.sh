@@ -1,19 +1,13 @@
 import type { Task, TaskStatus } from "@shared/types";
-import type { TaskQuery } from "@/api";
+import type { TaskParams } from "@/api";
 import { addDays } from "./dates";
 
 export const isOpen = (status: TaskStatus) =>
   status !== "done" && status !== "canceled";
 
-export type DueGroup =
-  | "overdue"
-  | "today"
-  | "week"
-  | "later"
-  | "none"
-  | "closed";
+type DueGroup = "overdue" | "today" | "week" | "later" | "none" | "closed";
 
-export const DUE_GROUPS: { id: DueGroup; label: string }[] = [
+const DUE_GROUPS: { id: DueGroup; label: string }[] = [
   { id: "overdue", label: "Atrasadas" },
   { id: "today", label: "Hoy" },
   { id: "week", label: "Esta semana" },
@@ -22,7 +16,7 @@ export const DUE_GROUPS: { id: DueGroup; label: string }[] = [
   { id: "closed", label: "Cerradas" },
 ];
 
-export function dueGroup(
+function dueGroup(
   task: Pick<Task, "due_date" | "status">,
   today: string,
 ): DueGroup {
@@ -66,12 +60,12 @@ export type TaskFilters = {
 const FILTER_NAMES = ["owner", "status", "label", "project", "q"] as const;
 
 export function taskQuery(
-  base: TaskQuery,
+  base: TaskParams,
   filters: TaskFilters,
   today: string,
-): TaskQuery {
+): TaskParams {
   const { due } = filters;
-  const query: TaskQuery = { ...base };
+  const query: TaskParams = { ...base };
   for (const name of FILTER_NAMES) {
     const value = filters[name]?.trim();
     if (value) query[name] = value;

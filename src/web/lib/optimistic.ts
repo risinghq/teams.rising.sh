@@ -133,7 +133,7 @@ function toggled(
     : reactions.map((r) => (r === found ? { ...r, names, mine: false } : r));
 }
 
-export const reaction = (
+export const applyReaction = (
   a: { key: string; updateId: string; emoji: string; on: boolean },
   read: Read,
 ) => {
