@@ -1,7 +1,11 @@
 @import "tailwindcss";
 @import "@fontsource-variable/inter";
 
+/* `dark:` utilities follow the same attribute as the theme colors. */
+@custom-variant dark (&:where([data-theme="dark"], [data-theme="dark"] *));
+
 :root {
+  color-scheme: light;
   --radius: 0.625rem;
   --background: hsl(220 23.08% 94.9%);
   --foreground: hsl(234 16.02% 35.49%);
@@ -34,29 +38,30 @@
   --ok: hsl(113 32.94% 33%);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: hsl(232 23.4% 18.43%);
-    --foreground: hsl(227 68.25% 87.65%);
-    --card: hsl(232 23.4% 18.43%);
-    --primary: hsl(267 82.69% 79.61%);
-    --primary-foreground: hsl(232 23.4% 18.43%);
-    --muted: hsl(230 18.8% 26.08%);
-    --muted-foreground: hsl(228 39.22% 80%);
-    --destructive: hsl(351 73.91% 72.94%);
-    /* Macchiato surface1. */
-    --secondary: hsl(231 15.61% 34.12%);
-    /* Macchiato overlay0: 3.2:1 on the background. */
-    --input: hsl(230 14.1% 48.04%);
-    /* Solid in dark mode: translucent white lines glow. */
-    --border: hsl(231 15.61% 30%);
-    --surface: hsl(232 22% 22%);
-    --card-shadow: 0 0 0 1px var(--border), 0 4px 12px -4px rgb(0 0 0 / 0.35);
-    --ring: hsl(227 68.25% 87.65%);
-    --sidebar: hsl(234 22.75% 17.25%);
-    --warn: hsl(35 61.18% 76.86%);
-    --ok: hsl(113 32.94% 73.33%);
-  }
+/* Dark follows `data-theme`, which index.html sets before the first paint
+   from the person's pick or, by default, the system setting. */
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --background: hsl(232 23.4% 18.43%);
+  --foreground: hsl(227 68.25% 87.65%);
+  --card: hsl(232 23.4% 18.43%);
+  --primary: hsl(267 82.69% 79.61%);
+  --primary-foreground: hsl(232 23.4% 18.43%);
+  --muted: hsl(230 18.8% 26.08%);
+  --muted-foreground: hsl(228 39.22% 80%);
+  --destructive: hsl(351 73.91% 72.94%);
+  /* Macchiato surface1. */
+  --secondary: hsl(231 15.61% 34.12%);
+  /* Macchiato overlay0: 3.2:1 on the background. */
+  --input: hsl(230 14.1% 48.04%);
+  /* Solid in dark mode: translucent white lines glow. */
+  --border: hsl(231 15.61% 30%);
+  --surface: hsl(232 22% 22%);
+  --card-shadow: 0 0 0 1px var(--border), 0 4px 12px -4px rgb(0 0 0 / 0.35);
+  --ring: hsl(227 68.25% 87.65%);
+  --sidebar: hsl(234 22.75% 17.25%);
+  --warn: hsl(35 61.18% 76.86%);
+  --ok: hsl(113 32.94% 73.33%);
 }
 
 @theme inline {
@@ -165,24 +170,30 @@ body {
   font-size: 0.875rem;
 }
 
-* {
-  border-color: var(--border);
-}
-
-:focus-visible {
-  outline: 2px solid var(--ring);
-  outline-offset: 1px;
+/* Defaults that components override. They sit in the base layer so a Tailwind
+   utility replaces them: unlayered CSS wins over every layer, so an unlayered
+   border color would keep `border-input` and `hover:` borders from showing,
+   and an unlayered focus mark would draw a second ring around fields. */
+@layer base {
+  * {
+    border-color: var(--border);
+  }
+  :focus-visible {
+    outline: 2px solid var(--ring);
+    outline-offset: 1px;
+  }
 }
 
 /* On touch screens every control is at least 44px, and fields use 16px text so
    iOS does not zoom in on focus. Icon-only buttons carry an aria-label, so they
    also get the width. Inline links are unaffected: min-height skips inline
-   boxes. The desktop keeps its dense layout. */
+   boxes. A checkbox keeps its size and gets its reach from a padded label. The
+   desktop keeps its dense layout. */
 @media (pointer: coarse) {
   a,
   button,
   select,
-  input,
+  input:not([type="checkbox"]),
   textarea {
     min-height: 44px;
   }

@@ -7,6 +7,7 @@ import {
 } from "../src/shared/types";
 import { addDays, monthGrid, shortDay, weekGrid } from "../src/web/lib/dates";
 import { STATUSES } from "../src/web/lib/domain";
+import { resolveTheme } from "../src/web/lib/theme";
 import {
   insertMention,
   matchPeople,
@@ -356,4 +357,11 @@ describe("statuses", () => {
     expect(STATUSES.slice(0, 3)).toEqual(["todo", "in_progress", "done"]);
     expect([...STATUSES].sort()).toEqual([...TASK_STATUSES].sort());
   });
+});
+
+test("a theme pick wins over the system, and 'system' follows it", () => {
+  expect(resolveTheme("system", true)).toBe("dark");
+  expect(resolveTheme("system", false)).toBe("light");
+  expect(resolveTheme("light", true)).toBe("light");
+  expect(resolveTheme("dark", false)).toBe("dark");
 });

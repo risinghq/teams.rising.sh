@@ -1,5 +1,6 @@
 import { Link, useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
+import { finePointer } from "@/lib/device";
 import { useMe } from "@/features/teams/hooks";
 import { Button, buttonVariants } from "@/ui/button";
 import { EmptyState } from "@/ui/empty-state";
@@ -60,7 +61,8 @@ export function NewTeam() {
           <Label htmlFor="team-name">Nombre</Label>
           <Input
             id="team-name"
-            autoFocus
+            autoFocus={finePointer()}
+            autoComplete="off"
             value={name}
             onChange={(e) => setName(e.target.value)}
             placeholder="AI for Science"
@@ -71,6 +73,8 @@ export function NewTeam() {
           <Input
             id="team-key"
             aria-describedby="team-key-hint"
+            autoComplete="off"
+            spellCheck={false}
             value={key}
             onChange={(e) =>
               setKey(e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, ""))
