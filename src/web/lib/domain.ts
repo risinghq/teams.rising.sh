@@ -29,6 +29,27 @@ export const STATUS_LABEL: Record<TaskStatus, string> = {
 export const parseStatus = (value: unknown): TaskStatus | undefined =>
   STATUSES.find((s) => s === value);
 
+// Labels most teams end up with, offered when a team adds one so it has
+// something to start from. Each keeps one color everywhere.
+export const SUGGESTED_LABELS = [
+  { name: "idea", color: "#df8e1d" },
+  { name: "investigación", color: "#1e66f5" },
+  { name: "paper", color: "#8839ef" },
+  { name: "datos", color: "#fe640b" },
+  { name: "código", color: "#40a02b" },
+  { name: "contenido", color: "#ea76cb" },
+  { name: "reunión", color: "#179299" },
+  { name: "urgente", color: "#d20f39" },
+] as const;
+
+// Label names compare without case or accents, so "Código" is "codigo".
+export const labelKey = (name: string) =>
+  name
+    .normalize("NFD")
+    .replace(/\p{Diacritic}/gu, "")
+    .trim()
+    .toLowerCase();
+
 export const ROLE_LABEL: Record<Member["role"], string> = {
   leader: "Líder",
   member: "Miembro",
