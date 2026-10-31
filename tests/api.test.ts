@@ -713,6 +713,13 @@ test("a malformed body gets a 400 in Spanish that names the field", async () => 
       "title no puede superar 300 caracteres",
     ],
     [
+      "description too long",
+      "POST",
+      "/api/tasks",
+      { team, title: "t", description: "x".repeat(10001) },
+      "description no puede superar 10000 caracteres",
+    ],
+    [
       "status unknown",
       "POST",
       "/api/tasks",
