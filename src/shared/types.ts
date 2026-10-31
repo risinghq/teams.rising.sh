@@ -66,11 +66,15 @@ export type TaskLink = {
   state: string;
 };
 
+// `can_edit` and `can_delete` are the server's own rules applied to the caller,
+// so the client offers only what will succeed.
 export type TaskDetail = Task & {
   subtasks: Task[];
   collaborators: Person[];
   links: TaskLink[];
   updates: Update[];
+  can_edit: boolean;
+  can_delete: boolean;
 };
 
 export type Me = {
