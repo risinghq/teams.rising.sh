@@ -94,7 +94,8 @@
   --radius-xl: calc(var(--radius) + 4px);
   --radius-2xl: calc(var(--radius) + 8px);
   --font-sans: "Inter Variable", Inter, "Avenir Next", "Segoe UI", sans-serif;
-  /* The greeting on the home screen, the only text above 24px. */
+  /* The greeting on the home screen. Only it and the login headline go above
+     24px. */
   --text-display: 2rem;
   --text-display--line-height: 1.2;
 }

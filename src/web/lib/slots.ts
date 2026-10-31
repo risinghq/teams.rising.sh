@@ -1,8 +1,8 @@
 export type Interval = { start: string; end: string };
 
 // The working day the free/busy grid shows, in local hours, and its step.
-export const DAY_FROM = 8;
-export const DAY_TO = 20;
+const DAY_FROM = 8;
+const DAY_TO = 20;
 export const STEP_MIN = 30;
 
 const MINUTE = 60_000;

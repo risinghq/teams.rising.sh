@@ -1,6 +1,12 @@
 import { describe, expect, test } from "bun:test";
-import type { InboxItem, Task, User } from "../src/shared/types";
+import {
+  TASK_STATUSES,
+  type InboxItem,
+  type Task,
+  type User,
+} from "../src/shared/types";
 import { addDays, monthGrid, shortDay, weekGrid } from "../src/web/lib/dates";
+import { STATUSES } from "../src/web/lib/domain";
 import { resolveTheme } from "../src/web/lib/theme";
 import {
   insertMention,
@@ -343,6 +349,13 @@ describe("grids", () => {
       "2026-11-01",
     ]);
     expect(addDays("2026-10-31", 1)).toBe("2026-11-01");
+  });
+});
+
+describe("statuses", () => {
+  test("the menu runs to do, doing, done and still lists every status", () => {
+    expect(STATUSES.slice(0, 3)).toEqual(["todo", "in_progress", "done"]);
+    expect([...STATUSES].sort()).toEqual([...TASK_STATUSES].sort());
   });
 });
 
