@@ -15,6 +15,10 @@ import {
   addCollaborator,
   badReference,
   collaboratorsOf,
+  commentAuthor,
+  deleteComment,
+  deleteTask,
+  editComment,
   findVisibleTask,
   hydrate,
   insertComment,
@@ -50,6 +54,14 @@ async function canEdit(c: C, task: TaskRow): Promise<boolean> {
   if (task.owner_id === user.id || task.created_by === user.id) return true;
   if ((await teamRole(c.env.DB, user, task.team_id)) === "leader") return true;
   return isCollaborator(c.env.DB, task.id, user.id);
+}
+
+// Collaborators edit a task but do not delete it: that takes its subtasks and
+// history with it.
+async function canDelete(c: C, task: TaskRow): Promise<boolean> {
+  const user = c.get("user");
+  if (task.owner_id === user.id || task.created_by === user.id) return true;
+  return (await teamRole(c.env.DB, user, task.team_id)) === "leader";
 }
 
 async function checkReferences(
@@ -106,12 +118,22 @@ taskRoutes.post("/tasks", async (c) => {
 taskRoutes.get("/tasks/:key", async (c) => {
   const user = c.get("user");
   const row = await taskByKey(c, c.req.param("key"));
-  const [[task], subtasks, collaborators, links, updates] = await Promise.all([
+  const [
+    [task],
+    subtasks,
+    collaborators,
+    links,
+    updates,
+    can_edit,
+    can_delete,
+  ] = await Promise.all([
     hydrate(c.env.DB, user, [row]),
     subtasksOf(c.env.DB, user, row.id),
     collaboratorsOf(c.env.DB, row.id),
     linksOf(c.env.DB, row.id),
     updatesOf(c.env.DB, row.id, user.id),
+    canEdit(c, row),
+    canDelete(c, row),
   ]);
   const detail: TaskDetail = {
     ...(task as TaskDetail),
@@ -119,6 +141,8 @@ taskRoutes.get("/tasks/:key", async (c) => {
     collaborators,
     links,
     updates,
+    can_edit,
+    can_delete,
   };
   return c.json(detail);
 });
@@ -151,6 +175,55 @@ taskRoutes.post("/tasks/:key/updates", async (c) => {
     mentions,
   );
   return c.json({ id: updateId }, 201);
+});
+
+// Only the author edits a comment: it is their words. Ticking a checkbox in it
+// is an edit too.
+taskRoutes.patch("/tasks/:key/updates/:id", async (c) => {
+  const user = c.get("user");
+  const task = await taskByKey(c, c.req.param("key"));
+  const author = await commentAuthor(c.env.DB, task.id, c.req.param("id"));
+  if (author === undefined)
+    throw new HttpError(404, "comentario no encontrado");
+  if (author !== user.id)
+    throw new HttpError(
+      403,
+      "solo quien escribió el comentario puede editarlo",
+    );
+  const { body } = await parseBody(c, commentBody);
+  const mentions = await mentionedUserIds(c.env.DB, mentionNames(body));
+  await editComment(c.env.DB, c.req.param("id"), body, mentions);
+  return c.json({ ok: true });
+});
+
+// The author or a team leader, who keeps the thread tidy.
+taskRoutes.delete("/tasks/:key/updates/:id", async (c) => {
+  const user = c.get("user");
+  const task = await taskByKey(c, c.req.param("key"));
+  const author = await commentAuthor(c.env.DB, task.id, c.req.param("id"));
+  if (author === undefined)
+    throw new HttpError(404, "comentario no encontrado");
+  if (
+    author !== user.id &&
+    (await teamRole(c.env.DB, user, task.team_id)) !== "leader"
+  )
+    throw new HttpError(
+      403,
+      "solo quien escribió el comentario o un líder puede borrarlo",
+    );
+  await deleteComment(c.env.DB, c.req.param("id"));
+  return c.json({ ok: true });
+});
+
+taskRoutes.delete("/tasks/:key", async (c) => {
+  const task = await taskByKey(c, c.req.param("key"));
+  if (!(await canDelete(c, task)))
+    throw new HttpError(
+      403,
+      "solo el responsable, quien la creó o un líder puede borrar la tarea",
+    );
+  await deleteTask(c.env.DB, task.id);
+  return c.json({ ok: true });
 });
 
 // Anyone who can see the task can react, as anyone who can see it can comment.
