@@ -1,6 +1,7 @@
 import { describe, expect, test } from "bun:test";
 import type { InboxItem, Task, User } from "../src/shared/types";
 import { addDays, monthGrid, shortDay, weekGrid } from "../src/web/lib/dates";
+import { resolveTheme } from "../src/web/lib/theme";
 import {
   insertMention,
   matchPeople,
@@ -343,4 +344,11 @@ describe("grids", () => {
     ]);
     expect(addDays("2026-10-31", 1)).toBe("2026-11-01");
   });
+});
+
+test("a theme pick wins over the system, and 'system' follows it", () => {
+  expect(resolveTheme("system", true)).toBe("dark");
+  expect(resolveTheme("system", false)).toBe("light");
+  expect(resolveTheme("light", true)).toBe("light");
+  expect(resolveTheme("dark", false)).toBe("dark");
 });

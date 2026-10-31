@@ -3,6 +3,7 @@ import { useState } from "react";
 import type { FreeBusy, Person } from "@shared/types";
 import { cn } from "@/lib/cn";
 import { today } from "@/lib/dates";
+import { finePointer } from "@/lib/device";
 import { freeStarts, overlaps, steps, STEP_MIN } from "@/lib/slots";
 import { FieldMenu } from "@/features/tasks/field-menu";
 import { PersonAvatar } from "@/features/teams/person-avatar";
@@ -115,7 +116,8 @@ function EventForm({
     >
       <Input
         aria-label="Título del evento"
-        autoFocus
+        autoFocus={finePointer()}
+        autoComplete="off"
         value={title}
         onChange={(e) => setTitle(e.target.value)}
         placeholder="Título"

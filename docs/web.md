@@ -109,6 +109,15 @@ Feedback follows from that:
 `width="wide"` is the calendar's. The scrolling area reserves its scrollbar
 gutter, so a short page and a long one line up.
 
+## Theme
+
+Light and dark follow `data-theme` on `<html>`. The Apariencia section of the
+profile page offers "Como el sistema", "Claro" and "Oscuro"; the pick is stored
+in `localStorage` under `theme`, and no entry means the system setting. A script
+in `index.html` sets the attribute before the first paint, so a dark page never
+flashes light; `src/web/lib/theme.ts` keeps it in step afterwards, also when the
+system setting changes. Tailwind's `dark:` variant follows the same attribute.
+
 ## Calendar events
 
 "Nuevo evento" on `/calendar` opens a dialog that invites people and can add a

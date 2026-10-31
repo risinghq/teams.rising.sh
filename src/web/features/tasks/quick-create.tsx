@@ -37,16 +37,17 @@ export function QuickCreate() {
         );
       }}
     >
-      <div className="flex items-end gap-3 border-b border-input focus-within:border-foreground">
+      <div className="flex items-end gap-3 border-b border-input transition-colors duration-150 ease-out hover:border-foreground/60 focus-within:border-primary">
         <Input
           aria-label="Título de la nueva tarea"
           aria-describedby={hint}
           appearance="bare"
+          autoComplete="off"
           disabled={disabled}
           value={title}
           onChange={(e) => setTitle(e.target.value)}
           placeholder="¿Qué quieres hacer hoy?"
-          className="h-12 min-w-0 flex-1 px-0 text-xl placeholder:text-muted-foreground/70 focus-visible:ring-0 md:text-xl"
+          className="h-12 min-w-0 flex-1 px-0 text-xl placeholder:text-muted-foreground/70 md:text-xl"
         />
         {teams.length > 1 && team && (
           <FieldMenu
