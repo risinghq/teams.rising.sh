@@ -10,10 +10,10 @@ import type {
 } from "@shared/types";
 import {
   applyPatches,
+  applyReaction,
   eventRemoved,
   isPending,
   pendingComment,
-  reaction,
   taskPatch,
   type Read,
 } from "../src/web/lib/optimistic";
@@ -137,7 +137,10 @@ describe("reaction", () => {
     );
     await applyPatches(
       client,
-      reaction({ key: "ENG-1", updateId: "c1", emoji, on }, reader(client)),
+      applyReaction(
+        { key: "ENG-1", updateId: "c1", emoji, on },
+        reader(client),
+      ),
     );
     return client.getQueryData<TaskDetail>(key)!.updates[0]!.reactions;
   };

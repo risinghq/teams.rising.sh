@@ -60,7 +60,7 @@ const timestamp = (field: string) =>
 const visibility = oneOf("visibility", ["open", "private"]);
 const status = oneOf("status", TASK_STATUSES);
 
-export const teamKey = text("key", 6)
+const teamKey = text("key", 6)
   .toUpperCase()
   .regex(
     /^[A-Z][A-Z0-9]{1,5}$/,
@@ -242,8 +242,8 @@ export const dateRange = z.object({
   to: dateOnly("to").optional(),
 });
 
-export const TASK_PAGE_MAX = 500;
-export const TASK_PAGE_DEFAULT = 100;
+const TASK_PAGE_MAX = 500;
+const TASK_PAGE_DEFAULT = 100;
 
 const pageSize = `limit debe ser un entero de 1 a ${TASK_PAGE_MAX}`;
 
@@ -273,6 +273,5 @@ export const taskQuery = z.object({
   cursor: z.string().optional(),
 });
 
-export type CreateTask = z.infer<typeof createTask>;
 export type PatchTask = z.infer<typeof patchTask>;
 export type TaskQuery = z.infer<typeof taskQuery>;

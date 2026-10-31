@@ -1,0 +1,26 @@
+{
+  "$schema": "https://raw.githubusercontent.com/fallow-rs/fallow/main/schema.json",
+  "entry": ["src/web/main.tsx", "scripts/*.ts"],
+  "ignoreExports": [{ "file": "src/web/ui/**", "exports": ["*"] }],
+  "boundaries": {
+    "zones": [
+      { "name": "shared", "patterns": ["src/shared/**"] },
+      { "name": "worker", "patterns": ["src/worker/**"] },
+      { "name": "ui", "patterns": ["src/web/ui/**"] },
+      {
+        "name": "lib",
+        "patterns": ["src/web/lib/**", "src/web/hooks/**", "src/web/api.ts"]
+      },
+      { "name": "features", "patterns": ["src/web/features/**"] },
+      { "name": "app", "patterns": ["src/web/app/**", "src/web/main.tsx"] }
+    ],
+    "rules": [
+      { "from": "shared", "allow": [] },
+      { "from": "worker", "allow": ["shared"] },
+      { "from": "ui", "allow": ["shared", "lib"] },
+      { "from": "lib", "allow": ["shared"] },
+      { "from": "features", "allow": ["shared", "ui", "lib"] },
+      { "from": "app", "allow": ["shared", "ui", "lib", "features"] }
+    ]
+  }
+}

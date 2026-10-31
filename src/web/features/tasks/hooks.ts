@@ -7,22 +7,22 @@ import {
 import { useNavigate } from "@tanstack/react-router";
 import { useCallback, useMemo } from "react";
 import type { Task } from "@shared/types";
-import { api, type TaskQuery } from "@/api";
+import { api, type TaskParams } from "@/api";
 import { useWrite } from "@/hooks/use-write";
 import {
+  applyReaction,
   collaboratorAdded,
   collaboratorRemoved,
   pendingComment,
-  reaction,
   taskPatch,
 } from "@/lib/optimistic";
 import { queryKeys } from "@/lib/query-keys";
 
-export const TASK_PAGE_SIZE = 50;
+const TASK_PAGE_SIZE = 50;
 
 // One list of tasks, loaded a page at a time. The key is the list's query, so
 // a write that invalidates `tasks.lists` refetches every page loaded so far.
-export const taskPagesOptions = (query: TaskQuery, limit = TASK_PAGE_SIZE) =>
+export const taskPagesOptions = (query: TaskParams, limit = TASK_PAGE_SIZE) =>
   infiniteQueryOptions({
     queryKey: queryKeys.tasks.list(query),
     queryFn: ({ pageParam }) =>
@@ -31,7 +31,7 @@ export const taskPagesOptions = (query: TaskQuery, limit = TASK_PAGE_SIZE) =>
     getNextPageParam: (last) => last.next ?? undefined,
   });
 
-export function useTaskPages(query: TaskQuery) {
+export function useTaskPages(query: TaskParams) {
   const pages = useInfiniteQuery(taskPagesOptions(query));
   const tasks = useMemo(
     () => pages.data?.pages.flatMap((p) => p.items),
@@ -53,7 +53,7 @@ export type TaskPages = ReturnType<typeof useTaskPages>;
 // The first `limit` tasks of a query, for a count or a search box. `next` is
 // set when there are more.
 export const usePeekTasks = (
-  query: TaskQuery,
+  query: TaskParams,
   limit: number,
   enabled = true,
 ) => {
@@ -116,7 +116,7 @@ export const useReact = () =>
     "react",
     ({ key, updateId, emoji, on }: ReactArgs) =>
       api.react(key, updateId, emoji, on),
-    { optimistic: reaction },
+    { optimistic: applyReaction },
   );
 type CollaboratorArgs = { key: string; userId: string };
 export const useAddCollaborator = () =>

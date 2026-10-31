@@ -41,7 +41,7 @@ async function send<T>(
   return { data: data as T, headers: res.headers };
 }
 
-export async function request<T>(
+async function request<T>(
   method: string,
   path: string,
   body?: unknown,
@@ -51,9 +51,12 @@ export async function request<T>(
 
 export type TaskPage = { items: Task[]; next: string | null };
 
-export type TaskQuery = Record<string, string>;
+export type TaskParams = Record<string, string>;
 
-async function tasksPage(query: TaskQuery, cursor?: string): Promise<TaskPage> {
+async function tasksPage(
+  query: TaskParams,
+  cursor?: string,
+): Promise<TaskPage> {
   const params = new URLSearchParams(query);
   if (cursor) params.set("cursor", cursor);
   const { data, headers } = await send<Task[]>("GET", `/api/tasks?${params}`);
