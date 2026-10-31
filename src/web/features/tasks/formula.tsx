@@ -3,13 +3,15 @@ import { useEffect, useState } from "react";
 type Katex = typeof import("katex").default;
 
 // KaTeX and its stylesheet load on the first formula, so pages without math
-// never fetch them.
+// never fetch them. A failed load is forgotten so the next formula retries.
 let katex: Promise<Katex> | null = null;
 const loadKatex = () =>
-  (katex ??= Promise.all([
-    import("katex"),
-    import("katex/dist/katex.min.css"),
-  ]).then(([m]) => m.default));
+  (katex ??= Promise.all([import("katex"), import("katex/dist/katex.min.css")])
+    .then(([m]) => m.default)
+    .catch((error: unknown) => {
+      katex = null;
+      throw error;
+    }));
 
 // TeX math. KaTeX escapes what it is given, and with `trust` off it refuses
 // the commands that load resources or set HTML attributes, so the HTML it
@@ -20,20 +22,23 @@ export function Formula({ tex, display }: { tex: string; display: boolean }) {
   const [html, setHtml] = useState<string | null>(null);
   useEffect(() => {
     let live = true;
-    void loadKatex().then((k) => {
-      if (!live) return;
-      setHtml(
-        k.renderToString(tex, {
-          displayMode: display,
-          throwOnError: false,
-          trust: false,
-          strict: "ignore",
-          maxSize: 10,
-          maxExpand: 500,
-          output: "htmlAndMathml",
-        }),
-      );
-    });
+    // On a failed load the formula stays as its source text.
+    loadKatex()
+      .then((k) => {
+        if (!live) return;
+        setHtml(
+          k.renderToString(tex, {
+            displayMode: display,
+            throwOnError: false,
+            trust: false,
+            strict: "ignore",
+            maxSize: 10,
+            maxExpand: 500,
+            output: "htmlAndMathml",
+          }),
+        );
+      })
+      .catch(() => {});
     return () => {
       live = false;
     };

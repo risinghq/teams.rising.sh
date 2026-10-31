@@ -20,6 +20,10 @@ const text = (field: string, max = 10000) =>
 
 const plain = (field: string) => z.string(wrong(field, "texto"));
 
+// Free text that may be empty, capped like a comment.
+const longText = (field: string, max = 10000) =>
+  plain(field).max(max, `${field} no puede superar ${max} caracteres`);
+
 const oneOf = <T extends string>(
   field: string,
   allowed: readonly [T, ...T[]],
@@ -133,14 +137,14 @@ export const setMember = z.object({
 
 export const createProject = z.object({
   name: text("name", 100),
-  description: plain("description").default(""),
+  description: longText("description").default(""),
   start_date: nullableDate("start_date").default(null),
   target_date: nullableDate("target_date").default(null),
 });
 
 export const patchProject = z.object({
   name: text("name", 100).optional(),
-  description: plain("description").optional(),
+  description: longText("description").optional(),
   status: oneOf("status", ["active", "done", "archived"]).optional(),
   start_date: nullableDate("start_date").optional(),
   target_date: nullableDate("target_date").optional(),
@@ -156,7 +160,7 @@ export const createTask = z.object({
   team: text("team", 6),
   parent: text("parent", 20).optional(),
   title: text("title", 300),
-  description: plain("description").default(""),
+  description: longText("description").default(""),
   labels: ids("labels").default([]),
   visibility: visibility.default("open"),
   status: status.default("todo"),
@@ -168,7 +172,7 @@ export const createTask = z.object({
 
 export const patchTask = z.object({
   title: text("title", 300).optional(),
-  description: plain("description").optional(),
+  description: longText("description").optional(),
   visibility: visibility.optional(),
   project_id: z
     .string({ error: "project_id debe ser texto o null" })
@@ -193,7 +197,7 @@ export const reaction = z.enum(REACTIONS, { error: "reacción desconocida" });
 export const createEvent = z.object({
   team: z.string({ error: "team debe ser texto o null" }).nullish(),
   title: text("title", 300),
-  description: plain("description").default(""),
+  description: longText("description").default(""),
   starts_at: timestamp("starts_at"),
   ends_at: timestamp("ends_at").nullish(),
   all_day: z
@@ -223,7 +227,7 @@ export const freeBusyQuery = z
 
 export const patchEvent = z.object({
   title: text("title", 300).optional(),
-  description: plain("description").optional(),
+  description: longText("description").optional(),
   starts_at: timestamp("starts_at").optional(),
   ends_at: timestamp("ends_at").nullable().optional(),
   all_day: z
