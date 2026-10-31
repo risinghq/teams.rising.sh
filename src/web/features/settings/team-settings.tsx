@@ -54,7 +54,7 @@ export function TeamSettings({ team }: { team: string }) {
         imageUrl={detail.image_url}
       />
       <MembersSection team={team} members={detail.members} />
-      <LabelsSection teamId={detail.id} />
+      <LabelsSection team={team} teamId={detail.id} />
     </Page>
   );
 }

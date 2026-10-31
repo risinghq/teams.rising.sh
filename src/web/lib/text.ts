@@ -23,9 +23,16 @@ export function isImageUrl(url: string): boolean {
   }
 }
 
-// The first line of a description without its links, as a one-line summary.
+// The first line of a description without its links or Markdown marks, as a
+// one-line summary.
 export const summaryOf = (description: string) =>
   description
     .split("\n")
-    .map((line) => line.replace(/https?:\/\/\S+/g, "").replace(/[:\s]+$/, ""))
+    .map((line) =>
+      line
+        .replace(/https?:\/\/\S+/g, "")
+        .replace(/^\s*(?:[-*]|\d+[.)])\s+(?:\[[ xX]\]\s*)?/, "")
+        .replace(/\*\*|`/g, "")
+        .replace(/[:\s]+$/, ""),
+    )
     .find((line) => line.trim() !== "") ?? "";

@@ -11,10 +11,16 @@ import {
 } from "@/ui/dropdown-menu";
 import { useAddCollaborator, useRemoveCollaborator } from "./hooks";
 
-// The people helping the owner: removable chips and a menu that adds anyone
-// else. The API refuses to add someone else when the caller cannot edit the
-// task, and the failure shows as a toast.
-export function TaskCollaborators({ task }: { task: TaskDetail }) {
+// The people helping the owner: removable chips and a menu that adds people.
+// Someone who cannot edit the task may still join an open one and leave, so
+// for them the menu offers only themselves and only their own chip has an x.
+export function TaskCollaborators({
+  task,
+  canEdit,
+}: {
+  task: TaskDetail;
+  canEdit: boolean;
+}) {
   const me = useMe().data;
   const users = useUsers().data ?? [];
   const add = useAddCollaborator();
@@ -26,6 +32,9 @@ export function TaskCollaborators({ task }: { task: TaskDetail }) {
   // The caller first, so joining stays one pick.
   const candidates = users
     .filter((u) => !taken.has(u.id))
+    .filter((u) =>
+      canEdit ? true : u.id === me?.id && task.visibility === "open",
+    )
     .sort((a, b) => Number(b.id === me?.id) - Number(a.id === me?.id));
   return (
     <div className="flex min-w-0 flex-wrap items-center gap-1.5">
@@ -36,14 +45,16 @@ export function TaskCollaborators({ task }: { task: TaskDetail }) {
         >
           <PersonAvatar person={c} size={18} />
           {c.id === me?.id ? "Tú" : c.name}
-          <button
-            type="button"
-            aria-label={`Quitar a ${c.name}`}
-            className="rounded-full p-0.5 text-muted-foreground hover:bg-accent hover:text-foreground"
-            onClick={() => remove.mutate({ key: task.key, userId: c.id })}
-          >
-            <X size={12} />
-          </button>
+          {(canEdit || c.id === me?.id) && (
+            <button
+              type="button"
+              aria-label={`Quitar a ${c.name}`}
+              className="rounded-full p-0.5 text-muted-foreground hover:bg-accent hover:text-foreground"
+              onClick={() => remove.mutate({ key: task.key, userId: c.id })}
+            >
+              <X size={12} />
+            </button>
+          )}
         </span>
       ))}
       {candidates.length > 0 && (

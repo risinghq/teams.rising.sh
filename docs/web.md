@@ -83,15 +83,26 @@ on wide screens; a modified click, or a narrow screen, goes to the page.
 
 A write that changes something that already exists shows the change before the
 server answers: a task field, a board or calendar drag, a reaction, a comment, a
-collaborator, a project, a team, a member, the profile, a deleted event.
-`src/web/lib/optimistic.ts` holds one patch builder per write, and
-`useWrite(name, write, { optimistic })` applies it. A failure puts the cache
-back. Either way the write's queries refetch afterwards.
+ticked checkbox, a deleted comment or task, a collaborator, a project, a team, a
+member, the profile, a deleted event. `src/web/lib/optimistic.ts` holds one
+patch builder per write, and `useWrite(name, write, { optimistic })` applies it.
+A failure puts the cache back. Either way the write's queries refetch
+afterwards.
 
 A write that creates something waits for the server, because the server assigns
 the key, number or id that a link needs. A comment is the exception. It shows at
 once as "Enviando…" without reactions, and the box clears; a failure removes it
 and puts the text back.
+
+Comments and descriptions of tasks and projects render a small part of Markdown:
+lists, checkboxes, **bold**, `code`, fenced code blocks and TeX math (`$x$` and
+`$$ … $$`). `src/web/lib/markdown.ts` parses them into React elements, never
+HTML; math goes through KaTeX, loaded on the first formula, with `trust` off.
+Each of those boxes has its format bar inside its own frame, so the buttons
+belong to that field only, and a bubble above it previews the formula under the
+caret. Enter in a list item opens the next one; Ctrl or Cmd with Enter saves. A
+checkbox flips with a click for whoever may edit the text: the author of a
+comment, and whoever can edit the task or project for a description.
 
 Feedback follows from that:
 

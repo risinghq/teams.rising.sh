@@ -1,6 +1,7 @@
 import { describe, expect, test } from "bun:test";
 import type { InboxItem, Task, User } from "../src/shared/types";
 import { addDays, monthGrid, shortDay, weekGrid } from "../src/web/lib/dates";
+import { labelKey, SUGGESTED_LABELS } from "../src/web/lib/domain";
 import { resolveTheme } from "../src/web/lib/theme";
 import {
   insertMention,
@@ -15,7 +16,7 @@ import {
   taskQuery,
   type TaskFilters,
 } from "../src/web/lib/tasks";
-import { isImageUrl, linkify } from "../src/web/lib/text";
+import { isImageUrl, linkify, summaryOf } from "../src/web/lib/text";
 import { describeUpdate, groupInbox } from "../src/web/lib/updates";
 
 const task = (over: Partial<Task>): Task => ({
@@ -346,9 +347,21 @@ describe("grids", () => {
   });
 });
 
+test("label names match without case or accents", () => {
+  expect(labelKey("  Código ")).toBe("codigo");
+  expect(labelKey("REUNIÓN")).toBe(labelKey("reunion"));
+  const names = SUGGESTED_LABELS.map((l) => labelKey(l.name));
+  expect(new Set(names).size).toBe(names.length);
+});
+
 test("a theme pick wins over the system, and 'system' follows it", () => {
   expect(resolveTheme("system", true)).toBe("dark");
   expect(resolveTheme("system", false)).toBe("light");
   expect(resolveTheme("light", true)).toBe("light");
   expect(resolveTheme("dark", false)).toBe("dark");
+});
+
+test("a summary drops Markdown marks and links", () => {
+  expect(summaryOf("**Plan:** https://x.test/repo\n- [ ] leer")).toBe("Plan");
+  expect(summaryOf("- [x] bajar `datos`")).toBe("bajar datos");
 });

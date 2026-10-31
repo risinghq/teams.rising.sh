@@ -10,9 +10,10 @@ import {
 import { PersonAvatar } from "@/features/teams/person-avatar";
 import { useUsers } from "@/features/teams/hooks";
 import { Textarea } from "@/ui/textarea";
+import { markdownKey } from "./format-bar";
 
 type Props = Omit<
-  ComponentProps<"textarea">,
+  ComponentProps<typeof Textarea>,
   "value" | "onChange" | "onKeyDown"
 > & {
   value: string;
@@ -21,15 +22,22 @@ type Props = Omit<
 };
 
 // A comment box that lists people after an `@`. Arrows move, Enter or Tab
-// picks, Escape closes. Ctrl or Cmd with Enter submits.
+// picks, Escape closes. Ctrl or Cmd with Enter submits. Enter in a list item
+// opens the next one.
 export function MentionTextarea({
   value,
   onChange,
   onSubmit,
+  ref: outerRef,
   ...props
 }: Props) {
   const users = useUsers().data ?? [];
   const ref = useRef<HTMLTextAreaElement>(null);
+  const setRef = (el: HTMLTextAreaElement | null) => {
+    ref.current = el;
+    if (typeof outerRef === "function") outerRef(el);
+    else if (outerRef) outerRef.current = el;
+  };
   const listId = useId();
   const [caret, setCaret] = useState(0);
   const [active, setActive] = useState(0);
@@ -59,7 +67,7 @@ export function MentionTextarea({
     <div className="relative">
       <Textarea
         {...props}
-        ref={ref}
+        ref={setRef}
         value={value}
         role="combobox"
         aria-expanded={shown}
@@ -96,7 +104,7 @@ export function MentionTextarea({
               return;
             }
           }
-          if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) onSubmit();
+          markdownKey(e, value, onChange, onSubmit);
         }}
       />
       {shown && (
