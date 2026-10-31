@@ -167,6 +167,68 @@ export const pendingComment = (
   return onDetail(a.key, (d) => ({ ...d, updates: [...d.updates, pending] }));
 };
 
+export const commentEdited = (a: {
+  key: string;
+  updateId: string;
+  body: string;
+}) =>
+  onDetail(a.key, (d) => ({
+    ...d,
+    updates: d.updates.map((u) =>
+      u.id === a.updateId ? { ...u, body: a.body } : u,
+    ),
+  }));
+
+export const commentRemoved = (a: { key: string; updateId: string }) =>
+  onDetail(a.key, (d) => ({
+    ...d,
+    updates: d.updates.filter((u) => u.id !== a.updateId),
+  }));
+
+// Drops the task from every list and from a parent's subtasks.
+export function taskRemoved(a: { key: string }): Patch[] {
+  const keep = (t: Task) => t.key !== a.key;
+  const page = (p: TaskPage) => ({ ...p, items: p.items.filter(keep) });
+  return [
+    patch<TaskDetail>({ queryKey: k.tasks.details }, (d) => ({
+      ...d,
+      subtasks: d.subtasks.filter(keep),
+    })),
+    patch<TaskPage | { pages: TaskPage[]; pageParams: unknown[] }>(
+      { queryKey: k.tasks.lists },
+      (data) =>
+        "pages" in data ? { ...data, pages: data.pages.map(page) } : page(data),
+    ),
+    patch<{ tasks: Task[] }>({ queryKey: k.calendar.all }, (c) => ({
+      ...c,
+      tasks: c.tasks.filter(keep),
+    })),
+  ];
+}
+
+// Drops the label from the label list and from every cached task.
+export function labelRemoved(a: { id: string }): Patch[] {
+  const strip = <T extends Task>(t: T): T =>
+    t.labels.some((l) => l.id === a.id)
+      ? { ...t, labels: t.labels.filter((l) => l.id !== a.id) }
+      : t;
+  const page = (p: TaskPage) => ({ ...p, items: p.items.map(strip) });
+  return [
+    patch<Label[]>({ queryKey: k.labels }, (list) =>
+      list.filter((l) => l.id !== a.id),
+    ),
+    patch<TaskDetail>({ queryKey: k.tasks.details }, (d) => ({
+      ...strip(d),
+      subtasks: d.subtasks.map(strip),
+    })),
+    patch<TaskPage | { pages: TaskPage[]; pageParams: unknown[] }>(
+      { queryKey: k.tasks.lists },
+      (data) =>
+        "pages" in data ? { ...data, pages: data.pages.map(page) } : page(data),
+    ),
+  ];
+}
+
 export const collaboratorAdded = (
   a: { key: string; userId: string },
   read: Read,

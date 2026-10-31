@@ -1,7 +1,12 @@
 import type { Member } from "@shared/types";
 import { api } from "@/api";
 import { useWrite } from "@/hooks/use-write";
-import { memberRemoved, memberRole, teamPatch } from "@/lib/optimistic";
+import {
+  labelRemoved,
+  memberRemoved,
+  memberRole,
+  teamPatch,
+} from "@/lib/optimistic";
 
 export const useCreateTeam = () =>
   useWrite(
@@ -42,6 +47,11 @@ export const useRemoveMember = () =>
       api.removeMember(team, userId),
     { optimistic: memberRemoved },
   );
+
+export const useDeleteLabel = () =>
+  useWrite("deleteLabel", ({ id }: { id: string }) => api.deleteLabel(id), {
+    optimistic: labelRemoved,
+  });
 
 export const useCreateLabel = () =>
   useWrite(

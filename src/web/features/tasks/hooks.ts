@@ -13,8 +13,11 @@ import {
   applyReaction,
   collaboratorAdded,
   collaboratorRemoved,
+  commentEdited,
+  commentRemoved,
   pendingComment,
   taskPatch,
+  taskRemoved,
 } from "@/lib/optimistic";
 import { queryKeys } from "@/lib/query-keys";
 
@@ -88,7 +91,8 @@ export function useTeamLabels(teamId: string | undefined) {
 export const useCreateTask = () =>
   useWrite(
     "createTask",
-    (body: Record<string, unknown>) => api.createTask(body),
+    (body: Record<string, unknown> & { parent?: string }) =>
+      api.createTask(body),
     { inline: true },
   );
 export const usePatchTask = () =>
@@ -103,6 +107,26 @@ export const usePatchTask = () =>
       patch: Record<string, unknown>;
     }) => api.patchTask(key, patch),
     { optimistic: taskPatch },
+  );
+export const useDeleteTask = () =>
+  useWrite(
+    "deleteTask",
+    ({ key }: { key: string; parentId: string | null }) => api.deleteTask(key),
+    { optimistic: taskRemoved },
+  );
+type CommentArgs = { key: string; updateId: string };
+export const useEditComment = () =>
+  useWrite(
+    "editComment",
+    ({ key, updateId, body }: CommentArgs & { body: string }) =>
+      api.editComment(key, updateId, body),
+    { optimistic: commentEdited },
+  );
+export const useDeleteComment = () =>
+  useWrite(
+    "deleteComment",
+    ({ key, updateId }: CommentArgs) => api.deleteComment(key, updateId),
+    { optimistic: commentRemoved },
   );
 export const useComment = () =>
   useWrite(

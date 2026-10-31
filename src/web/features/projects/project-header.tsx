@@ -4,7 +4,7 @@ import { useState } from "react";
 import type { Project } from "@shared/types";
 import { shortDay } from "@/lib/dates";
 import { PROJECT_STATUS_LABEL } from "@/lib/domain";
-import { LinkedText } from "@/features/tasks/linked-text";
+import { Markdown } from "@/features/tasks/markdown";
 import { Button } from "@/ui/button";
 import { usePatchProject } from "./hooks";
 import { ProjectForm } from "./project-form";
@@ -69,9 +69,17 @@ export function ProjectHeader({
         )}
       </div>
       {project.description && (
-        <p className="whitespace-pre-wrap text-sm">
-          <LinkedText text={project.description} />
-        </p>
+        <div className="text-sm">
+          <Markdown
+            text={project.description}
+            onToggle={
+              canEdit
+                ? (description) =>
+                    save.mutate({ team, id: project.id, body: { description } })
+                : undefined
+            }
+          />
+        </div>
       )}
     </section>
   );

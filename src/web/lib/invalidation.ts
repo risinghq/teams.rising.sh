@@ -26,8 +26,15 @@ const detailOfTaskId = (id: string): InvalidateQueryFilters => ({
 export const invalidations = {
   // Project cards show the server's open, progress and next due counts, which
   // every task write can move.
-  createTask: (_: unknown) =>
-    byKey(k.tasks.lists, k.projects.all, k.calendar.all, k.overview),
+  // A subtask also changes its parent's detail, which lists it.
+  createTask: (a: { parent?: string }) =>
+    byKey(
+      k.tasks.lists,
+      k.projects.all,
+      k.calendar.all,
+      k.overview,
+      ...(a.parent ? [k.tasks.detail(a.parent)] : []),
+    ),
   // The inbox follows the owner and due date notices.
   patchTask: (a: { key: string; parentId: string | null }) => [
     ...byKey(
@@ -40,7 +47,21 @@ export const invalidations = {
     ),
     ...(a.parentId ? [detailOfTaskId(a.parentId)] : []),
   ],
+  // The deleted task's own detail is left alone: it would refetch into a 404
+  // while the panel closes.
+  deleteTask: (a: { parentId: string | null }) => [
+    ...byKey(
+      k.tasks.lists,
+      k.projects.all,
+      k.calendar.all,
+      k.inbox,
+      k.overview,
+    ),
+    ...(a.parentId ? [detailOfTaskId(a.parentId)] : []),
+  ],
   comment: (a: { key: string }) => byKey(k.tasks.detail(a.key)),
+  editComment: (a: { key: string }) => byKey(k.tasks.detail(a.key)),
+  deleteComment: (a: { key: string }) => byKey(k.tasks.detail(a.key), k.inbox),
   react: (a: { key: string }) => byKey(k.tasks.detail(a.key)),
   addCollaborator: (a: { key: string }) =>
     byKey(k.tasks.detail(a.key), k.tasks.lists),
@@ -57,6 +78,9 @@ export const invalidations = {
   removeMember: (a: { team: string }) =>
     byKey(k.teams.detail(a.team), k.teams.list, k.me),
   createLabel: (_: unknown) => byKey(k.labels),
+  // Every task that had the label loses it.
+  deleteLabel: (_: unknown) =>
+    byKey(k.labels, k.tasks.lists, k.tasks.details, k.calendar.all),
   createEvent: (_: unknown) => byKey(k.calendar.all, k.freeBusy.all),
   deleteEvent: (_: unknown) => byKey(k.calendar.all, k.freeBusy.all),
   // A person's name and picture show on almost every screen.
