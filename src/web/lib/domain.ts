@@ -1,14 +1,18 @@
-import {
-  TASK_STATUSES,
-  type Member,
-  type Project,
-  type TaskStatus,
-} from "@shared/types";
+import type { Member, Project, TaskStatus } from "@shared/types";
 
 // The Spanish names the interface uses for what the server stores. Every label
 // lives here.
 
-export const STATUSES: readonly TaskStatus[] = TASK_STATUSES;
+// The order of the status menu, the board columns and the filter: the path a
+// task usually takes first, then the states off that path.
+export const STATUSES: readonly TaskStatus[] = [
+  "todo",
+  "in_progress",
+  "done",
+  "blocked",
+  "backlog",
+  "canceled",
+];
 
 export const STATUS_LABEL: Record<TaskStatus, string> = {
   backlog: "Pendiente",
