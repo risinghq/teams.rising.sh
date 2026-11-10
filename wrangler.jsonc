@@ -22,7 +22,7 @@
   "routes": [{ "pattern": "teams.rising.sh", "custom_domain": true }],
   "vars": {
     "ALLOWED_DOMAINS": "rising.sh",
-    "ALLOWED_EMAILS": "dadch1404@gmail.com,pedro.rojas.f24@gmail.com,rcrdphysics@gmail.com,edhutech.work@gmail.com",
+    "ALLOWED_EMAILS": "dadch1404@gmail.com,pedro.rojas.f24@gmail.com,rcrdphysics@gmail.com,edhutech.work@gmail.com,jhona.morgan63@gmail.com",
   },
   "observability": { "enabled": true },
 }
