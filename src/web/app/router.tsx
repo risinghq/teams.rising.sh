@@ -35,14 +35,6 @@ const login = createRoute({
     return <LoginScreen error={login.useSearch().error} />;
   },
 });
-const privacy = createRoute({
-  getParentRoute: () => root,
-  path: "/privacidad",
-  component: lazyRouteComponent(
-    () => import("@/features/legal/legal"),
-    "Privacy",
-  ),
-});
 const terms = createRoute({
   getParentRoute: () => root,
   path: "/terminos",
@@ -148,7 +140,6 @@ const task = createRoute({
 export const router = createRouter({
   routeTree: root.addChildren([
     login,
-    privacy,
     terms,
     shell.addChildren([
       home,

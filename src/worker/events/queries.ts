@@ -60,7 +60,7 @@ export async function teamIdByKey(
 
 export async function insertEvent(
   db: D1Database,
-  event: Omit<EventRow, "google_event_id" | "meet_url">,
+  event: Omit<EventRow, "google_event_id" | "google_calendar_id" | "meet_url">,
 ): Promise<void> {
   await db
     .prepare(
@@ -131,14 +131,16 @@ export async function deleteEvent(
 export async function setGoogleIds(
   db: D1Database,
   eventId: string,
+  calendarId: string,
   googleId: string,
   meetUrl: string | null,
 ): Promise<void> {
   await db
     .prepare(
-      "UPDATE events SET google_event_id = ?, meet_url = coalesce(?, meet_url) WHERE id = ?",
+      `UPDATE events SET google_calendar_id = ?, google_event_id = ?,
+       meet_url = coalesce(?, meet_url) WHERE id = ?`,
     )
-    .bind(googleId, meetUrl, eventId)
+    .bind(calendarId, googleId, meetUrl, eventId)
     .run();
 }
 

@@ -1,14 +1,18 @@
 import type { CalEvent } from "../../shared/types";
-import { refreshTokenOf } from "../auth/queries";
+import {
+  refreshTokenOf,
+  saveTeamsCalendar,
+  teamsCalendarOf,
+} from "../auth/queries";
 import type { Env } from "../env";
 import { emailsOf, setGoogleIds } from "./queries";
 
 type Bindings = Env["Bindings"];
 
 const TOKEN_URL = "https://oauth2.googleapis.com/token";
-const EVENTS_URL =
-  "https://www.googleapis.com/calendar/v3/calendars/primary/events";
-const FREEBUSY_URL = "https://www.googleapis.com/calendar/v3/freeBusy";
+const API = "https://www.googleapis.com/calendar/v3";
+const CALENDARS_URL = `${API}/calendars`;
+const FREEBUSY_URL = `${API}/freeBusy`;
 
 async function accessToken(env: Bindings, userId: string) {
   if (!env.GOOGLE_CLIENT_ID || !env.GOOGLE_CLIENT_SECRET) return null;
@@ -48,8 +52,9 @@ type Sent = { id: string; hangoutLink?: string };
 
 // `conferenceDataVersion=1` lets the body ask for a Meet, and `sendUpdates`
 // mails the attendees an invitation, a change or a cancellation.
-function eventUrl(googleId: string | null) {
-  const url = new URL(googleId ? `${EVENTS_URL}/${googleId}` : EVENTS_URL);
+function eventUrl(calendarId: string, googleId: string | null) {
+  const events = `${CALENDARS_URL}/${encodeURIComponent(calendarId)}/events`;
+  const url = new URL(googleId ? `${events}/${googleId}` : events);
   url.searchParams.set("conferenceDataVersion", "1");
   url.searchParams.set("sendUpdates", "all");
   return url.toString();
@@ -73,16 +78,13 @@ function eventBody(event: CalEvent, emails: string[], meet: boolean) {
   };
 }
 
-async function send(
-  env: Bindings,
-  userId: string,
+function send(
+  token: string,
   method: "POST" | "PATCH" | "DELETE",
-  googleId: string | null,
+  url: string,
   body?: object,
-): Promise<Sent | null> {
-  const token = await accessToken(env, userId);
-  if (!token) return null;
-  const res = await fetch(eventUrl(googleId), {
+) {
+  return fetch(url, {
     method,
     headers: {
       authorization: `Bearer ${token}`,
@@ -90,11 +92,44 @@ async function send(
     },
     body: body ? JSON.stringify(body) : undefined,
   });
-  if (!res.ok) return null;
-  return method === "DELETE" ? null : ((await res.json()) as Sent);
 }
 
-// Mirrors the event to its creator's primary Google calendar and invites its
+// The person's "Teams" calendar in Google, created on first use. `fresh`
+// replaces a stored one the person deleted.
+async function teamsCalendar(
+  env: Bindings,
+  userId: string,
+  token: string,
+  fresh = false,
+): Promise<string | null> {
+  const stored = fresh ? null : await teamsCalendarOf(env.DB, userId);
+  if (stored) return stored;
+  const res = await send(token, "POST", CALENDARS_URL, { summary: "Teams" });
+  if (!res.ok) return null;
+  const { id } = (await res.json()) as { id: string };
+  await saveTeamsCalendar(env.DB, userId, id);
+  return id;
+}
+
+// A new event goes to the creator's Teams calendar. A 404 means the person
+// deleted that calendar in Google, so it is made again once.
+async function createEvent(
+  env: Bindings,
+  userId: string,
+  token: string,
+  body: object,
+): Promise<{ calendarId: string; sent: Sent } | null> {
+  for (const fresh of [false, true]) {
+    const calendarId = await teamsCalendar(env, userId, token, fresh);
+    if (!calendarId) return null;
+    const res = await send(token, "POST", eventUrl(calendarId, null), body);
+    if (res.ok) return { calendarId, sent: (await res.json()) as Sent };
+    if (res.status !== 404) return null;
+  }
+  return null;
+}
+
+// Mirrors the event to its creator's Teams calendar in Google and invites its
 // attendees from there. `meet` asks Google for a Meet link once. A failure is
 // logged and leaves the event as it is: Teams stays the source of truth.
 export async function syncEvent(
@@ -104,19 +139,30 @@ export async function syncEvent(
   meet = false,
 ) {
   try {
+    const token = await accessToken(env, userId);
+    if (!token) return;
     const emails = await emailsOf(
       env.DB,
       event.attendees.map((a) => a.id),
     );
-    const sent = await send(
-      env,
-      userId,
-      event.google_event_id ? "PATCH" : "POST",
-      event.google_event_id,
-      eventBody(event, emails, meet && !event.meet_url),
-    );
-    if (sent)
-      await setGoogleIds(env.DB, event.id, sent.id, sent.hangoutLink ?? null);
+    const body = eventBody(event, emails, meet && !event.meet_url);
+    let result: { calendarId: string; sent: Sent } | null = null;
+    if (event.google_event_id) {
+      const calendarId = event.google_calendar_id ?? "primary";
+      const url = eventUrl(calendarId, event.google_event_id);
+      const res = await send(token, "PATCH", url, body);
+      if (res.ok) result = { calendarId, sent: (await res.json()) as Sent };
+    } else {
+      result = await createEvent(env, userId, token, body);
+    }
+    if (result)
+      await setGoogleIds(
+        env.DB,
+        event.id,
+        result.calendarId,
+        result.sent.id,
+        result.sent.hangoutLink ?? null,
+      );
   } catch (err) {
     console.error("google calendar sync failed", err);
   }
@@ -163,7 +209,10 @@ export async function removeEvent(
 ) {
   if (!event.google_event_id) return;
   try {
-    await send(env, userId, "DELETE", event.google_event_id);
+    const token = await accessToken(env, userId);
+    if (!token) return;
+    const calendarId = event.google_calendar_id ?? "primary";
+    await send(token, "DELETE", eventUrl(calendarId, event.google_event_id));
   } catch (err) {
     console.error("google calendar delete failed", err);
   }

@@ -3,11 +3,15 @@ import { HttpError } from "../http";
 
 export const GOOGLE_AUTH = "https://accounts.google.com/o/oauth2/v2/auth";
 export const GOOGLE_TOKEN = "https://oauth2.googleapis.com/token";
+// Google rates both calendar scopes non-sensitive, so the app needs no
+// sensitive-scope review. Teams writes only to the calendar it creates and
+// reads only free/busy.
 export const SCOPES = [
   "openid",
   "email",
   "profile",
-  "https://www.googleapis.com/auth/calendar",
+  "https://www.googleapis.com/auth/calendar.app.created",
+  "https://www.googleapis.com/auth/calendar.freebusy",
 ].join(" ");
 
 export type Claims = {

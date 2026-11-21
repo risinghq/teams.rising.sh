@@ -87,3 +87,25 @@ export async function refreshTokenOf(
     .first<{ refresh_token: string }>();
   return row?.refresh_token ?? null;
 }
+
+export async function teamsCalendarOf(
+  db: D1Database,
+  userId: string,
+): Promise<string | null> {
+  const row = await db
+    .prepare("SELECT calendar_id FROM google_tokens WHERE user_id = ?")
+    .bind(userId)
+    .first<{ calendar_id: string | null }>();
+  return row?.calendar_id ?? null;
+}
+
+export async function saveTeamsCalendar(
+  db: D1Database,
+  userId: string,
+  calendarId: string | null,
+): Promise<void> {
+  await db
+    .prepare("UPDATE google_tokens SET calendar_id = ? WHERE user_id = ?")
+    .bind(calendarId, userId)
+    .run();
+}
