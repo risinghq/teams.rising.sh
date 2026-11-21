@@ -22,8 +22,9 @@ request without one gets 401.
 | ------------------------------- | ----------------------------------------------------------------------------------------------------------- |
 | `GET /api/auth/google`          | Redirects to Google sign-in.                                                                                |
 | `GET /api/auth/google/callback` | Creates the user and session, sets the `session` cookie (HttpOnly, Secure, SameSite=Lax), redirects to `/`. |
+| `POST /api/auth/google/review`  | A form post. Revokes the caller's stored Google grant, then redirects (303) to `/api/auth/google`.          |
 | `POST /api/auth/logout`         | Deletes the session.                                                                                        |
-| `GET /api/me`                   | The user, their profile, their teams with roles, and `is_admin`.                                            |
+| `GET /api/me`                   | The user, their profile, their teams with roles, `is_admin`, and `google_review`.                           |
 | `POST /api/auth/dev`            | Signs in by email without Google. Exists only when `DEV_LOGIN=1`, for tests and local runs. Otherwise 404.  |
 
 Sign-in is limited to the Google Workspace domain or email list in the

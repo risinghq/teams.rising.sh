@@ -3,10 +3,18 @@ import { deleteCookie, getCookie, setCookie } from "hono/cookie";
 import { devLogin } from "../../shared/schemas";
 import type { Env } from "../env";
 import { HttpError, id, parseBody, type C } from "../http";
-import { allowed, claimsOf, GOOGLE_AUTH, GOOGLE_TOKEN, SCOPES } from "./google";
+import {
+  allowed,
+  claimsOf,
+  GOOGLE_AUTH,
+  GOOGLE_REVOKE,
+  GOOGLE_TOKEN,
+  SCOPES,
+} from "./google";
 import {
   deleteSession,
   insertSession,
+  refreshTokenOf,
   saveRefreshToken,
   upsertUser,
   userBySession,
@@ -106,6 +114,7 @@ async function completeGoogleSignIn(c: C): Promise<void> {
   const tokens = (await response.json()) as {
     id_token: string;
     refresh_token?: string;
+    scope?: string;
   };
   const claims = claimsOf(tokens.id_token, clientId);
   if (!allowed(claims.email, c.env))
@@ -121,9 +130,36 @@ async function completeGoogleSignIn(c: C): Promise<void> {
     claims.picture ?? null,
   );
   if (tokens.refresh_token)
-    await saveRefreshToken(c.env.DB, userId, tokens.refresh_token);
+    await saveRefreshToken(
+      c.env.DB,
+      userId,
+      tokens.refresh_token,
+      tokens.scope ?? "",
+    );
   await startSession(c, userId);
 }
+
+// Revokes the stored grant, so Google forgets every scope it held, then asks
+// for consent again with the current scopes. It is a form POST: the session
+// cookie is SameSite=Lax, so another site cannot revoke a person's grant.
+// A cancelled consent leaves the person signed in without calendar sync, and
+// the review prompt shows again.
+authRoutes.post("/google/review", async (c) => {
+  const session = getCookie(c, "session");
+  const user = session ? await userBySession(c.env.DB, session) : null;
+  if (!user) return c.redirect("/login");
+  const token = await refreshTokenOf(c.env.DB, user.id);
+  if (token) {
+    const res = await fetch(GOOGLE_REVOKE, {
+      method: "POST",
+      body: new URLSearchParams({ token }),
+    });
+    // Google answers 400 for a token it already revoked. Any other failure
+    // returns to the app, where the prompt is still open.
+    if (!res.ok && res.status !== 400) return c.redirect("/", 303);
+  }
+  return c.redirect("/api/auth/google", 303);
+});
 
 authRoutes.post("/dev", async (c) => {
   if (c.env.DEV_LOGIN !== "1") throw new HttpError(404, "no encontrado");

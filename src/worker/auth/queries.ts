@@ -66,15 +66,30 @@ export async function saveRefreshToken(
   db: D1Database,
   userId: string,
   token: string,
+  scope: string | null,
 ): Promise<void> {
   await db
     .prepare(
-      `INSERT INTO google_tokens (user_id, refresh_token) VALUES (?, ?)
+      `INSERT INTO google_tokens (user_id, refresh_token, scope) VALUES (?, ?, ?)
        ON CONFLICT (user_id) DO UPDATE SET refresh_token = excluded.refresh_token,
+       scope = excluded.scope,
        updated_at = strftime('%Y-%m-%dT%H:%M:%fZ', 'now')`,
     )
-    .bind(userId, token)
+    .bind(userId, token, scope)
     .run();
+}
+
+// The space-separated scopes of the stored grant: undefined when the person
+// has no Google token, null for a grant stored before scopes were recorded.
+export async function grantedScopeOf(
+  db: D1Database,
+  userId: string,
+): Promise<string | null | undefined> {
+  const row = await db
+    .prepare("SELECT scope FROM google_tokens WHERE user_id = ?")
+    .bind(userId)
+    .first<{ scope: string | null }>();
+  return row ? row.scope : undefined;
 }
 
 export async function refreshTokenOf(

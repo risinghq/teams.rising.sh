@@ -6,13 +6,29 @@ export const GOOGLE_TOKEN = "https://oauth2.googleapis.com/token";
 // Google rates both calendar scopes non-sensitive, so the app needs no
 // sensitive-scope review. Teams writes only to the calendar it creates and
 // reads only free/busy.
-export const SCOPES = [
-  "openid",
-  "email",
-  "profile",
+const CALENDAR_SCOPES = [
   "https://www.googleapis.com/auth/calendar.app.created",
   "https://www.googleapis.com/auth/calendar.freebusy",
-].join(" ");
+];
+export const SCOPES = ["openid", "email", "profile", ...CALENDAR_SCOPES].join(
+  " ",
+);
+export const GOOGLE_REVOKE = "https://oauth2.googleapis.com/revoke";
+
+// True when the stored grant reaches more of the calendar than Teams asks
+// for: a grant stored before scopes were recorded (null) held the full
+// `calendar` scope. Only revoking the grant removes it from the account.
+export function grantNeedsReview(scope: string | null | undefined): boolean {
+  if (scope === undefined) return false;
+  if (scope === null) return true;
+  return scope
+    .split(" ")
+    .some(
+      (s) =>
+        s.startsWith("https://www.googleapis.com/auth/calendar") &&
+        !CALENDAR_SCOPES.includes(s),
+    );
+}
 
 export type Claims = {
   iss: string;

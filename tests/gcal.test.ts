@@ -105,8 +105,44 @@ async function signIn(email: string, withToken: boolean) {
     );
     return { status: res.status, body: (await res.json()) as any };
   };
-  return Object.assign(call, { id });
+  return Object.assign(call, { id, cookie });
 }
+
+test("a grant stored before scopes were recorded is reviewed and revoked", async () => {
+  const old = await signIn("k@x.test", true);
+  const none = await signIn("l@x.test", false);
+  const narrow = await signIn("m@x.test", true);
+  await DB.prepare(
+    `UPDATE google_tokens SET scope = 'openid https://www.googleapis.com/auth/calendar.app.created https://www.googleapis.com/auth/calendar.freebusy'
+     WHERE user_id = ?`,
+  )
+    .bind(narrow.id)
+    .run();
+  expect((await old("GET", "/api/me")).body.google_review).toBe(true);
+  expect((await none("GET", "/api/me")).body.google_review).toBe(false);
+  expect((await narrow("GET", "/api/me")).body.google_review).toBe(false);
+
+  const revoked: string[] = [];
+  globalThis.fetch = (async (url: string, init?: RequestInit) => {
+    revoked.push(`${url} ${String(init?.body)}`);
+    return new Response("{}");
+  }) as typeof fetch;
+  const res = await app.request(
+    "/api/auth/google/review",
+    { method: "POST", headers: { cookie: old.cookie } },
+    env,
+  );
+  expect(res.status).toBe(303);
+  expect(res.headers.get("location")).toBe("/api/auth/google");
+  expect(revoked).toEqual(["https://oauth2.googleapis.com/revoke token=rt"]);
+
+  const anonymous = await app.request(
+    "/api/auth/google/review",
+    { method: "POST" },
+    env,
+  );
+  expect(anonymous.headers.get("location")).toBe("/login");
+});
 
 test("the sign-in asks for no sensitive calendar scope", async () => {
   const res = await app.request("/api/auth/google", {}, env);

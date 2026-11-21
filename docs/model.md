@@ -78,6 +78,12 @@ than both `users.inbox_read_at` (the last "read all") and the caller's
   Attendees (`event_attendees`) get Google's invitation by email. An event
   created with `meet` gets a Google Meet link, kept in `events.meet_url`. A
   Google failure leaves the Teams event saved.
+- Google grant: `google_tokens.scope` keeps the scopes Google granted. A grant
+  that reaches more of the calendar than Teams asks for, or one stored before
+  the column (NULL, the full `calendar` scope), sets `google_review` on
+  `/api/me`. The app then shows a prompt with no way to close it. Its button
+  revokes the grant, which is the only way to remove the old scope from the
+  account, and opens Google's consent again.
 - Free/busy: `GET /api/freebusy` asks Google's free/busy API for each person and
   adds the Teams events they created or attend. It returns busy intervals only,
   never titles, so private Google events never reach the org. A person without a
