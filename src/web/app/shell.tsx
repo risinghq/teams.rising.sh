@@ -1,6 +1,7 @@
 import { Outlet } from "@tanstack/react-router";
 import { Menu } from "lucide-react";
 import { lazy, Suspense, useEffect, useState } from "react";
+import { useMe } from "@/features/teams/hooks";
 import { IconButton } from "@/ui/icon-button";
 import { SidebarContent } from "./sidebar";
 
@@ -11,6 +12,11 @@ const Palette = lazy(() =>
 );
 const Drawer = lazy(() =>
   import("./drawer").then((m) => ({ default: m.Drawer })),
+);
+const GoogleReview = lazy(() =>
+  import("@/features/auth/google-review").then((m) => ({
+    default: m.GoogleReview,
+  })),
 );
 
 // True from the first time `open` is true, so a lazy overlay stays mounted
@@ -26,6 +32,7 @@ export function Shell() {
   const [palette, setPalette] = useState(false);
   const drawerLoaded = useEverOpened(drawer);
   const paletteLoaded = useEverOpened(palette);
+  const review = useMe().data?.google_review ?? false;
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -70,6 +77,7 @@ export function Shell() {
           />
         )}
         {paletteLoaded && <Palette open={palette} onOpenChange={setPalette} />}
+        {review && <GoogleReview />}
       </Suspense>
     </div>
   );

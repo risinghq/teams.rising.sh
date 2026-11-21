@@ -454,6 +454,7 @@ test("sign-in by Google is limited to the allow list", async () => {
         Response.json({
           id_token: idToken(email),
           refresh_token: "r",
+          scope: "openid https://www.googleapis.com/auth/calendar.freebusy",
         })) as unknown as typeof fetch;
       const res = await app.request(
         "/api/auth/google/callback?code=c&state=s",
@@ -463,6 +464,15 @@ test("sign-in by Google is limited to the allow list", async () => {
       expect(res.status).toBe(302);
       expect(res.headers.get("location") ?? "").toStartWith(location);
     }
+    const stored = await (env.DB as D1Database)
+      .prepare(
+        `SELECT scope FROM google_tokens t JOIN users u ON u.id = t.user_id
+         WHERE u.email = 'me@ok.test'`,
+      )
+      .first<{ scope: string }>();
+    expect(stored?.scope).toBe(
+      "openid https://www.googleapis.com/auth/calendar.freebusy",
+    );
     const canceled = await app.request(
       "/api/auth/google/callback?error=access_denied&state=s",
       { headers: { cookie: "oauth_state=s" } },

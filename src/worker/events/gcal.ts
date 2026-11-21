@@ -112,7 +112,8 @@ async function teamsCalendar(
 }
 
 // A new event goes to the creator's Teams calendar. A 404 means the person
-// deleted that calendar in Google, so it is made again once.
+// deleted that calendar in Google, and a 403 that the current grant cannot
+// reach it, so it is made again once.
 async function createEvent(
   env: Bindings,
   userId: string,
@@ -124,7 +125,7 @@ async function createEvent(
     if (!calendarId) return null;
     const res = await send(token, "POST", eventUrl(calendarId, null), body);
     if (res.ok) return { calendarId, sent: (await res.json()) as Sent };
-    if (res.status !== 404) return null;
+    if (res.status !== 404 && res.status !== 403) return null;
   }
   return null;
 }

@@ -1,6 +1,8 @@
 import { Hono } from "hono";
 import { patchMe } from "../../shared/schemas";
 import type { Me, User } from "../../shared/types";
+import { grantNeedsReview } from "../auth/google";
+import { grantedScopeOf } from "../auth/queries";
 import type { Env, SessionUser } from "../env";
 import { type C, HttpError, parseBody } from "../http";
 import {
@@ -26,6 +28,7 @@ async function meOf(c: C, user: SessionUser): Promise<Me> {
     is_admin: user.is_admin === 1,
     whatsapp_verified: whatsapp_verified_at !== null,
     teams: await teamsOf(c.env.DB, user.id),
+    google_review: grantNeedsReview(await grantedScopeOf(c.env.DB, user.id)),
   };
 }
 

@@ -88,6 +88,9 @@ export type Me = {
   whatsapp_verified: boolean;
   is_admin: boolean;
   teams: { key: string; name: string; role: "leader" | "member" }[];
+  // The stored Google grant reaches more than Teams asks for; the person is
+  // asked to grant the current scopes again.
+  google_review: boolean;
 };
 
 export type Team = {
