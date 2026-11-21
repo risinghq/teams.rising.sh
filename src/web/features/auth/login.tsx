@@ -1,3 +1,4 @@
+import { PRIVACY_URL } from "@shared/links";
 import { Link } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { cn } from "@/lib/cn";
@@ -84,12 +85,12 @@ export function Login({ error }: { error?: string }) {
           </p>
         </div>
         <p className="text-xs text-muted-foreground">
-          <Link
-            to="/privacidad"
+          <a
+            href={PRIVACY_URL}
             className="underline-offset-4 hover:text-foreground hover:underline"
           >
             Privacidad
-          </Link>
+          </a>
           {" · "}
           <Link
             to="/terminos"

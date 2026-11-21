@@ -31,10 +31,12 @@ wrangler secret put GITHUB_WEBHOOK_SECRET
 
 ## Google OAuth client
 
-1. In Google Cloud Console, create a project and configure the OAuth consent
-   screen. Add the scopes `openid`, `email`, `profile` and
-   `https://www.googleapis.com/auth/calendar`.
-2. Create an OAuth client of type Web application.
+1. Use the Google Cloud project `teams-rising-sh`. Every rising.sh app signs in
+   through it, and its consent screen is verified as "Rising". Under **Data
+   Access** it declares `openid`, `email`, `profile`,
+   `https://www.googleapis.com/auth/calendar.app.created` and
+   `https://www.googleapis.com/auth/calendar.freebusy`.
+2. Create an OAuth client of type Web application named `teams`.
 3. Add these authorized redirect URIs:
    - `https://teams.rising.sh/api/auth/google/callback`
    - `http://localhost:8787/api/auth/google/callback`
@@ -44,9 +46,13 @@ The app is published (status In production), so Google lets any account through
 and `ALLOWED_DOMAINS` and `ALLOWED_EMAILS` alone decide access. Do not move it
 back to Testing: Google then refuses accounts that are not on the test user
 list, and it expires refresh tokens after 7 days, which stops the calendar
-mirror. The Branding page links the home page, `/privacidad` and `/terminos`,
-which publishing requires. The calendar scope is sensitive and unverified, so
-users see Google's unverified-app warning and the app is capped at 100 users.
+mirror. The Branding page links the home page https://rising.sh and the privacy
+policy https://rising.sh/privacy/, which lives in the `risinghq/rising.sh`
+repository; `/privacidad` redirects there. Google rates both calendar scopes
+non-sensitive, so the app needs no sensitive-scope review and shows no
+unverified-app warning. Asking for a broader calendar scope, such as `calendar`
+or `calendar.events`, brings that review back, so a change that needs one
+updates the policy and Data Access first.
 
 ## Local run
 

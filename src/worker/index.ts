@@ -1,4 +1,5 @@
 import { Hono } from "hono";
+import { PRIVACY_URL } from "../shared/links";
 import { authRoutes, requireUser } from "./auth/routes";
 import type { Env } from "./env";
 import { eventRoutes } from "./events/routes";
@@ -28,6 +29,10 @@ app.onError((err, c) => {
 app.get("/api/health", async (c) =>
   c.json({ ok: true, teams: await countTeams(c.env.DB) }),
 );
+
+// One privacy policy covers every rising.sh app, and Google's consent screen
+// links it. The old address keeps working.
+app.get("/privacidad", (c) => c.redirect(PRIVACY_URL, 301));
 
 app.route("/api/auth", authRoutes);
 app.route("/hooks", githubRoutes);

@@ -27,7 +27,7 @@ and paging are the server's.
 | `/teams/new`        | New team                                                |
 | `/perfil`           | Perfil: picture, name, username, WhatsApp number        |
 | `/login`            | Sign in                                                 |
-| `/privacidad`       | Privacy                                                 |
+| `/privacidad`       | The Worker redirects to https://rising.sh/privacy/      |
 | `/terminos`         | Terms                                                   |
 
 Every screen is its own chunk, fetched when its route first matches or when a

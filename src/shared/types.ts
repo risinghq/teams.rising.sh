@@ -137,6 +137,7 @@ export type CalEvent = {
   ends_at: string | null;
   all_day: number;
   google_event_id: string | null;
+  google_calendar_id: string | null;
   meet_url: string | null;
   created_by: string;
   attendees: Person[];

@@ -69,11 +69,15 @@ than both `users.inbox_read_at` (the last "read all") and the caller's
 - GitHub: a webhook at `/hooks/github` links pull requests, issues, branches and
   commits to a task by key, and keeps `task_links.state` current.
 - Google: sign-in uses Google OIDC. Calendar sync is one way: an event created,
-  changed or deleted in Teams is mirrored to its creator's primary calendar and
-  keeps that calendar's id in `events.google_event_id`. Attendees
-  (`event_attendees`) get Google's invitation by email. An event created with
-  `meet` gets a Google Meet link, kept in `events.meet_url`. A Google failure
-  leaves the Teams event saved.
+  changed or deleted in Teams is mirrored to a "Teams" calendar that the app
+  creates in its creator's Google account on first use
+  (`google_tokens.calendar_id`). The `calendar.app.created` scope reaches no
+  other calendar. The event keeps Google's ids in `events.google_calendar_id`
+  and `events.google_event_id`; events mirrored before the Teams calendar stay
+  in `primary`. A deleted Teams calendar is made again on the next new event.
+  Attendees (`event_attendees`) get Google's invitation by email. An event
+  created with `meet` gets a Google Meet link, kept in `events.meet_url`. A
+  Google failure leaves the Teams event saved.
 - Free/busy: `GET /api/freebusy` asks Google's free/busy API for each person and
   adds the Teams events they created or attend. It returns busy intervals only,
   never titles, so private Google events never reach the org. A person without a

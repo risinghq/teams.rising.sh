@@ -38,21 +38,39 @@ type Sent = { url: string; method: string; body: any };
 
 // Google ids are unique across the file, as the events table requires.
 let googleIds = 0;
+let calendarIds = 0;
 
-// Answers Google's endpoints and records what the worker sent. A request that
-// asks for a Meet gets a link back; free/busy answers with `busy`.
-function fakeGoogle(status = 200, busy: { start: string; end: string }[] = []) {
-  const sent: Sent[] = [];
+// Answers Google's endpoints and records what the worker sent: event and
+// free/busy calls in the array, calendar creations in `calendars`. A request
+// that asks for a Meet gets a link back; free/busy answers with `busy`. An
+// event sent to a calendar in `gone` gets a 404, as for a deleted calendar.
+function fakeGoogle(
+  status = 200,
+  busy: { start: string; end: string }[] = [],
+  gone: string[] = [],
+) {
+  const sent = Object.assign([] as Sent[], { calendars: [] as Sent[] });
   globalThis.fetch = (async (url: string, init?: RequestInit) => {
     if (String(url).includes("oauth2.googleapis.com"))
       return Response.json({ access_token: "at" });
     const body = typeof init?.body === "string" ? JSON.parse(init.body) : null;
-    sent.push({ url: String(url), method: init?.method ?? "GET", body });
+    const call = { url: String(url), method: init?.method ?? "GET", body };
+    if (new URL(call.url).pathname.endsWith("/calendars")) {
+      sent.calendars.push(call);
+      return Response.json({ id: `cal${++calendarIds}` });
+    }
+    sent.push(call);
     if (status !== 200) return new Response("no", { status });
+    if (gone.some((id) => call.url.includes(`/calendars/${id}/`)))
+      return new Response("gone", { status: 404 });
     if (String(url).endsWith("/freeBusy"))
       return Response.json({ calendars: { primary: { busy } } });
     return Response.json({
-      id: `g${++googleIds}`,
+      // A change keeps the event's id, as Google does.
+      id:
+        call.method === "PATCH"
+          ? new URL(call.url).pathname.split("/").pop()
+          : `g${++googleIds}`,
       ...(body?.conferenceData && {
         hangoutLink: "https://meet.google.com/abc",
       }),
@@ -90,7 +108,27 @@ async function signIn(email: string, withToken: boolean) {
   return Object.assign(call, { id });
 }
 
-test("an event is created, moved and removed in the creator's Google calendar", async () => {
+test("the sign-in asks for no sensitive calendar scope", async () => {
+  const res = await app.request("/api/auth/google", {}, env);
+  const scopes = new URL(res.headers.get("location") ?? "").searchParams
+    .get("scope")
+    ?.split(" ");
+  expect(scopes).toEqual([
+    "openid",
+    "email",
+    "profile",
+    "https://www.googleapis.com/auth/calendar.app.created",
+    "https://www.googleapis.com/auth/calendar.freebusy",
+  ]);
+});
+
+test("the old privacy address sends people to the rising.sh policy", async () => {
+  const res = await app.request("/privacidad", {}, env);
+  expect(res.status).toBe(301);
+  expect(res.headers.get("location")).toBe("https://rising.sh/privacy/");
+});
+
+test("an event is created, moved and removed in the creator's Teams calendar", async () => {
   const call = await signIn("a@x.test", true);
   const sent = fakeGoogle();
   const created = await call("POST", "/api/events", {
@@ -101,16 +139,77 @@ test("an event is created, moved and removed in the creator's Google calendar", 
   expect(created.status).toBe(201);
   const googleId = created.body.google_event_id;
   expect(googleId).toMatch(/^g\d+$/);
+  expect(sent.calendars).toHaveLength(1);
+  expect(sent.calendars[0]!.body).toEqual({ summary: "Teams" });
+  const calendarId = created.body.google_calendar_id;
+  expect(calendarId).toMatch(/^cal\d+$/);
+  expect(new URL(sent[0]!.url).pathname).toEndWith(
+    `/calendars/${calendarId}/events`,
+  );
   expect(sent[0]).toMatchObject({ method: "POST" });
   expect(sent[0]!.body.summary).toBe("Dock inspection");
   expect(sent[0]!.body.end.dateTime).toBe("2026-11-02T15:30:00.000Z");
 
   await call("PATCH", `/api/events/${created.body.id}`, { title: "Dock" });
   expect(sent[1]).toMatchObject({ method: "PATCH" });
-  expect(new URL(sent[1]!.url).pathname).toEndWith(`/events/${googleId}`);
+  expect(new URL(sent[1]!.url).pathname).toEndWith(
+    `/calendars/${calendarId}/events/${googleId}`,
+  );
+
+  // The second event reuses the Teams calendar.
+  await call("POST", "/api/events", {
+    title: "Second",
+    starts_at: "2026-11-03T14:00:00Z",
+  });
+  expect(sent.calendars).toHaveLength(1);
+  expect(new URL(sent[2]!.url).pathname).toEndWith(
+    `/calendars/${calendarId}/events`,
+  );
 
   await call("DELETE", `/api/events/${created.body.id}`);
-  expect(sent[2]).toMatchObject({ method: "DELETE" });
+  expect(sent[3]).toMatchObject({ method: "DELETE" });
+  expect(new URL(sent[3]!.url).pathname).toEndWith(
+    `/calendars/${calendarId}/events/${googleId}`,
+  );
+});
+
+test("a Teams calendar deleted in Google is made again", async () => {
+  const call = await signIn("i@x.test", true);
+  fakeGoogle();
+  const first = await call("POST", "/api/events", {
+    title: "First",
+    starts_at: "2026-11-02T14:00:00Z",
+  });
+  const old = first.body.google_calendar_id;
+  const sent = fakeGoogle(200, [], [old]);
+  const second = await call("POST", "/api/events", {
+    title: "Second",
+    starts_at: "2026-11-03T14:00:00Z",
+  });
+  expect(sent.calendars).toHaveLength(1);
+  expect(second.body.google_calendar_id).not.toBe(old);
+  expect(second.body.google_event_id).toMatch(/^g\d+$/);
+  expect(sent).toHaveLength(2);
+});
+
+test("an event mirrored before the Teams calendar stays in the primary calendar", async () => {
+  const call = await signIn("j@x.test", true);
+  fakeGoogle(500);
+  const created = await call("POST", "/api/events", {
+    title: "Legacy",
+    starts_at: "2026-11-02T14:00:00Z",
+  });
+  await DB.prepare(
+    "UPDATE events SET google_event_id = 'legacy1', google_calendar_id = 'primary' WHERE id = ?",
+  )
+    .bind(created.body.id)
+    .run();
+  const sent = fakeGoogle();
+  await call("PATCH", `/api/events/${created.body.id}`, { title: "Legacy 2" });
+  expect(new URL(sent[0]!.url).pathname).toEndWith(
+    "/calendars/primary/events/legacy1",
+  );
+  expect(sent.calendars).toHaveLength(0);
 });
 
 test("an all-day event ends on the day after its last day", async () => {
