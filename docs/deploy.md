@@ -32,7 +32,7 @@ wrangler secret put GITHUB_WEBHOOK_SECRET
 ## Google OAuth client
 
 1. Use the Google Cloud project `teams-rising-sh`. Every rising.sh app signs in
-   through it, and its consent screen is verified as "Rising". Under **Data
+   through it, and its consent screen is verified as "rising.sh". Under **Data
    Access** it declares `openid`, `email`, `profile`,
    `https://www.googleapis.com/auth/calendar.app.created` and
    `https://www.googleapis.com/auth/calendar.freebusy`.
